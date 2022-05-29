@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "bodega",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mergesort/Bodega",
+      "state" : {
+        "branch" : "main",
+        "revision" : "1ecbec734096ebed9c30cb78a5df141a6975821e"
+      }
+    }
+  ],
+  "version" : 2
+}
