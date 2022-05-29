@@ -31,10 +31,8 @@ final class BoutiqueTests: XCTestCase {
 
     @MainActor
     func testAddingDuplicateItems() async throws {
-        print(store.items)
         XCTAssert(store.items.isEmpty)
         try await store.add(Self.allObjects)
-        print(store.items)
         XCTAssert(store.items.count == 4)
     }
 
@@ -83,8 +81,6 @@ final class BoutiqueTests: XCTestCase {
         try await store.add(gloves)
 
         try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeNone)
-
-        print(store.items)
         XCTAssert(store.items.contains(gloves))
     }
 
