@@ -2,16 +2,16 @@ import Bodega
 import Combine
 import Foundation
 
-final class Store<Object: Codable & Equatable>: ObservableObject {
+public final class Store<Object: Codable & Equatable>: ObservableObject {
 
     private let storagePath: URL
     private let objectStorage: ObjectStorage
     private let cacheIdentifier: KeyPath<Object, String>
     private var cancellables = Set<AnyCancellable>()
 
-    @MainActor @Published private(set) var items: [Object] = []
+    @MainActor @Published public private(set) var items: [Object] = []
 
-    init(storagePath: URL, cacheIdentifier: KeyPath<Object, String>) {
+    public init(storagePath: URL, cacheIdentifier: KeyPath<Object, String>) {
         self.storagePath = storagePath
         self.objectStorage = ObjectStorage(storagePath: storagePath)
         self.cacheIdentifier = cacheIdentifier
@@ -29,11 +29,11 @@ final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
-    func add(_ item: Object, invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
+    public func add(_ item: Object, invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
         try await self.add([item], invalidationStrategy: invalidationStrategy)
     }
 
-    func add(_ items: [Object], invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
+    public func add(_ items: [Object], invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
         var currentItems: [Object] = await self.items
 
         try await self.removePersistedItems(strategy: invalidationStrategy)
@@ -68,7 +68,7 @@ final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
-    func remove(_ item: Object) async throws {
+    public func remove(_ item: Object) async throws {
         let itemKey = item[keyPath: self.cacheIdentifier]
         let cacheKey = CacheKey(itemKey)
 
@@ -79,7 +79,7 @@ final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
-    func remove(_ items: [Object]) async throws {
+    public func remove(_ items: [Object]) async throws {
         let itemKeys = items.map { $0[keyPath: self.cacheIdentifier] }
         let cacheKeys = itemKeys.map({ CacheKey($0) })
 
@@ -94,7 +94,7 @@ final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
-    func removeAll() async throws {
+    public func removeAll() async throws {
         try await MainActor.run {
             try self.removeAllPersistedItems()
             self.items = []
@@ -147,7 +147,7 @@ private extension Store {
 
 // MARK: Store.CacheInvalidationStrategy
 
-extension Store {
+public extension Store {
 
     enum CacheInvalidationStrategy<Object> {
         case removeNone
@@ -192,18 +192,6 @@ private extension Store {
 }
 
 private extension Array where Element: Equatable {
-
-//    func uniqueElements() -> [Element] {
-//        var result = [Element]()
-//
-//        for element in self {
-//            if !result.contains(element) {
-//                result.append(element)
-//            }
-//        }
-//
-//        return result
-//    }
 
     func uniqueElements(matching keyPath: KeyPath<Element, String>) -> [Element] {
         var result = [Element]()
