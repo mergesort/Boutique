@@ -75,7 +75,9 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
         try await self.removePersistedItem(forKey: cacheKey)
 
         await MainActor.run {
-            self.items.removeAll(where: { itemKey == $0[keyPath: self.cacheIdentifier] })
+            self.items.removeAll(where: {
+                itemKey == $0[keyPath: self.cacheIdentifier]
+            })
         }
     }
 
@@ -95,8 +97,9 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
     }
 
     public func removeAll() async throws {
-        try await MainActor.run {
-            try self.removeAllPersistedItems()
+        try await self.removeAllPersistedItems()
+
+        await MainActor.run {
             self.items = []
         }
     }
@@ -133,9 +136,9 @@ private extension Store {
         }
     }
 
-    func removeAllPersistedItems() throws {
+    func removeAllPersistedItems() async throws {
         do {
-            try FileManager.default.removeItem(at: self.storagePath)
+            try await self.objectStorage.removeAllObjects()
         } catch CocoaError.fileNoSuchFile {
             print("We treat deleting a non-existent file/folder as a successful removal rather than throwing")
         } catch {
@@ -184,7 +187,7 @@ private extension Store {
             try await self.remove(itemsToRemove)
 
         case .removeAll:
-            try self.removeAllPersistedItems()
+            try await self.removeAllPersistedItems()
 
         }
     }
