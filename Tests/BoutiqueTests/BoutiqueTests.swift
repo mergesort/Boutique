@@ -7,11 +7,6 @@ final class BoutiqueTests: XCTestCase {
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
-
-        // Can't believe this hack is needed but there is an issue in recent Xcode builds
-        // where if you access files on disk too soon on launch you'll get a permissions error.
-        try await Task.sleep(nanoseconds: 100_000_000)
-
         try await store.removeAll()
     }
 
@@ -69,7 +64,7 @@ final class BoutiqueTests: XCTestCase {
         XCTAssert(store.items.count == 1)
         try await store.removeAll()
 
-        try await store.add(Self.allObjects)
+        try await store.add(Self.uniqueObjects)
         XCTAssert(store.items.count == 4)
         try await store.removeAll()
         XCTAssert(store.items.isEmpty)
@@ -148,6 +143,13 @@ private extension BoutiqueTests {
         BoutiqueTests.purse,
         BoutiqueTests.belt,
         BoutiqueTests.duplicateBelt
+    ]
+
+    static let uniqueObjects = [
+        BoutiqueTests.coat,
+        BoutiqueTests.sweater,
+        BoutiqueTests.purse,
+        BoutiqueTests.belt,
     ]
 
     static let testStoragePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("Tests")
