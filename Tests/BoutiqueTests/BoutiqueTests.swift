@@ -1,9 +1,11 @@
-import XCTest
 @testable import Boutique
+import Combine
+import XCTest
 
 final class BoutiqueTests: XCTestCase {
 
     private var store: Store<BoutiqueItem>!
+    private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
@@ -101,6 +103,26 @@ final class BoutiqueTests: XCTestCase {
 
         try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeAll)
         XCTAssertFalse(store.items.contains(gloves))
+    }
+
+    @MainActor
+    func testPublishedItemsSubscription() async throws {
+        let uniqueObjects = Self.uniqueObjects
+        let expectation = XCTestExpectation(description: "uniqueObjects is published and read")
+
+        store.$items
+            .dropFirst()
+            .sink(receiveValue: { items in
+                XCTAssertTrue(items == uniqueObjects)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        XCTAssert(store.items.isEmpty)
+
+        // Sets items under the hood
+        try await store.add(uniqueObjects)
+        wait(for: [expectation], timeout: 1)
     }
 
 }
