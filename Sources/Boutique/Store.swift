@@ -2,6 +2,12 @@ import Bodega
 import Combine
 import Foundation
 
+/// A general `Store` for your app which provides you a dual-layered data architecture with a very simple API.
+/// The `Store` exposes a @Published property for your data, which allows you to read it's data synchronously
+/// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
+///
+/// Under the hood the `Store` is doing the work of saving all changes to disk when you add or remove objects,
+/// which allows you to build an offline-first app for free, no extra code required.
 public final class Store<Object: Codable & Equatable>: ObservableObject {
 
     private let storagePath: URL
@@ -9,8 +15,21 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
     private let cacheIdentifier: KeyPath<Object, String>
     private var cancellables = Set<AnyCancellable>()
 
+    /// The items held onto by the `Store`. The user can read the state of `items` at any time
+    /// or subscribe to it however they wish, but you desire making modifications to `items`
+    /// you must use `.add()`, `.remove()`, or `.removeAll()`.
     @MainActor @Published public private(set) var items: [Object] = []
 
+    /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache.
+    /// - Parameters:
+    ///   - storagePath: A URL representing the folder on disk that your files will be written to.
+    ///   - cacheIdentifier: A `KeyPath` from the `Object` pointing to a `String`, which the `Store`
+    ///   will use to create a unique identifier for the object when it's saved on disk.
+    ///
+    ///   Since `cacheIdentifier` is a `KeyPath` rather than a `String`, a good strategy for generating
+    ///   a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
+    ///   That is *not* required though, and you are free to use any `String` property on your `Object`
+    ///   or even a type which can be converted into a `String` such as `\.url.path`.
     public init(storagePath: URL, cacheIdentifier: KeyPath<Object, String>) {
         self.storagePath = storagePath
         self.objectStorage = ObjectStorage(storagePath: storagePath)
@@ -29,10 +48,21 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
+    /// Adds an item to the `Store`.
+    /// - Parameters:
+    ///   - item: The item you are adding to the `Store`.
+    ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding an item
+    ///   defaulting to `.removeNone`.
     public func add(_ item: Object, invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
         try await self.add([item], invalidationStrategy: invalidationStrategy)
     }
 
+    /// Add an array of items to the `Store`. Adding multiple items using this method
+    /// is prefered to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameters:
+    ///   - items: The items you are adding to the `Store`.
+    ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding data
+    ///   defaulting to `.removeNone`.
     public func add(_ items: [Object], invalidationStrategy: CacheInvalidationStrategy<Object> = .removeNone) async throws {
         var currentItems: [Object] = await self.items
 
@@ -68,6 +98,8 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
+    /// Removes an item from the `Store`.
+    /// - Parameter item: The item you are removing from the `Store`.
     public func remove(_ item: Object) async throws {
         let itemKey = item[keyPath: self.cacheIdentifier]
         let cacheKey = CacheKey(itemKey)
@@ -81,6 +113,9 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
+    /// Remove an array of items to the `Store`. Removing multiple items using this method
+    /// is prefered to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameter item: The items you are removing from the `Store`.
     public func remove(_ items: [Object]) async throws {
         let itemKeys = items.map { $0[keyPath: self.cacheIdentifier] }
         let cacheKeys = itemKeys.map({ CacheKey($0) })
@@ -96,6 +131,9 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
         }
     }
 
+    /// Removes all items from the `Store` and disk cache.
+    /// A separate method for performance reasons, handling removal of all data
+    /// in one operation rather than iterating over every item in the `Store` and disk cache.
     public func removeAll() async throws {
         try await self.removeAllPersistedItems()
 
@@ -145,22 +183,6 @@ private extension Store {
             throw error
         }
     }
-
-}
-
-// MARK: Store.CacheInvalidationStrategy
-
-public extension Store {
-
-    enum CacheInvalidationStrategy<Object> {
-        case removeNone
-        case remove(items: [Object])
-        case removeAll
-    }
-
-}
-
-private extension Store {
 
     func invalidateCache(strategy: CacheInvalidationStrategy<Object>, items: inout [Object]) {
         switch strategy {
