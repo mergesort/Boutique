@@ -2,26 +2,26 @@
 
 ### A simple but surprisingly fancy cache
 
-Boutique is a simple but powerful caching library. With it's dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real-time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation in this [repo](https://github.com/mergesort/MVCS) that shows you how to make an offline-ready app in only a few lines of code. You can read more about the philosophy in this blog post exploring a [Model View Controller Store architecture for SwiftUI](https://fabisevi.ch/fix-this).
+Boutique is a simple but powerful caching library. With it's dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://fabisevi.ch/fix-this).
 
 ---
 
 * [Getting Started](#getting-started)
 * [Store](#store)
-* [The Magical @Stored](#the-magical-stored)
+* [The Magic Of @Stored](#the-magic-of-stored)
 * [Further Exploration](#further-exploration)
 
 ---
 
 ### Getting Started
 
-Boutique only has one concept to understand, the `Store`. You may be familiar with the `Store` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about interacting with `Action`s or `Reducer`s. With this `Store` implementation all your data is cached on disk for you automatically, no additional code required. This allows you to build real-time updating apps with full offline support in an incredibly simple and straightforward manner.
+Boutique only has one concept to understand, the `Store`. You may be familiar with the `Store` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about interacting with `Action`s or `Reducer`s. With this `Store` implementation all your data is cached on disk for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
 
 ---
 
 ### Store
 
-The entire surface area of the API for achieving full offline support and real-time model updates across your entire app is three methods, `.add()`, `.remove()`, and `.removeAll()`.
+The entire surface area of the API for achieving full offline support and realtime model updates across your entire app is three methods, `.add()`, `.remove()`, and `.removeAll()`.
 
 ```swift
 // Create a Store ¹
@@ -62,7 +62,7 @@ And if you're building a SwiftUI app you don't have to change a thing, Boutique 
 
 ```swift
 // Since items is an @Published property 
-// you can subscribe to any changes in real-time.
+// you can subscribe to any changes in realtime.
 store.$items.sink({ items in
     print("Items was updated", items)
 })
@@ -84,9 +84,9 @@ store.$items.sink({ items in
 
 ---
 
-### The Magical @Stored
+### The Magic of @Stored
 
-That was easy, but I want to show you something that makes Boutique feel downright magical. The `Store` is a simple way to gain the benefits of offline storage and real-time updates, but we the `@Stored` property wrapper lets you do it with just one line of code.
+That was easy, but I want to show you something that makes Boutique feel downright magical. The `Store` is a simple way to gain the benefits of offline storage and realtime updates, but by using the `@Stored` property wrapper we can cache any property in-memory and on disk with just one line of code.
 
 ```swift
 final class ImagesController: ObservableObject {
@@ -144,9 +144,9 @@ final class ImagesController: ObservableObject {
 
 ### Further Exploration
 
-Boutique is very useful on it's own for building real-time offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined data architecture.
+Boutique is very useful on it's own for building realtime offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
 
-If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://fabisevi.ch/fix-this) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready real-time MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
+If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://fabisevi.ch/fix-this) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
 ---
 
