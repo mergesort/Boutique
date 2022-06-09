@@ -1,8 +1,17 @@
-![Bodega Logo](Images/logo.jpg)
+![Boutique Logo](Images/logo.jpg)
 
 ### A simple but surprisingly fancy cache
 
-Boutique is a simple but powerful caching library. With it's dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real-time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation in this [repo](https://github.com/mergesort/UMVC) that shows you how to make an offline-ready app in only a few lines of code. You can read more about the philosophy in this blog post exploring a [Unidirectional MVC architecture for SwiftUI](https://fabisevi.ch/fix-this).
+Boutique is a simple but powerful caching library. With it's dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real-time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation in this [repo](https://github.com/mergesort/MVCS) that shows you how to make an offline-ready app in only a few lines of code. You can read more about the philosophy in this blog post exploring a [Model View Controller Store architecture for SwiftUI](https://fabisevi.ch/fix-this).
+
+---
+
+* [Getting Started](#getting-started)
+* [Store](#store)
+* [The Magical @Stored](#the-magical-stored)
+* [Further Exploration](#further-exploration)
+
+---
 
 ### Getting Started
 
@@ -10,75 +19,134 @@ Boutique only has one concept to understand, the `Store`. You may be familiar wi
 
 ---
 
-#### Store
+### Store
+
+The entire surface area of the API for achieving full offline support and real-time model updates across your entire app is three methods, `.add()`, `.remove()`, and `.removeAll()`.
 
 ```swift
 // Create a Store ¹
 let itemsStore = Store<Item>(
     storagePath: Store.documentsDirectory(appendingPathComponent: "Items"),
-	cacheIdentifier: \.id
+    cacheIdentifier: \.id
 )
 
 // Add an item to the Store ²
 let coat = Item(name: "coat")
 try await store.add(coat)
 
+// Remove an item from the Store
+try await store.remove(coat)
+
 // Add two more items to the Store
 let purse = Item(name: "purse")
 let belt = Item(name: "belt")
 try await store.add([purse, belt])
 
-// Remove an item from the Store
-try await store.remove(coat)
-
 // You can read items directly
 print(self.items) // Prints [coat, belt]
-
-// Since items is an @Published property 
-// you can subscribe to any changes in real-time.
-store.$items.sink({ items in
-	print("Items was updated", items)
-})
-
-// In SwiftUI you can even power your Views with $items
-// and use .onReceive() to update and manipulate
-// data published by the Store's $items.
-.onReceive(store.$items, perform: {
-   self.allItems = $0.filter({ $0.id > 100 })
-})
-
-// Add an item to the store, removing all of the current items 
-// from the in-memory and disk cache before saving the new object. ³
-try await store.add(coat, invalidationStrategy: .removeAll)
-
-print(self.items) // Prints [coat]
 
 // Clear your store by removing all the items at once.
 store.removeAll()
 
 print(self.items) // Prints []
 
----
+// Add an item to the store, removing all of the current items 
+// from the in-memory and disk cache before saving the new object. ³
+try await store.add([purse, belt], invalidationStrategy: .removeNone)
+try await store.add(coat, invalidationStrategy: .removeAll)
 
-¹ You can have as many or as few Stores as you'd like. 
-  It may be a good strategy to have one Store for all of the images you download 
-  in your app, but you may also want to have one Store per model-type you'd like to cache.
-  You can even create separate stores for tests, there is no prescription, 
-  the choice for how you'd like to store your data is yours.
-  
-² Under the hood the Store is doing the work of saving all changes
-  to disk when you add or remove objects.
-
-³ There are multiple cache invalidation strategies, `removeAll` would be useful
-  when you are downloading completely new data from the server 
-  and want to avoid a stale cache.
+print(self.items) // Prints [coat]
 ```
 
-That's it, we've covered the entire surface area of the API. If you can remember `.add()`, `.remove()`, and `.removeAll()`, you now have full offline support in your app, and the ability to integrate real-time changes to your models anywhere in your app, especially useful in SwiftUI.
+And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind.
+
+```swift
+// Since items is an @Published property 
+// you can subscribe to any changes in real-time.
+store.$items.sink({ items in
+    print("Items was updated", items)
+})
+
+// Works great with SwiftUI out the box for more complex pipelines.
+.onReceive(store.$items, perform: {
+    self.allItems = $0.filter({ $0.id > 100 })
+})
+```
+---
+
+¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours.
+  
+² Under the hood the Store is doing the work of saving all changes to disk when you add or remove objects.
+
+³ There are multiple cache invalidation strategies, `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
+
+⁴ In SwiftUI you can even power your Views with $items and use .onReceive() to update and manipulate data published by the Store's $items.
 
 ---
 
-Boutique is very useful on it's own for building real-time offline-ready apps with just a few lines of code, but it's made even more powerful by the Unidirectional MVC architecture I've developed. If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://fabisevi.ch/fix-this) where I explore UMVC for SwiftUI, and you can find a reference implementation of an offline-ready real-time UMVC app powered by Boutique in this [repo](https://github.com/mergesort/UMVC).
+### The Magical @Stored
+
+That was easy, but I want to show you something that makes Boutique feel downright magical. The `Store` is a simple way to gain the benefits of offline storage and real-time updates, but we the `@Stored` property wrapper lets you do it with just one line of code.
+
+```swift
+final class ImagesController: ObservableObject {
+
+    /// Creates an @Stored property to handle an in-memory and on-disk cache of images. ⁵
+    @Stored(in: Store.imagesStore) var images
+
+    /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
+    func fetchImage() async throws -> RemoteImage {
+        // Hit the API that provides you a random image's metadata
+        let imageURL = URL(string: "https://image.redpanda.club/random/json")!
+        let randomImageRequest = URLRequest(url: imageURL)
+        let (imageResponse, _) = try await URLSession.shared.data(for: randomImageRequest)
+
+        return RemoteImage(createdAt: .now, url: imageResponse.url, width: imageResponse.width, height: imageResponse.height, imageData: imageResponse.imageData)
+    }
+  
+    /// Saves an image to the `Store` in memory and on disk.
+    func saveImage(image: RemoteImage) async throws {
+        try await self.$images.add(image)
+    }
+  
+    /// Removes one image from the `Store` in memory and on disk.
+    func removeImage(image: RemoteImage) async throws {
+        try await self.$images.remove(image)
+    }
+  
+    /// Removes all of the images from the `Store` in memory and on disk.
+    func clearAllImages() async throws {
+        try await self.$images.removeAll()
+    }
+
+}
+```
+
+That's it, that's really it. It's hard to believe that now your app can update it's state in real time with full offline storage thanks to only one line of code. `@Stored(in: Store.imagesStore) var images`
+
+---
+
+⁵ (If you'd prefer to decouple the store from your view model, controller, or manager object, you can inject stores into the object like this.)
+
+```swift
+final class ImagesController: ObservableObject {
+
+    @Stored var images: [RemoteImage]
+
+    init(store: Store<RemoteImage>) {
+        self._images = Stored(in: store)
+    }
+
+}
+```
+
+---
+
+### Further Exploration
+
+Boutique is very useful on it's own for building real-time offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined data architecture.
+
+If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://fabisevi.ch/fix-this) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready real-time MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
 ---
 
