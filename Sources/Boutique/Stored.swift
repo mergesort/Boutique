@@ -1,24 +1,24 @@
 import Combine
 
 @propertyWrapper
-struct Stored<Object: Codable & Equatable> {
+public struct Stored<Object: Codable & Equatable> {
 
     private let box: Box
 
-    init(in store: Store<Object>) {
+    public init(in store: Store<Object>) {
         self.box = Box(store)
     }
 
     @MainActor
-    var wrappedValue: [Object] {
+    public var wrappedValue: [Object] {
         box.store.items
     }
 
-    var projectedValue: Store<Object> {
+    public var projectedValue: Store<Object> {
         box.store
     }
 
-    @MainActor static subscript<Instance: ObservableObject>(
+    @MainActor public static subscript<Instance: ObservableObject>(
         _enclosingInstance instance: Instance,
         wrapped wrappedKeyPath: KeyPath<Instance, [Object]>,
         storage storageKeyPath: KeyPath<Instance, Stored>
@@ -37,9 +37,9 @@ struct Stored<Object: Codable & Equatable> {
     }
 }
 
-extension Stored {
+private extension Stored {
 
-    private class Box {
+    class Box {
         let store: Store<Object>
         var cancellable: AnyCancellable?
 
