@@ -168,7 +168,7 @@ private extension Store {
         do {
             try await self.objectStorage.removeObject(forKey: cacheKey)
         } catch CocoaError.fileNoSuchFile {
-            print("We treat deleting a non-existent file/folder as a successful removal rather than throwing")
+            // No-op, we treat deleting a non-existent file/folder as a successful removal rather than throwing
         } catch {
             throw error
         }
@@ -178,7 +178,7 @@ private extension Store {
         do {
             try await self.objectStorage.removeAllObjects()
         } catch CocoaError.fileNoSuchFile {
-            print("We treat deleting a non-existent file/folder as a successful removal rather than throwing")
+            // No-op, we treat deleting a non-existent file/folder as a successful removal rather than throwing
         } catch {
             throw error
         }
