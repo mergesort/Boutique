@@ -91,10 +91,11 @@ public final class Store<Object: Codable & Equatable>: ObservableObject {
             itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
         }
 
-        // We can't capture a mutable array (currentItems) in the closure below so we make an immutable copy
-        let itemsToSet = currentItems
-        await MainActor.run {
-            self.items = itemsToSet
+        // We can't capture a mutable array (currentItems) in the closure below so we make an immutable copy.
+        // An implicitly captured closure variable is captured by reference while
+        // a variable captured in the capture group is captured by value.
+        await MainActor.run { [currentItems] in
+            self.items = currentItems
         }
     }
 
