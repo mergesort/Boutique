@@ -1,6 +1,6 @@
 import Foundation
 
-public extension Store where Object: Identifiable, Object.ID == String {
+public extension Store where Item: Identifiable, Item.ID == String {
 
     /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache.
     /// This initializer eschews providing a `cacheIdentifier` when our `Object` conforms to `Identifiable`
