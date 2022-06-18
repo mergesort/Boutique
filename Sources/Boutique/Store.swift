@@ -166,23 +166,11 @@ private extension Store {
     }
 
     func removePersistedItem(forKey cacheKey: CacheKey) async throws {
-        do {
-            try await self.objectStorage.removeObject(forKey: cacheKey)
-        } catch CocoaError.fileNoSuchFile {
-            // No-op, we treat deleting a non-existent file/folder as a successful removal rather than throwing
-        } catch {
-            throw error
-        }
+        try await self.objectStorage.removeObject(forKey: cacheKey)
     }
 
     func removeAllPersistedItems() async throws {
-        do {
-            try await self.objectStorage.removeAllObjects()
-        } catch CocoaError.fileNoSuchFile {
-            // No-op, we treat deleting a non-existent file/folder as a successful removal rather than throwing
-        } catch {
-            throw error
-        }
+        try await self.objectStorage.removeAllObjects()
     }
 
     func invalidateCache(strategy: CacheInvalidationStrategy<Object>, items: inout [Object]) {
