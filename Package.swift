@@ -15,7 +15,7 @@ let package = Package(
             targets: ["Boutique"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/mergesort/Bodega.git", .upToNextMajor(from: "0.9.0"))
+        .package(url: "https://github.com/mergesort/Bodega.git", .upToNextMajor(from: "0.10.0"))
     ],
     targets: [
         .target(
