@@ -18,7 +18,7 @@ public extension Store {
     /// Returns a URL to a subfolder created in the temporary directory based on the `pathComponent`.
     /// - Parameter pathComponent: A path to append to the platform's temporary directory.
     static func temporaryDirectory(appendingPath pathComponent: String) -> URL {
-        FileManager.default.urls(for: .itemReplacementDirectory, in: .userDomainMask).first!.appendingPathComponent(pathComponent)
+        FileManager.default.temporaryDirectory.appendingPathComponent(pathComponent)
     }
 
     /// For apps that use the App Groups feature this function returns a URL that
