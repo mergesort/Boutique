@@ -174,6 +174,6 @@ private extension BoutiqueTests {
         BoutiqueTests.belt,
     ]
 
-    static let testStoragePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("Tests")
+    static let testStoragePath = Store<BoutiqueItem>.documentsDirectory(appendingPath: "Tests")
 
 }
