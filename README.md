@@ -80,7 +80,7 @@ store.$items.sink({ items in
 
 ³ There are multiple cache invalidation strategies, `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
 
-⁴ In SwiftUI you can even power your Views with $items and use .onReceive() to update and manipulate data published by the Store's $items.
+⁴ In SwiftUI you can even power your Views with `$items` and use `.onReceive()`` to update and manipulate data published by the Store's $items.
 
 ---
 
