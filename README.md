@@ -2,7 +2,7 @@
 
 ### A simple but surprisingly fancy cache
 
-Boutique is a simple but powerful caching library. With it's dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/drafts/model-view-controller-store).
+Boutique is a simple but powerful caching library. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/drafts/model-view-controller-store).
 
 ---
 
@@ -78,9 +78,9 @@ store.$items.sink({ items in
   
 ² Under the hood the Store is doing the work of saving all changes to disk when you add or remove objects.
 
-³ There are multiple cache invalidation strategies, `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
+³ There are multiple cache invalidation strategies. `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
 
-⁴ In SwiftUI you can even power your Views with `$items` and use `.onReceive()`` to update and manipulate data published by the Store's $items.
+⁴ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
 
 ---
 
@@ -122,7 +122,7 @@ final class ImagesController: ObservableObject {
 }
 ```
 
-That's it, that's really it. It's hard to believe that now your app can update it's state in real time with full offline storage thanks to only one line of code. `@Stored(in: Store.imagesStore) var images`
+That's it, that's really it. It's hard to believe that now your app can update its state in real time with full offline storage thanks to only one line of code. `@Stored(in: Store.imagesStore) var images`
 
 ---
 
@@ -144,7 +144,7 @@ final class ImagesController: ObservableObject {
 
 ### Further Exploration
 
-Boutique is very useful on it's own for building realtime offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
+Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
 
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/drafts/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
@@ -153,7 +153,7 @@ If you'd like to learn more about how it works you can read about the philosophy
 ### Requirements
 
 - iOS 13.0+
-- macOS 11.0
+- macOS 11.0+
 - Xcode 13.2+
 
 ### Installation
