@@ -174,6 +174,6 @@ private extension BoutiqueTests {
         BoutiqueTests.belt,
     ]
 
-    static let testStoragePath = Store<BoutiqueItem>.documentsDirectory(appendingPath: "Tests")
+    static let testStoragePath = Store<BoutiqueItem>.temporaryDirectory(appendingPath: "Tests")
 
 }
