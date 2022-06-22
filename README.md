@@ -162,7 +162,7 @@ If you'd like to learn more about how it works you can read about the philosophy
 
 The [Swift Package Manager](https://www.swift.org/package-manager) is a tool for automating the distribution of Swift code and is integrated into the Swift build system.
 
-Once you have your Swift package set up, adding Bodega as a dependency is as easy as adding it to the dependencies value of your `Package.swift`.
+Once you have your Swift package set up, adding Boutique as a dependency is as easy as adding it to the dependencies value of your `Package.swift`.
 
 ```swift
 dependencies: [
@@ -172,7 +172,7 @@ dependencies: [
 
 #### Manually
 
-If you prefer not to use SPM, you can integrate Bodega into your project manually by copying the files in.
+If you prefer not to use SPM, you can integrate Boutique into your project manually by copying the files in.
 
 ---
 
@@ -182,4 +182,4 @@ Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Twit
 
 ## License
 
-See the [license](LICENSE) for more information about how you can use Bodega.
+See the [license](LICENSE) for more information about how you can use Boutique.
