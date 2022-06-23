@@ -43,7 +43,7 @@ let belt = Item(name: "belt")
 try await store.add([purse, belt])
 
 // You can read items directly
-print(self.items) // Prints [coat, belt]
+print(store.items) // Prints [coat, belt]
 
 // Clear your store by removing all the items at once.
 store.removeAll()
@@ -55,7 +55,7 @@ print(self.items) // Prints []
 try await store.add([purse, belt], invalidationStrategy: .removeNone)
 try await store.add(coat, invalidationStrategy: .removeAll)
 
-print(self.items) // Prints [coat]
+print(store.items) // Prints [coat]
 ```
 
 And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind.
