@@ -25,7 +25,7 @@ The entire surface area of the API for achieving full offline support and realti
 
 ```swift
 // Create a Store ¹
-let itemsStore = Store<Item>(
+let store = Store<Item>(
     storagePath: Store.documentsDirectory(appendingPathComponent: "Items"),
     cacheIdentifier: \.id
 )
