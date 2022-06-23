@@ -20,7 +20,13 @@ let package = Package(
     targets: [
         .target(
             name: "Boutique",
-            dependencies: [.byName(name: "Bodega")]
+            dependencies: [.byName(name: "Bodega")],
+            swiftSettings: [
+                .unsafeFlags([
+                    "-Xfrontend", "-warn-concurrency",
+                    "-Xfrontend", "-enable-actor-data-race-checks",
+                ]),
+            ]
         ),
         .testTarget(
             name: "BoutiqueTests",
@@ -28,4 +34,3 @@ let package = Package(
         ),
     ]
 )
-

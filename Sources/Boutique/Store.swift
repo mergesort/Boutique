@@ -8,6 +8,7 @@ import Foundation
 ///
 /// Under the hood the `Store` is doing the work of saving all changes to disk when you add or remove objects,
 /// which allows you to build an offline-first app for free, no extra code required.
+@MainActor
 public final class Store<Item: Codable & Equatable>: ObservableObject {
 
     private let storagePath: URL
@@ -18,7 +19,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// The items held onto by the `Store`. The user can read the state of `items` at any time
     /// or subscribe to it however they wish, but you desire making modifications to `items`
     /// you must use `.add()`, `.remove()`, or `.removeAll()`.
-    @MainActor @Published public private(set) var items: [Item] = []
+    @Published public private(set) var items: [Item] = []
 
     /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache.
     /// - Parameters:
@@ -30,7 +31,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
     ///   That is *not* required though, and you are free to use any `String` property on your `Object`
     ///   or even a type which can be converted into a `String` such as `\.url.path`.
-    public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) {
+    public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) async {
         self.storagePath = storagePath
         self.objectStorage = ObjectStorage(storagePath: storagePath)
         self.cacheIdentifier = cacheIdentifier
@@ -43,9 +44,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
             })
             .store(in: &cancellables)
 
-        Task { @MainActor in
-            self.items = await self.allPersistedItems()
-        }
+        self.items = await self.allPersistedItems()
     }
 
     /// Adds an item to the `Store`.
@@ -64,7 +63,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding data
     ///   defaulting to `.removeNone`.
     public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        var currentItems: [Item] = await self.items
+        var currentItems: [Item] = self.items
 
         try await self.removePersistedItems(strategy: invalidationStrategy)
         self.invalidateCache(strategy: invalidationStrategy, items: &currentItems)
@@ -90,13 +89,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
 
             itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
         }
-
-        // We can't capture a mutable array (currentItems) in the closure below so we make an immutable copy.
-        // An implicitly captured closure variable is captured by reference while
-        // a variable captured in the capture group is captured by value.
-        await MainActor.run { [currentItems] in
-            self.items = currentItems
-        }
+        
+        self.items = currentItems
     }
 
     /// Removes an item from the `Store`.
@@ -106,12 +100,10 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         let cacheKey = CacheKey(itemKey)
 
         try await self.removePersistedItem(forKey: cacheKey)
-
-        await MainActor.run {
-            self.items.removeAll(where: {
-                itemKey == $0[keyPath: self.cacheIdentifier]
-            })
-        }
+        
+        self.items.removeAll(where: {
+            itemKey == $0[keyPath: self.cacheIdentifier]
+        })
     }
 
     /// Remove an array of items to the `Store`. Removing multiple items using this method
@@ -125,11 +117,9 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
             try await self.removePersistedItem(forKey: cacheKey)
         }
 
-        await MainActor.run {
-            self.items.removeAll(where: { item in
-                itemKeys.contains(item[keyPath: self.cacheIdentifier])
-            })
-        }
+        self.items.removeAll(where: { item in
+            itemKeys.contains(item[keyPath: self.cacheIdentifier])
+        })
     }
 
     /// Removes all items from the `Store` and disk cache.
@@ -138,9 +128,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public func removeAll() async throws {
         try await self.removeAllPersistedItems()
 
-        await MainActor.run {
-            self.items = []
-        }
+        self.items = []
     }
 
 }

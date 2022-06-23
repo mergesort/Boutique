@@ -2,23 +2,22 @@
 import Combine
 import XCTest
 
+@MainActor
 final class BoutiqueTests: XCTestCase {
 
     private var store: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
-        store = Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
+        store = await Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
         try await store.removeAll()
     }
 
-    @MainActor
     func testAddingItem() async throws {
         try await store.add(Self.coat)
         XCTAssert(store.items.contains(Self.coat))
     }
 
-    @MainActor
     func testAddingItems() async throws {
         try await store.add([Self.coat, Self.sweater, Self.sweater, Self.purse])
         XCTAssert(store.items.contains(Self.coat))
@@ -26,26 +25,23 @@ final class BoutiqueTests: XCTestCase {
         XCTAssert(store.items.contains(Self.purse))
     }
 
-    @MainActor
     func testAddingDuplicateItems() async throws {
         XCTAssert(store.items.isEmpty)
         try await store.add(Self.allObjects)
-        XCTAssert(store.items.count == 4)
+        XCTAssertEqual(store.items.count, 4)
     }
 
-    @MainActor
     func testReadingItems() async throws {
         try await store.add(Self.allObjects)
 
-        XCTAssert(store.items[0] == Self.coat)
-        XCTAssert(store.items[1] == Self.sweater)
-        XCTAssert(store.items[2] == Self.purse)
-        XCTAssert(store.items[3] == Self.belt)
+        XCTAssertEqual(store.items[0], Self.coat)
+        XCTAssertEqual(store.items[1], Self.sweater)
+        XCTAssertEqual(store.items[2], Self.purse)
+        XCTAssertEqual(store.items[3], Self.belt)
 
         XCTAssert(store.items.count == 4)
     }
 
-    @MainActor
     func testRemovingItems() async throws {
         try await store.add(Self.allObjects)
         try await store.remove(Self.coat)
@@ -60,14 +56,13 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertFalse(store.items.contains(Self.purse))
     }
 
-    @MainActor
     func testRemoveAll() async throws {
         try await store.add(Self.coat)
-        XCTAssert(store.items.count == 1)
+        XCTAssertEqual(store.items.count, 1)
         try await store.removeAll()
 
         try await store.add(Self.uniqueObjects)
-        XCTAssert(store.items.count == 4)
+        XCTAssertEqual(store.items.count, 4)
         try await store.removeAll()
         XCTAssert(store.items.isEmpty)
     }
