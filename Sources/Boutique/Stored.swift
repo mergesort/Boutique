@@ -1,7 +1,7 @@
 import Combine
 
 @propertyWrapper
-public struct Stored<Object: Codable & Equatable> {
+public struct Stored<Object: Codable & Equatable & Sendable> {
 
     private let box: Box
 

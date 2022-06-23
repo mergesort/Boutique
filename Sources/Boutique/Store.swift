@@ -9,7 +9,7 @@ import Foundation
 /// Under the hood the `Store` is doing the work of saving all changes to disk when you add or remove objects,
 /// which allows you to build an offline-first app for free, no extra code required.
 @MainActor
-public final class Store<Item: Codable & Equatable>: ObservableObject {
+public final class Store<Item: Codable & Equatable & Sendable>: ObservableObject {
 
     private let storagePath: URL
     private let objectStorage: ObjectStorage
