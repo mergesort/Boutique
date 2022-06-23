@@ -1,5 +1,6 @@
 import Combine
 
+/// A `@Stored` property wrapper to automagically initialize a `Store`.
 @propertyWrapper
 public struct Stored<Object: Codable & Equatable> {
 

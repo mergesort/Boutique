@@ -22,8 +22,7 @@ public extension Store {
         DiskStorage.temporaryDirectory(appendingPath: pathComponent)
     }
 
-    /// For apps that use the App Groups feature this function returns a URL that
-    /// appends a path to the app's group shared directory.
+    /// Returns a URL that appends a path to the app's group shared directory (for apps that use the App Groups feature). 
     ///
     /// - Parameters:
     ///   - identifier: The app's group identifier as declared in your app's App Groups Entitlement.

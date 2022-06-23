@@ -2,10 +2,12 @@ import Foundation
 
 public extension Store {
 
+    /// An invalidation strategy for a `Store` instance.
+    ///
+    /// ## Discussion
+    /// 
     /// A CacheInvalidationStrategy provides control over how old objects in the `Store`
     /// and disk cache are handled when new objects are added to the `Store`.
-    ///
-    /// For example:
     ///
     /// If you are downloading completely new data from the server and want to replace the current cache,
     /// a good strategy to choose would be `removeAll` to remove stale data.
@@ -19,7 +21,7 @@ public extension Store {
     /// but not remove all of videos that were cached in that time.
     /// (Get creative and create your own higher level strategies!)
     ///
-    /// 1: Even if you make additive changes with a policy like `removeNone` or `removeItems`,
+    /// Even if you make additive changes with a policy like `removeNone` or `removeItems`,
     /// if you cache a new version of an object with the same `cacheIdentifier`, the new object will replace the old item
     /// since you can only have one object per `cacheIdentifier`.
     enum CacheInvalidationStrategy<Object> {

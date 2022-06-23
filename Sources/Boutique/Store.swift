@@ -2,8 +2,10 @@ import Bodega
 import Combine
 import Foundation
 
-/// A general `Store` for your app which provides you a dual-layered data architecture with a very simple API.
-/// The `Store` exposes a @Published property for your data, which allows you to read it's data synchronously
+/// A general storage persistence layer.
+///
+/// A `Store` for your app which provides you a dual-layered data architecture with a very simple API.
+/// The `Store` exposes a `@Published` property for your data, which allows you to read it's data synchronously
 /// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
 ///
 /// Under the hood the `Store` is doing the work of saving all changes to disk when you add or remove objects,
@@ -15,12 +17,14 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     private let cacheIdentifier: KeyPath<Item, String>
     private var cancellables = Set<AnyCancellable>()
 
-    /// The items held onto by the `Store`. The user can read the state of `items` at any time
+    /// The items held onto by the `Store`.
+    ///
+    /// The user can read the state of `items` at any time
     /// or subscribe to it however they wish, but you desire making modifications to `items`
     /// you must use `.add()`, `.remove()`, or `.removeAll()`.
     @MainActor @Published public private(set) var items: [Item] = []
 
-    /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache.
+    /// Initializes a `Store` with a memory cache and a disk cache, uniquely identifying items by the given identifier.
     /// - Parameters:
     ///   - storagePath: A URL representing the folder on disk that your files will be written to.
     ///   - cacheIdentifier: A `KeyPath` from the `Object` pointing to a `String`, which the `Store`
@@ -48,7 +52,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Adds an item to the `Store`.
+    /// Adds an item to the store.
     /// - Parameters:
     ///   - item: The item you are adding to the `Store`.
     ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding an item
@@ -57,12 +61,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         try await self.add([item], invalidationStrategy: invalidationStrategy)
     }
 
-    /// Add an array of items to the `Store`. Adding multiple items using this method
-    /// is prefered to avoid making multiple separate dispatches to the `@MainActor`.
+    /// Adds a list of items to the store.
+    ///
+    /// Prefer adding multiple items using this method instead of calling multiple times
+    /// ``add(_:invalidationStrategy:)-5y90k`` in succession to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameters:
-    ///   - items: The items you are adding to the `Store`.
-    ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding data
-    ///   defaulting to `.removeNone`.
+    ///   - items: The items to add to the store.
+    ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
     public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
         var currentItems: [Item] = await self.items
 
@@ -99,7 +104,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Removes an item from the `Store`.
+    /// Removes an item from the store.
     /// - Parameter item: The item you are removing from the `Store`.
     public func remove(_ item: Item) async throws {
         let itemKey = item[keyPath: self.cacheIdentifier]
@@ -114,8 +119,10 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Remove an array of items to the `Store`. Removing multiple items using this method
-    /// is prefered to avoid making multiple separate dispatches to the `@MainActor`.
+    /// Removes a list of items from the store.
+    ///
+    /// Prefer removing multiple items using this method
+    /// avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameter item: The items you are removing from the `Store`.
     public func remove(_ items: [Item]) async throws {
         let itemKeys = items.map { $0[keyPath: self.cacheIdentifier] }
@@ -132,7 +139,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Removes all items from the `Store` and disk cache.
+    /// Removes all items from the store and disk cache.
+    ///
     /// A separate method for performance reasons, handling removal of all data
     /// in one operation rather than iterating over every item in the `Store` and disk cache.
     public func removeAll() async throws {
