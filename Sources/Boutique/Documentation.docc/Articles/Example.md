@@ -8,12 +8,13 @@ Persist `Codable` data models and drive your SwiftUI app with Boutique.
 
 ### Define data models
 
-Define your model types as usual for a SwiftUI app. Conform to `Identifiable` to make it easier to unqiuely reference models:
+Define your model types as usual for a SwiftUI app. Conforming to `Identifiable` is not required but makes it easier to generate a unique identifier for your model:
 
 ```swift
 struct RemoteImage: Codable, Equatable, Identifiable {
   let url: URL
-  let dataRepresentation: Data
+  let width: Float
+  let height: Float
 
   var id: String {
     url.absoluteString
@@ -43,7 +44,15 @@ struct ContentView: View {
 
   var body: some View {
     List(images, id: \.id) { image in
-      Image(uiImage: .init(data: image.dataRepresentation)!)
+        AsyncImage(url: image.url) { image in
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        } placeholder: {
+            ProgressView()
+                .progressViewStyle(.circular)
+        }
+        .frame(width: 240.0, height: 240.0)
     }
   }
 }
