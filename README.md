@@ -82,6 +82,8 @@ store.$items.sink({ items in
 
 ⁴ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
 
+> **Warning** Storing images or other binary data in Boutique is technically supported but not recommended. The reason is that storing images in Boutique's can balloon up the in-memory store, and your app's memory as a result. For similar reasons as it's not recommended to store images or binary blobs in a database, it's not recommended to store images or binary blobs in Boutique.
+
 ---
 
 ### The Magic of @Stored
