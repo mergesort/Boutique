@@ -36,6 +36,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         self.cacheIdentifier = cacheIdentifier
 
         self.$items
+            .removeDuplicates()
             .sink(receiveValue: { items in
                 Task {
                     try await self.persistItems(items)
