@@ -8,8 +8,9 @@ final class BoutiqueTests: XCTestCase {
     private var store: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
 
+    @MainActor
     override func setUp() async throws {
-        store = await Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
+        store = Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
         try await store.removeAll()
     }
 
@@ -34,12 +35,7 @@ final class BoutiqueTests: XCTestCase {
     func testReadingItems() async throws {
         try await store.add(Self.allObjects)
 
-        XCTAssertEqual(store.items[0], Self.coat)
-        XCTAssertEqual(store.items[1], Self.sweater)
-        XCTAssertEqual(store.items[2], Self.purse)
-        XCTAssertEqual(store.items[3], Self.belt)
-
-        XCTAssert(store.items.count == 4)
+        XCTAssertEqual(store.items, [Self.coat, Self.sweater, Self.purse, Self.belt])
     }
 
     func testRemovingItems() async throws {
@@ -67,7 +63,6 @@ final class BoutiqueTests: XCTestCase {
         XCTAssert(store.items.isEmpty)
     }
 
-    @MainActor
     func testRemoveNoneCacheInvalidationStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
@@ -76,7 +71,6 @@ final class BoutiqueTests: XCTestCase {
         XCTAssert(store.items.contains(gloves))
     }
 
-    @MainActor
     func testRemoveItemsCacheInvalidationStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
@@ -90,7 +84,6 @@ final class BoutiqueTests: XCTestCase {
         XCTAssert(store.items.contains(where: { $0.merchantID == "1000" }))
     }
 
-    @MainActor
     func testRemoveAllCacheInvalidationStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
@@ -100,7 +93,6 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertFalse(store.items.contains(gloves))
     }
 
-    @MainActor
     func testPublishedItemsSubscription() async throws {
         let uniqueObjects = Self.uniqueObjects
         let expectation = XCTestExpectation(description: "uniqueObjects is published and read")
