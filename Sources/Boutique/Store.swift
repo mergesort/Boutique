@@ -1,6 +1,6 @@
 import Bodega
 import Combine
-import Foundation
+@preconcurrency import Foundation
 
 /// A general `Store` for your app which provides you a dual-layered data architecture with a very simple API.
 /// The `Store` exposes a @Published property for your data, which allows you to read it's data synchronously
@@ -21,7 +21,8 @@ public final class Store<Item: Codable & Equatable & Sendable>: ObservableObject
     /// you must use `.add()`, `.remove()`, or `.removeAll()`.
     @Published public private(set) var items: [Item] = []
 
-    /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache.
+    /// Initializes a fresh `Store` with a memory cache (represented by `items`), and a disk cache. Previus state is not automatically restored.
+    /// - Note: This initializer does not restore automatically the items from the disk cache.
     /// - Parameters:
     ///   - storagePath: A URL representing the folder on disk that your files will be written to.
     ///   - cacheIdentifier: A `KeyPath` from the `Object` pointing to a `String`, which the `Store`
@@ -31,7 +32,7 @@ public final class Store<Item: Codable & Equatable & Sendable>: ObservableObject
     ///   a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
     ///   That is *not* required though, and you are free to use any `String` property on your `Object`
     ///   or even a type which can be converted into a `String` such as `\.url.path`.
-    public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) async {
+    public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) {
         self.storagePath = storagePath
         self.objectStorage = ObjectStorage(storagePath: storagePath)
         self.cacheIdentifier = cacheIdentifier
@@ -43,7 +44,29 @@ public final class Store<Item: Codable & Equatable & Sendable>: ObservableObject
                 }
             })
             .store(in: &cancellables)
-
+    }
+    
+    /// Initializes a `Store` with a memory cache (represented by `items`), and a disk cache, potentially restoring the data from the disk.
+    /// - Parameters:
+    ///   - storagePath: A URL representing the folder on disk that your files will be written to.
+    ///   - cacheIdentifier: A `KeyPath` from the `Object` pointing to a `String`, which the `Store`
+    ///   - prefetchPersistedItems: A Bool representing if the `Store` should restore persisted items from the disk cache. If false, use `restorePersistedItems` manually.
+    ///   will use to create a unique identifier for the object when it's saved on disk.
+    ///
+    ///   Since `cacheIdentifier` is a `KeyPath` rather than a `String`, a good strategy for generating
+    ///   a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
+    ///   That is *not* required though, and you are free to use any `String` property on your `Object`
+    ///   or even a type which can be converted into a `String` such as `\.url.path`.
+    public convenience init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>, prefetchPersistedItems: Bool) async {
+        self.init(storagePath: storagePath, cacheIdentifier: cacheIdentifier)
+        
+        if prefetchPersistedItems {
+            self.items = await self.allPersistedItems()
+        }
+    }
+    
+    /// Populates the `items` array with the persisted items in
+    public func restorePersistedItems() async {
         self.items = await self.allPersistedItems()
     }
 
