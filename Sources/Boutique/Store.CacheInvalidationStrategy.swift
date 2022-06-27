@@ -22,7 +22,7 @@ public extension Store {
     /// 1: Even if you make additive changes with a policy like `removeNone` or `removeItems`,
     /// if you cache a new version of an object with the same `cacheIdentifier`, the new object will replace the old item
     /// since you can only have one object per `cacheIdentifier`.
-    enum CacheInvalidationStrategy<Object> {
+    enum CacheInvalidationStrategy<Object: Sendable>: Sendable {
         /// Removes no objects from the `Store` and disk cache, ostensibly a no-op.
         case removeNone
 
