@@ -66,6 +66,7 @@ public final class Store<Item: Codable & Equatable & Sendable>: ObservableObject
     }
     
     /// Populates the `items` array with the persisted items in
+    /// Populates the `items` array with the persisted items on disk
     public func restorePersistedItems() async {
         self.items = await self.allPersistedItems()
     }
