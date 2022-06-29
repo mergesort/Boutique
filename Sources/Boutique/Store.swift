@@ -88,7 +88,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
             itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
         }
 
-        try await self.persistItems(updatedItems)
+        try await self.persistItems(uniqueItems)
 
         // We can't capture a mutable array (updatedItems) in the closure below so we make an immutable copy.
         // An implicitly captured closure variable is captured by reference while
