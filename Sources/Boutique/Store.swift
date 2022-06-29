@@ -1,5 +1,4 @@
 import Bodega
-import Combine
 import Foundation
 
 /// A general storage persistence layer.
@@ -15,7 +14,6 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     private let storagePath: URL
     private let objectStorage: ObjectStorage
     private let cacheIdentifier: KeyPath<Item, String>
-    private var cancellables = Set<AnyCancellable>()
 
     /// The items held onto by the `Store`.
     ///
