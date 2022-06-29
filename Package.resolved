@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mergesort/Bodega",
       "state" : {
-        "revision" : "2edf435448cda4e18a4850be7a9d03c0c79f5763",
-        "version" : "1.0.0"
+        "revision" : "29966bf638714c1fbe0c734e259b3d5dfda58d6b",
+        "version" : "1.0.1"
       }
     }
   ],

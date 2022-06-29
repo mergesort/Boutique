@@ -1,5 +1,4 @@
 import Bodega
-import Combine
 import Foundation
 
 /// A general storage persistence layer.
@@ -15,7 +14,6 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     private let storagePath: URL
     private let objectStorage: ObjectStorage
     private let cacheIdentifier: KeyPath<Item, String>
-    private var cancellables = Set<AnyCancellable>()
 
     /// The items held onto by the `Store`.
     ///
@@ -39,15 +37,6 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         self.objectStorage = ObjectStorage(storagePath: storagePath)
         self.cacheIdentifier = cacheIdentifier
 
-        self.$items
-            .removeDuplicates()
-            .sink(receiveValue: { items in
-                Task {
-                    try await self.persistItems(items)
-                }
-            })
-            .store(in: &cancellables)
-
         Task { @MainActor in
             self.items = await self.allPersistedItems()
         }
@@ -70,10 +59,10 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - items: The items to add to the store.
     ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
     public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        var currentItems: [Item] = await self.items
+        var updatedItems: [Item] = await self.items
 
         try await self.removePersistedItems(strategy: invalidationStrategy)
-        self.invalidateCache(strategy: invalidationStrategy, items: &currentItems)
+        self.invalidateCache(strategy: invalidationStrategy, items: &updatedItems)
 
         // Prevent duplicate values from being written multiple times.
         // This could cause a discrepancy between the data in memory
@@ -85,39 +74,32 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         for item in uniqueItems {
             if let matchingIdentifierIndex = itemKeys.firstIndex(of: item[keyPath: self.cacheIdentifier]),
                case let matchingIdentifier = itemKeys[matchingIdentifierIndex],
-               let index = currentItems.firstIndex(where: { $0[keyPath: self.cacheIdentifier] == matchingIdentifier }) {
+               let index = updatedItems.firstIndex(where: { $0[keyPath: self.cacheIdentifier] == matchingIdentifier }) {
                     // We found a matching element with potentially different data so replace it in-place
-                    currentItems.remove(at: index)
-                    currentItems.insert(item, at: index)
+                    updatedItems.remove(at: index)
+                    updatedItems.insert(item, at: index)
                 } else {
                     // Append it to the cache if it doesn't already exist
-                    currentItems.append(item)
+                    updatedItems.append(item)
                 }
 
             itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
         }
 
-        // We can't capture a mutable array (currentItems) in the closure below so we make an immutable copy.
+        try await self.persistItems(uniqueItems)
+
+        // We can't capture a mutable array (updatedItems) in the closure below so we make an immutable copy.
         // An implicitly captured closure variable is captured by reference while
         // a variable captured in the capture group is captured by value.
-        await MainActor.run { [currentItems] in
-            self.items = currentItems
+        await MainActor.run { [updatedItems] in
+            self.items = updatedItems
         }
     }
 
     /// Removes an item from the store.
     /// - Parameter item: The item you are removing from the `Store`.
     public func remove(_ item: Item) async throws {
-        let itemKey = item[keyPath: self.cacheIdentifier]
-        let cacheKey = CacheKey(itemKey)
-
-        try await self.removePersistedItem(forKey: cacheKey)
-
-        await MainActor.run {
-            self.items.removeAll(where: {
-                itemKey == $0[keyPath: self.cacheIdentifier]
-            })
-        }
+        try await self.remove([item])
     }
 
     /// Removes a list of items from the store.
@@ -126,12 +108,9 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameter item: The items you are removing from the `Store`.
     public func remove(_ items: [Item]) async throws {
-        let itemKeys = items.map { $0[keyPath: self.cacheIdentifier] }
-        let cacheKeys = itemKeys.map({ CacheKey($0) })
+        let itemKeys = items.map({ $0[keyPath: self.cacheIdentifier] })
 
-        for cacheKey in cacheKeys {
-            try await self.removePersistedItem(forKey: cacheKey)
-        }
+        try await self.removePersistedItems(items: items)
 
         await MainActor.run {
             self.items.removeAll(where: { item in
@@ -174,8 +153,13 @@ private extension Store {
         }
     }
 
-    func removePersistedItem(forKey cacheKey: CacheKey) async throws {
-        try await self.objectStorage.removeObject(forKey: cacheKey)
+    func removePersistedItems(items: [Item]) async throws {
+        let itemKeys = items.map({ $0[keyPath: self.cacheIdentifier] })
+            .map({ CacheKey($0) })
+
+        for cacheKey in itemKeys {
+            try await self.objectStorage.removeObject(forKey: cacheKey)
+        }
     }
 
     func removeAllPersistedItems() async throws {
