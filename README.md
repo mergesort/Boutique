@@ -1,6 +1,10 @@
 ![Boutique Logo](Images/logo.jpg)
 
-### A simple but surprisingly fancy Store
+### A simple but surprisingly fancy data store
+
+If you find Boutique valuable I would really appreciate it if you would consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
+
+---
 
 Boutique is a simple but powerful persistence library, and more. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
@@ -185,3 +189,7 @@ Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Twit
 ## License
 
 See the [license](LICENSE) for more information about how you can use Boutique.
+
+## Sponsorship
+
+Boutique is a labor of love to help developers build better apps, making it easier for you to unlock your creativity and make something amazing for your yourself and your users. If you find Boutique valuable I would really appreciate it if you'd consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
