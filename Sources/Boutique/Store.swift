@@ -83,9 +83,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         var itemKeys = uniqueItems.map({ $0[keyPath: self.cacheIdentifier] })
 
         for item in uniqueItems {
-            if let matchingIdentifierIndex = itemKeys.firstIndex(of: item[keyPath: self.cacheIdentifier]),
-               case let matchingIdentifier = itemKeys[matchingIdentifierIndex],
-               let index = currentItems.firstIndex(where: { $0[keyPath: self.cacheIdentifier] == matchingIdentifier }) {
+            if let matchingIdentifier = itemKeys.first(where: { $0 == item[keyPath: self.cacheIdentifier] }),
+               let index = updatedItems.firstIndex(where: { $0[keyPath: self.cacheIdentifier] == matchingIdentifier }) {
                     // We found a matching element with potentially different data so replace it in-place
                     currentItems.remove(at: index)
                     currentItems.insert(item, at: index)
@@ -126,8 +125,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameter item: The items you are removing from the `Store`.
     public func remove(_ items: [Item]) async throws {
-        let itemKeys = items.map { $0[keyPath: self.cacheIdentifier] }
-        let cacheKeys = itemKeys.map({ CacheKey($0) })
+        let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         for cacheKey in cacheKeys {
             try await self.removePersistedItem(forKey: cacheKey)
@@ -174,8 +172,12 @@ private extension Store {
         }
     }
 
-    func removePersistedItem(forKey cacheKey: CacheKey) async throws {
-        try await self.objectStorage.removeObject(forKey: cacheKey)
+    func removePersistedItems(items: [Item]) async throws {
+        let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
+
+        for cacheKey in itemKeys {
+            try await self.objectStorage.removeObject(forKey: cacheKey)
+        }
     }
 
     func removeAllPersistedItems() async throws {
