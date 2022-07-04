@@ -85,13 +85,12 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
             itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
         }
 
-        try await self.persistItems(uniqueItems)
-
         // We can't capture a mutable array (updatedItems) in the closure below so we make an immutable copy.
         // An implicitly captured closure variable is captured by reference while
         // a variable captured in the capture group is captured by value.
-        await MainActor.run { [updatedItems] in
+        Task { @MainActor [updatedItems] in
             self.items = updatedItems
+            try await self.persistItems(uniqueItems)
         }
     }
 
@@ -109,12 +108,12 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public func remove(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
-        try await self.removePersistedItems(items: items)
-
-        await MainActor.run {
+        Task { @MainActor in
             self.items.removeAll(where: { item in
                 itemKeys.contains(item[keyPath: self.cacheIdentifier])
             })
+
+            try await self.removePersistedItems(items: items)
         }
     }
 
