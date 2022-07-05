@@ -25,7 +25,10 @@ let package = Package(
                 .byName(name: "Bodega"),
                 .product(name: "OrderedCollections", package: "swift-collections")
             ],
-            exclude: ["../../Performance Profiler"]
+            exclude: [
+                "../../Images",
+                "../../Performance Profiler",
+            ]
         ),
         .testTarget(
             name: "BoutiqueTests",
