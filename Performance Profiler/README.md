@@ -16,6 +16,8 @@ It also looks pretty dope, so I hope you find this app useful. The design is a t
 
 ![Boutique Performance Profiler App Demo Image](Images/app-demo.png)
 
+---
+
 ### About me
 
 Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Twitter](https://twitter.com/mergesort).
