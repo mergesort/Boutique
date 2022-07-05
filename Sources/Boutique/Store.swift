@@ -1,4 +1,5 @@
 import Bodega
+import OrderedCollections
 import Foundation
 
 /// A general storage persistence layer.
@@ -59,38 +60,36 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - items: The items to add to the store.
     ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
     public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        var updatedItems: [Item] = await self.items
+        var currentItems: [Item] = await self.items
 
+        // Remove items from disk and memory based on the cache invalidation strategy
         try await self.removePersistedItems(strategy: invalidationStrategy)
-        self.invalidateCache(strategy: invalidationStrategy, items: &updatedItems)
+        self.invalidateCache(strategy: invalidationStrategy, items: &currentItems)
 
-        // Prevent duplicate values from being written multiple times.
-        // This could cause a discrepancy between the data in memory
-        // and on disk since files on the file system can't have
-        // duplicate filenames but can be duplicated in memory.
-        let uniqueItems = items.uniqueElements(matching: self.cacheIdentifier)
-        var itemKeys = uniqueItems.map({ $0[keyPath: self.cacheIdentifier] })
+        var addedItemsDictionary = OrderedDictionary<String, Item>()
 
-        for item in uniqueItems {
-            if let matchingIdentifier = itemKeys.first(where: { $0 == item[keyPath: self.cacheIdentifier] }),
-               let index = updatedItems.firstIndex(where: { $0[keyPath: self.cacheIdentifier] == matchingIdentifier }) {
-                    // We found a matching element with potentially different data so replace it in-place
-                    updatedItems.remove(at: index)
-                    updatedItems.insert(item, at: index)
-                } else {
-                    // Append it to the cache if it doesn't already exist
-                    updatedItems.append(item)
-                }
-
-            itemKeys.removeAll(where: { $0 == item[keyPath: self.cacheIdentifier] })
+        // Deduplicate items passed into `add(items:)` by taking advantage
+        // of the fact that an OrderedDictionary can't have duplicate keys.
+        for item in items {
+            let identifier = item[keyPath: self.cacheIdentifier]
+            addedItemsDictionary[identifier] = item
         }
 
-        // We can't capture a mutable array (updatedItems) in the closure below so we make an immutable copy.
-        // An implicitly captured closure variable is captured by reference while
-        // a variable captured in the capture group is captured by value.
-        Task { @MainActor [updatedItems] in
-            self.items = updatedItems
-            try await self.persistItems(uniqueItems)
+        // Take the current items array and turn it into an OrderedDictionary.
+        let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
+        var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
+
+        // Add the new items into the dictionary representation of our items.
+        for item in addedItemsDictionary {
+            let identifier = item.value[keyPath: self.cacheIdentifier]
+            currentValuesDictionary[identifier] = item.value
+        }
+
+        // We persist only the newly added items, rather than rewriting all of the items
+        try await self.persistItems(Array(addedItemsDictionary.values))
+
+        await MainActor.run { [currentValuesDictionary] in
+            self.items = Array(currentValuesDictionary.values)
         }
     }
 
@@ -108,12 +107,12 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public func remove(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
-        Task { @MainActor in
+        try await self.removePersistedItems(items: items)
+
+        await MainActor.run {
             self.items.removeAll(where: { item in
                 itemKeys.contains(item[keyPath: self.cacheIdentifier])
             })
-
-            try await self.removePersistedItems(items: items)
         }
     }
 
@@ -191,22 +190,6 @@ private extension Store {
             try await self.removeAllPersistedItems()
 
         }
-    }
-
-}
-
-private extension Array where Element: Equatable {
-
-    func uniqueElements(matching keyPath: KeyPath<Element, String>) -> [Element] {
-        var result = [Element]()
-
-        for element in self {
-            if !result.contains(where: { $0[keyPath: keyPath] == element[keyPath: keyPath] }) {
-                result.append(element)
-            }
-        }
-
-        return result
     }
 
 }

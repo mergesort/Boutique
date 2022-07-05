@@ -8,6 +8,15 @@
         "revision" : "29966bf638714c1fbe0c734e259b3d5dfda58d6b",
         "version" : "1.0.1"
       }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections",
+      "state" : {
+        "revision" : "48254824bb4248676bf7ce56014ff57b142b77eb",
+        "version" : "1.0.2"
+      }
     }
   ],
   "version" : 2

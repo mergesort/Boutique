@@ -34,6 +34,23 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
+    func testAdding1000ItemsPerformance() async throws {
+        var generatedItems: [BoutiqueItem] = []
+        for i in 0..<1000 {
+            generatedItems.append(BoutiqueItem(merchantID: "\(i)", value: "Item \(i)"))
+        }
+
+        XCTAssert(store.items.isEmpty)
+
+        measure {
+            Task { @MainActor in
+                try await store.add(generatedItems)
+                XCTAssert(store.items.count == 1000)
+            }
+        }
+    }
+
+    @MainActor
     func testReadingItems() async throws {
         try await store.add(Self.allObjects)
 
