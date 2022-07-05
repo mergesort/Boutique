@@ -10,9 +10,9 @@ Thank you so much [@Sandor](https://dribbble.com/sandor) for the icon, if you th
 
 ---
 
-As I was building Boutique it became apparent to me that I needed a way to see the effects of changes I was making in a more realistic manner than using unit tests to measure performance changes. This is a performance profiler app that helps measure those changes and allows me to see the outcome or pinpoint performance hotspots, and allows anyone who's interested in using Boutique to see what performance they can expect in their apps. 
+As I was building Boutique it became apparent to me that I needed a way to see the effects of changes I was making in a more real-world manner than using unit tests to measure performance changes. This performance profiler app helps measure those changes and allows me to see the outcome of any changes I make, and pinpoint performance hotspots. It also allows you the user, anyone who's interested in using Boutique, to see what kind of performance they can expect in their apps.
 
-It also looks pretty dope, so I hope you find this app useful.
+It also looks pretty dope, so I hope you find this app useful. The design is a twist on a terminal emulator, because when I think performance needs I think fun classic hardware.
 
 ![Boutique Performance Profiler App Demo Image](Images/app-demo.png)
 
