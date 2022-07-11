@@ -1,4 +1,4 @@
-import Bodega
+@_exported import Bodega
 import OrderedCollections
 import Foundation
 
@@ -12,7 +12,6 @@ import Foundation
 /// which allows you to build an offline-first app for free, no extra code required.
 public final class Store<Item: Codable & Equatable>: ObservableObject {
 
-    private let storagePath: URL
     private let objectStorage: ObjectStorage
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -33,9 +32,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
     ///   That is *not* required though, and you are free to use any `String` property on your `Object`
     ///   or even a type which can be converted into a `String` such as `\.url.path`.
-    public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) {
-        self.storagePath = storagePath
-        self.objectStorage = ObjectStorage(storagePath: storagePath)
+    public init(directory: FileManager.Directory, cacheIdentifier: KeyPath<Item, String>) {
+        self.objectStorage = ObjectStorage(directory: directory)
         self.cacheIdentifier = cacheIdentifier
 
         Task { @MainActor in
