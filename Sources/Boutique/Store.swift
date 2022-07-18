@@ -9,7 +9,7 @@ import Foundation
 /// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
 ///
 /// Under the hood the `Store` is doing the work of saving all changes to a persistence layer
-/// when you add or remove objects, which allows you to build an offline-first app
+/// when you add or remove items, which allows you to build an offline-first app
 /// for free, all inclusive, no extra code required.
 public final class Store<Item: Codable & Equatable>: ObservableObject {
 
@@ -27,12 +27,12 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///
     /// **How The Store Works**
     ///
-    /// A `Store` is a higher level abstraction than ``ObjectStorage``, containing and leveraging
-    /// an in-memory store, the `items` array, and a ``StorageEngine`` for it's persistence layer.
+    /// A `Store` is a higher level abstraction than ``Bodega/ObjectStorage``, containing and leveraging
+    /// an in-memory store, the `items` array, and a `StrorageEngine` for it's persistence layer.
     ///
-    /// The `StorageEngine` you initialize a `Store` with (such as ``DiskStorageEngine`` or ``SQLiteStorageEngine``)
-    /// will be where items are stored permanently. If you do not provide a ``StorageEngine`` parameter
-    /// then the `Store` will default to using an ``SQLiteStorageEngine`` with a database
+    /// The `StorageEngine` you initialize a `Store` with (such as `DiskStorageEngine` or `SQLiteStorageEngine`)
+    /// will be where items are stored permanently. If you do not provide a `StorageEngine` parameter
+    /// then the `Store` will default to using an ``/Bodega/SQLiteStorageEngine`` with a database
     /// located in the app's Documents directory, in a "Data" subdirectory.
     ///
     /// As a user you will always be interacting with the `Store`s memory layer,
@@ -40,7 +40,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// with a `StorageEngine` you never have to think about how the data is being saved.
     ///
     /// The `SQLiteStorageEngine` is a safe, fast, and easy database to based on SQLite, a great default!
-    /// **If you prefer to use your own persistence layer or want to save your objects
+    /// **If you prefer to use your own persistence layer or want to save your items
     /// to another location, you can use the `storage` parameter like so**
     /// ```
     /// SQLiteStorageEngine(directory: .documents(appendingPath: "Assets"))
@@ -49,18 +49,18 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// **How Cache Identifiers Work**
     ///
     /// The `cacheIdentifier` generates a unique `String` representing a key for storing
-    /// your item in the underlying persistence layer (effectively `ObjectStorage`).
+    /// your item in the underlying persistence layer (the `StorageEngine`).
     ///
     /// The `cacheIdentifier` is `KeyPath` rather than a `String`, a good strategy for generating
     /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
-    /// That is *not* required though, and you are free to use any `String` property on your `Object`
+    /// That is *not* required though, and you are free to use any `String` property on your `Item`
     /// or even a type which can be converted into a `String` such as `\.url.path`.
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a `Store` instance with.
     ///   If no parameter is provided the default is `SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))`
-    ///   - cacheIdentifier: A `KeyPath` from the `Object` pointing to a `String`, which the `Store`
-    ///   will use to create a unique identifier for the object when it's saved.
+    ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the `Store`
+    ///   will use to create a unique identifier for the item when it's saved.
     public init(storage: StorageEngine = SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))!, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier

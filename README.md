@@ -55,7 +55,7 @@ store.removeAll()
 print(self.items) // Prints []
 
 // Add an item to the store, removing all of the current items 
-// from the in-memory and disk cache before saving the new object. ³
+// from the in-memory and disk cache before saving the new item. ³
 try await store.add([purse, belt], invalidationStrategy: .removeNone)
 try await store.add(coat, invalidationStrategy: .removeAll)
 
@@ -80,7 +80,7 @@ store.$items.sink({ items in
 
 ¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours.
   
-² Under the hood the Store is doing the work of saving all changes to disk when you add or remove objects.
+² Under the hood the Store is doing the work of saving all changes to disk when you add or remove items.
 
 ³ There are multiple cache invalidation strategies. `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
 

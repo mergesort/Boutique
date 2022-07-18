@@ -23,7 +23,7 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// with a `StorageEngine` you never have to think about how the data is being saved.
     ///
     /// The `SQLiteStorageEngine` is a safe, fast, and easy database to based on SQLite, a great default!
-    /// **If you prefer to use your own persistence layer or want to save your objects
+    /// **If you prefer to use your own persistence layer or want to save your items
     /// to another location, you can use the `storage` parameter like so**
     /// ```
     /// SQLiteStorageEngine(directory: .documents(appendingPath: "Assets"))

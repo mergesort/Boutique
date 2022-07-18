@@ -32,13 +32,13 @@ final class BoutiqueTests: XCTestCase {
     @MainActor
     func testAddingDuplicateItems() async throws {
         XCTAssertTrue(store.items.isEmpty)
-        try await store.add(Self.allObjects)
+        try await store.add(Self.allItems)
         XCTAssertEqual(store.items.count, 4)
     }
 
     @MainActor
     func testReadingItems() async throws {
-        try await store.add(Self.allObjects)
+        try await store.add(Self.allItems)
 
         XCTAssertEqual(store.items[0], Self.coat)
         XCTAssertEqual(store.items[1], Self.sweater)
@@ -50,7 +50,7 @@ final class BoutiqueTests: XCTestCase {
 
     @MainActor
     func testRemovingItems() async throws {
-        try await store.add(Self.allObjects)
+        try await store.add(Self.allItems)
         try await store.remove(Self.coat)
 
         XCTAssertFalse(store.items.contains(Self.coat))
@@ -69,7 +69,7 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
         try await store.removeAll()
 
-        try await store.add(Self.uniqueObjects)
+        try await store.add(Self.uniqueItems)
         XCTAssertEqual(store.items.count, 4)
         try await store.removeAll()
         XCTAssertTrue(store.items.isEmpty)
@@ -80,7 +80,7 @@ final class BoutiqueTests: XCTestCase {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
 
-        try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeNone)
+        try await store.add(BoutiqueTests.allItems, invalidationStrategy: .removeNone)
         XCTAssertTrue(store.items.contains(gloves))
     }
 
@@ -104,19 +104,19 @@ final class BoutiqueTests: XCTestCase {
         try await store.add(gloves)
         XCTAssertTrue(store.items.contains(gloves))
 
-        try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeAll)
+        try await store.add(BoutiqueTests.allItems, invalidationStrategy: .removeAll)
         XCTAssertFalse(store.items.contains(gloves))
     }
 
     @MainActor
     func testPublishedItemsSubscription() async throws {
-        let uniqueObjects = Self.uniqueObjects
-        let expectation = XCTestExpectation(description: "uniqueObjects is published and read")
+        let uniqueItems = Self.uniqueItems
+        let expectation = XCTestExpectation(description: "uniqueItems is published and read")
 
         store.$items
             .dropFirst()
             .sink(receiveValue: { items in
-                XCTAssertEqual(items, uniqueObjects)
+                XCTAssertEqual(items, uniqueItems)
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -124,7 +124,7 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertTrue(store.items.isEmpty)
 
         // Sets items under the hood
-        try await store.add(uniqueObjects)
+        try await store.add(uniqueItems)
         wait(for: [expectation], timeout: 1)
     }
 
@@ -162,7 +162,7 @@ private extension BoutiqueTests {
         value: "Belt"
     )
 
-    static let allObjects = [
+    static let allItems = [
         BoutiqueTests.coat,
         BoutiqueTests.sweater,
         BoutiqueTests.purse,
@@ -170,7 +170,7 @@ private extension BoutiqueTests {
         BoutiqueTests.duplicateBelt
     ]
 
-    static let uniqueObjects = [
+    static let uniqueItems = [
         BoutiqueTests.coat,
         BoutiqueTests.sweater,
         BoutiqueTests.purse,
