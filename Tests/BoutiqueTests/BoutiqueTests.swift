@@ -96,6 +96,40 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
+    func testRemoveWhereCacheInvalidationStrategy() async throws {
+        try await store.add([Self.belt, Self.coat])
+
+        try await store.add(Self.belt, invalidationStrategy: .remove(where: { $0.merchantID == Self.coat.merchantID }))
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertFalse(store.items.contains(Self.coat))
+    }
+
+    @MainActor
+    func testCustomCacheInvalidationStrategy() async throws {
+        try await store.add(Self.uniqueObjects)
+        XCTAssertEqual(store.items, Self.uniqueObjects)
+
+        // A new array that is distinctly missing coat and sweater
+        let sunglasses = BoutiqueItem(merchantID: "5", value: "Sunglasses")
+        let accessories = [Self.belt, Self.purse, sunglasses]
+        let allAvailableItems = Self.uniqueObjects + [sunglasses]
+
+        // Add those accessories into the Store
+        try await store.add(accessories)
+        XCTAssertEqual(store.items, allAvailableItems)
+
+        // Add those those accessories into the Store again, this time using
+        // a custom removal policy we created below
+        try await store.add(accessories, invalidationStrategy: .removeWinterClothes)
+
+        // Confirm that the winter items are indeed gone
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertTrue(store.items.contains(Self.purse))
+        XCTAssertFalse(store.items.contains(Self.sweater))
+        XCTAssertFalse(store.items.contains(Self.coat))
+    }
+
+    @MainActor
     func testRemoveAllCacheInvalidationStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
@@ -175,5 +209,15 @@ private extension BoutiqueTests {
     ]
 
     static let testStoragePath = Store<BoutiqueItem>.temporaryDirectory(appendingPath: "Tests")
+
+}
+
+private extension Store.CacheInvalidationStrategy {
+
+    static var removeWinterClothes: Store.CacheInvalidationStrategy<BoutiqueItem> {
+        return .init { items in
+            items.filter({ $0.merchantID != BoutiqueTests.coat.merchantID && $0.merchantID != BoutiqueTests.sweater.merchantID })
+        }
+    }
 
 }

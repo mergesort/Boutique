@@ -59,12 +59,11 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// - Parameters:
     ///   - items: The items to add to the store.
     ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
-    public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
+    public func add(_ items: [Item], invalidationStrategy strategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
         var currentItems: [Item] = await self.items
 
-        // Remove items from disk and memory based on the cache invalidation strategy
-        try await self.removePersistedItems(strategy: invalidationStrategy)
-        self.invalidateCache(strategy: invalidationStrategy, items: &currentItems)
+        // Remove items from memory and the store based on the cache invalidation strategy
+        try await self.invalidateItems(withStrategy: strategy, items: &currentItems)
 
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
@@ -162,33 +161,23 @@ private extension Store {
         try await self.objectStorage.removeAllObjects()
     }
 
-    func invalidateCache(strategy: CacheInvalidationStrategy<Item>, items: inout [Item]) {
-        switch strategy {
+    func invalidateItems(withStrategy strategy: CacheInvalidationStrategy<Item>, items: inout [Item]) async throws {
+        let itemsToInvalidate = strategy.invalidatedItems(items)
 
-        case .removeNone:
-            break
+        // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
+        guard itemsToInvalidate.count != 0 else { return }
 
-        case .remove(let itemsToRemove):
-            items = items.filter({ !itemsToRemove.contains($0) })
-
-        case .removeAll:
+        // If we're using the `.removeAll` strategy then we want to remove all the data without iterating
+        // Else, we're using a strategy and need to iterate over all of the `itemsToInvalidate` and invalidate them
+        if items.count == itemsToInvalidate.count {
             items = []
-
-        }
-    }
-
-    func removePersistedItems(strategy: CacheInvalidationStrategy<Item>) async throws {
-        switch strategy {
-
-        case .removeNone:
-            break
-
-        case .remove(let itemsToRemove):
-            try await self.remove(itemsToRemove)
-
-        case .removeAll:
             try await self.removeAllPersistedItems()
-
+        } else {
+            items = items.filter { itemsToInvalidate.contains($0) }
+            let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+            for keys in itemKeys {
+                try await self.objectStorage.removeObject(forKey: keys)
+            }
         }
     }
 
