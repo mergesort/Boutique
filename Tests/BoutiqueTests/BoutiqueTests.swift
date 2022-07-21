@@ -8,7 +8,11 @@ final class BoutiqueTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
-        store = Store<BoutiqueItem>(storagePath: Self.testStoragePath, cacheIdentifier: \.merchantID)
+        store = Store<BoutiqueItem>(
+            storagePath: FileManager.Directory.temporary(appendingPath: "Tests").url,
+            cacheIdentifier: \.merchantID
+        )
+
         try await store.removeAll()
     }
 
@@ -207,8 +211,6 @@ private extension BoutiqueTests {
         BoutiqueTests.purse,
         BoutiqueTests.belt,
     ]
-
-    static let testStoragePath = Store<BoutiqueItem>.temporaryDirectory(appendingPath: "Tests")
 
 }
 

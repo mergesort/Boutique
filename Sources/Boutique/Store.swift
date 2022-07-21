@@ -35,7 +35,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   or even a type which can be converted into a `String` such as `\.url.path`.
     public init(storagePath: URL, cacheIdentifier: KeyPath<Item, String>) {
         self.storagePath = storagePath
-        self.objectStorage = ObjectStorage(storagePath: storagePath)
+        self.objectStorage = ObjectStorage(directory: FileManager.Directory(url: storagePath))
         self.cacheIdentifier = cacheIdentifier
 
         Task { @MainActor in
