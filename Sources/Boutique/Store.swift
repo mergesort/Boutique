@@ -46,24 +46,27 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// Adds an item to the store.
     /// - Parameters:
     ///   - item: The item you are adding to the `Store`.
-    ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding an item
-    ///   defaulting to `.removeNone`.
-    public func add(_ item: Item, invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        try await self.add([item], invalidationStrategy: invalidationStrategy)
+    ///   - invalidationStrategy: An optional `ItemRemovalStrategy` you can provide when adding an item
+    ///   defaulting to nil, meaning no items should be **removed** before adding a new item.
+    public func add(_ item: Item, removingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        try await self.add([item], removingExistingItems: existingItemsStrategy)
     }
 
     /// Adds a list of items to the store.
     ///
     /// Prefer adding multiple items using this method instead of calling multiple times
-    /// ``add(_:invalidationStrategy:)-5y90k`` in succession to avoid making multiple separate dispatches to the `@MainActor`.
+    /// ``add(_:removingExistingItems:)-40rsm`` in succession to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameters:
     ///   - items: The items to add to the store.
-    ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
-    public func add(_ items: [Item], invalidationStrategy strategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
+    ///   - invalidationStrategy: An optional `ItemRemovalStrategy` you can provide when adding items
+    ///   defaulting to nil, meaning no items should be removed **before** adding new items.
+    public func add(_ items: [Item], removingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         var currentItems: [Item] = await self.items
 
-        // Remove items from memory and the store based on the cache invalidation strategy
-        try await self.invalidateItems(withStrategy: strategy, items: &currentItems)
+        if let strategy = existingItemsStrategy {
+            // Remove items from memory and the store based on the cache invalidation strategy
+            try await self.invalidateItems(withStrategy: strategy, items: &currentItems)
+        }
 
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
@@ -161,7 +164,7 @@ private extension Store {
         try await self.objectStorage.removeAllObjects()
     }
 
-    func invalidateItems(withStrategy strategy: CacheInvalidationStrategy<Item>, items: inout [Item]) async throws {
+    func invalidateItems(withStrategy strategy: ItemRemovalStrategy<Item>, items: inout [Item]) async throws {
         let itemsToInvalidate = strategy.invalidatedItems(items)
 
         // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early

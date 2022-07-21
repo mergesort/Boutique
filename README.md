@@ -56,7 +56,7 @@ print(self.items) // Prints []
 
 // Add an item to the store, removing all of the current items 
 // from the in-memory and disk cache before saving the new object. ³
-try await store.add([purse, belt], invalidationStrategy: .removeNone)
+try await store.add([purse, belt])
 try await store.add(coat, invalidationStrategy: .removeAll)
 
 print(store.items) // Prints [coat]

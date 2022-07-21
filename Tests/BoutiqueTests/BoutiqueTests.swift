@@ -73,22 +73,22 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
-    func testRemoveNoneCacheInvalidationStrategy() async throws {
+    func testRemoveNoneItemRemovalStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
 
-        try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeNone)
+        try await store.add(BoutiqueTests.allObjects, removingExistingItems: nil)
         XCTAssert(store.items.contains(gloves))
     }
 
     @MainActor
-    func testRemoveItemsCacheInvalidationStrategy() async throws {
+    func testRemoveItemsItemRemovalStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
         XCTAssert(store.items.contains(gloves))
 
         let duplicateGloves = BoutiqueItem(merchantID: "1000", value: "Gloves")
-        try await store.add(duplicateGloves, invalidationStrategy: .remove(items: [gloves]))
+        try await store.add(duplicateGloves, removingExistingItems: .items([gloves]))
 
         XCTAssertFalse(store.items.contains(where: { $0.merchantID == "999" }))
 
@@ -96,16 +96,16 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
-    func testRemoveWhereCacheInvalidationStrategy() async throws {
+    func testRemoveWhereItemRemovalStrategy() async throws {
         try await store.add([Self.belt, Self.coat])
 
-        try await store.add(Self.belt, invalidationStrategy: .remove(where: { $0.merchantID == Self.coat.merchantID }))
+        try await store.add(Self.belt, removingExistingItems: .items(where: { $0.merchantID == Self.coat.merchantID }))
         XCTAssertTrue(store.items.contains(Self.belt))
         XCTAssertFalse(store.items.contains(Self.coat))
     }
 
     @MainActor
-    func testCustomCacheInvalidationStrategy() async throws {
+    func testCustomItemRemovalStrategy() async throws {
         try await store.add(Self.uniqueObjects)
         XCTAssertEqual(store.items, Self.uniqueObjects)
 
@@ -120,7 +120,7 @@ final class BoutiqueTests: XCTestCase {
 
         // Add those those accessories into the Store again, this time using
         // a custom removal policy we created below
-        try await store.add(accessories, invalidationStrategy: .removeWinterClothes)
+        try await store.add(accessories, removingExistingItems: .removeWinterClothes)
 
         // Confirm that the winter items are indeed gone
         XCTAssertTrue(store.items.contains(Self.belt))
@@ -130,12 +130,12 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
-    func testRemoveAllCacheInvalidationStrategy() async throws {
+    func testRemoveAllItemRemovalStrategy() async throws {
         let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
         try await store.add(gloves)
         XCTAssert(store.items.contains(gloves))
 
-        try await store.add(BoutiqueTests.allObjects, invalidationStrategy: .removeAll)
+        try await store.add(BoutiqueTests.allObjects, removingExistingItems: .all)
         XCTAssertFalse(store.items.contains(gloves))
     }
 
@@ -212,9 +212,9 @@ private extension BoutiqueTests {
 
 }
 
-private extension Store.CacheInvalidationStrategy {
+private extension Store.ItemRemovalStrategy {
 
-    static var removeWinterClothes: Store.CacheInvalidationStrategy<BoutiqueItem> {
+    static var removeWinterClothes: Store.ItemRemovalStrategy<BoutiqueItem> {
         return .init { items in
             items.filter({ $0.merchantID != BoutiqueTests.coat.merchantID && $0.merchantID != BoutiqueTests.sweater.merchantID })
         }

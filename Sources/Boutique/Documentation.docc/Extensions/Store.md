@@ -36,4 +36,4 @@ For a more detailed code example refer to <doc:Example>.
 
 ### Invalidation
 
- - ``CacheInvalidationStrategy``
+ - ``ItemRemovalStrategy``
