@@ -43,11 +43,20 @@ final class BoutiqueTests: XCTestCase {
     @MainActor
     func testChainingItems() async throws {
         XCTAssertTrue(store.items.isEmpty)
-        try await store.add(Self.allItems)
+        try await store.add(Self.uniqueItems)
 
-        try await store.removeAll().add(Self.belt).run()
-        XCTAssertEqual(store.items.count, 1)
-        XCTAssertEqual(store.items, [Self.belt])
+        print("/////////////")
+
+        try await store.remove(Self.belt)
+            .remove(Self.coat)
+            .add(Self.belt)
+            .run()
+
+        XCTAssertEqual(store.items.count, 3)
+        XCTAssertTrue(store.items.contains(Self.sweater))
+        XCTAssertTrue(store.items.contains(Self.purse))
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertFalse(store.items.contains(Self.coat))
     }
 
     @MainActor

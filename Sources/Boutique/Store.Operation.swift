@@ -9,7 +9,11 @@ public extension Store {
             self.store = store
         }
 
-        deinit { self.run() }
+        deinit {
+            print("Entered deinit", self.operations)
+            self.run()
+            print("We ran!", self.operations)
+        }
 
         public func run() {
             guard !self.committed else { return }
