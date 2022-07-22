@@ -9,7 +9,7 @@ final class BoutiqueTests: XCTestCase {
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Tests"))!,
+            storage: DiskStorageEngine(directory: .temporary(appendingPath: "Tests")),
             cacheIdentifier: \.merchantID)
 
         try await store.removeAll()
@@ -38,6 +38,16 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertTrue(store.items.isEmpty)
         try await store.add(Self.allItems)
         XCTAssertEqual(store.items.count, 4)
+    }
+
+    @MainActor
+    func testChainingItems() async throws {
+        XCTAssertTrue(store.items.isEmpty)
+        try await store.add(Self.allItems)
+
+        try await store.removeAll().add(Self.belt).run()
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(store.items, [Self.belt])
     }
 
     @MainActor
