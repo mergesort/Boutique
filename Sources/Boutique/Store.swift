@@ -147,7 +147,20 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// - Parameter item: The item you are removing from the `Store`.
     @discardableResult
     public func remove(_ item: Item) async throws -> Operation {
-        try await self.remove([item])
+        let operation = Operation(store: self)
+
+        try await self.removePersistedItem(item)
+
+        let cacheKeyString = item[keyPath: self.cacheIdentifier]
+        let itemKeys = Set([cacheKeyString])
+
+        await MainActor.run {
+            self.items.removeAll(where: { item in
+                itemKeys.contains(item[keyPath: self.cacheIdentifier])
+            })
+        }
+
+        return try await operation.remove(item)
     }
 
     /// Removes a list of items from the store.
@@ -206,6 +219,11 @@ private extension Store {
             .map({ (key: $0, data: try encoder.encode($1)) })
 
         try await self.storageEngine.write(dataAndKeys)
+    }
+
+    func removePersistedItem(_ item: Item) async throws {
+        let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
+        try await self.storageEngine.remove(key: cacheKey)
     }
 
     func removePersistedItems(items: [Item]) async throws {
