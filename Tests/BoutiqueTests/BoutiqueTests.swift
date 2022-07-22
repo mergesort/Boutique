@@ -76,39 +76,6 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
-    func testRemoveNoneCacheInvalidationStrategy() async throws {
-        let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
-        try await store.add(gloves)
-
-        try await store.add(BoutiqueTests.allItems, invalidationStrategy: .removeNone)
-        XCTAssertTrue(store.items.contains(gloves))
-    }
-
-    @MainActor
-    func testRemoveItemsCacheInvalidationStrategy() async throws {
-        let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
-        try await store.add(gloves)
-        XCTAssertTrue(store.items.contains(gloves))
-
-        let duplicateGloves = BoutiqueItem(merchantID: "1000", value: "Gloves")
-        try await store.add(duplicateGloves, invalidationStrategy: .remove(items: [gloves]))
-
-        XCTAssertFalse(store.items.contains(where: { $0.merchantID == "999" }))
-
-        XCTAssertTrue(store.items.contains(where: { $0.merchantID == "1000" }))
-    }
-
-    @MainActor
-    func testRemoveAllCacheInvalidationStrategy() async throws {
-        let gloves = BoutiqueItem(merchantID: "999", value: "Gloves")
-        try await store.add(gloves)
-        XCTAssertTrue(store.items.contains(gloves))
-
-        try await store.add(BoutiqueTests.allItems, invalidationStrategy: .removeAll)
-        XCTAssertFalse(store.items.contains(gloves))
-    }
-
-    @MainActor
     func testPublishedItemsSubscription() async throws {
         let uniqueItems = Self.uniqueItems
         let expectation = XCTestExpectation(description: "uniqueItems is published and read")

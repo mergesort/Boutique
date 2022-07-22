@@ -81,8 +81,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - item: The item you are adding to the `Store`.
     ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding an item
     ///   defaulting to `.removeNone`.
-    public func add(_ item: Item, invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        try await self.add([item], invalidationStrategy: invalidationStrategy)
+    public func add(_ item: Item) async throws {
+        try await self.add([item])
     }
 
     /// Adds a list of items to the store.
@@ -92,13 +92,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// - Parameters:
     ///   - items: The items to add to the store.
     ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
-    public func add(_ items: [Item], invalidationStrategy: CacheInvalidationStrategy<Item> = .removeNone) async throws {
-        var currentItems: [Item] = await self.items
-
-        // Remove items from memory and the store based on the cache invalidation strategy
-        try await self.removePersistedItems(strategy: invalidationStrategy)
-        self.invalidateCache(strategy: invalidationStrategy, items: &currentItems)
-
+    public func add(_ items: [Item]) async throws {
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `add(items:)` by taking advantage
@@ -109,6 +103,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
+        let currentItems: [Item] = await self.items
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
 
@@ -154,7 +149,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// A separate method for performance reasons, handling removal of all data
     /// in one operation rather than iterating over every item in the `Store` and `StorageEngine`.
     public func removeAll() async throws {
-        try await self.removePersistedItems(strategy: .removeAll)
+        try await self.storageEngine.removeAllData()
 
         await MainActor.run {
             self.items = []
@@ -177,36 +172,6 @@ private extension Store {
     func removePersistedItems(items: [Item]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
         try await self.storageEngine.remove(keys: itemKeys)
-    }
-
-    func invalidateCache(strategy: CacheInvalidationStrategy<Item>, items: inout [Item]) {
-        switch strategy {
-
-        case .removeNone:
-            break
-
-        case .remove(let itemsToRemove):
-            items = items.filter({ !itemsToRemove.contains($0) })
-
-        case .removeAll:
-            items = []
-
-        }
-    }
-
-    func removePersistedItems(strategy: CacheInvalidationStrategy<Item>) async throws {
-        switch strategy {
-
-        case .removeNone:
-            break
-
-        case .remove(let itemsToRemove):
-            try await self.remove(itemsToRemove)
-
-        case .removeAll:
-            try await self.storageEngine.removeAllData()
-
-        }
     }
 
 }
