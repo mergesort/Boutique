@@ -84,20 +84,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @discardableResult
     public func add(_ item: Item) async throws -> Operation {
         let operation = Operation(store: self)
-
-        // Take the current items array and turn it into an OrderedDictionary.
-        let identifier = item[keyPath: self.cacheIdentifier]
-        let currentItems = await self.items
-        let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
-        var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
-        currentValuesDictionary[identifier] = item
-
-        // We persist only the newly added items, rather than rewriting all of the items
-        try await self.persistItem(item)
-
-        await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
-        }
+        try await self.add(item: item)
 
         return try await operation.add(item)
     }
@@ -112,7 +99,67 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @discardableResult
     public func add(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
+        try await self.add(items: items)
 
+        return try await operation.add(items)
+    }
+
+    /// Removes an item from the store.
+    /// - Parameter item: The item you are removing from the `Store`.
+    @discardableResult
+    public func remove(_ item: Item) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.removeItem(item)
+
+        return try await operation.remove(item)
+    }
+
+    /// Removes a list of items from the store.
+    ///
+    /// Prefer removing multiple items using this method
+    /// avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameter item: The items you are removing from the `Store`.
+    @discardableResult
+    public func remove(_ items: [Item]) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.removeItems(items)
+
+        return try await operation.remove(items)
+    }
+
+    /// Removes all items from the store's memory cache and storage engine.
+    ///
+    /// A separate method for performance reasons, handling removal of all data
+    /// in one operation rather than iterating over every item in the `Store` and `StorageEngine`.
+    @discardableResult
+    public func removeAll() async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.removeAllItems()
+
+        return try await operation.removeAll()
+    }
+
+}
+
+internal extension Store {
+
+    func add(item: Item) async throws {
+        // Take the current items array and turn it into an OrderedDictionary.
+        let identifier = item[keyPath: self.cacheIdentifier]
+        let currentItems = await self.items
+        let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
+        var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
+        currentValuesDictionary[identifier] = item
+
+        // We persist only the newly added items, rather than rewriting all of the items
+        try await self.persistItem(item)
+
+        await MainActor.run { [currentValuesDictionary] in
+            self.items = Array(currentValuesDictionary.values)
+        }
+    }
+
+    func add(items: [Item]) async throws {
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `add(items:)` by taking advantage
@@ -139,16 +186,9 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         await MainActor.run { [currentValuesDictionary] in
             self.items = Array(currentValuesDictionary.values)
         }
-
-        return try await operation.add(Array(currentValuesDictionary.values))
     }
 
-    /// Removes an item from the store.
-    /// - Parameter item: The item you are removing from the `Store`.
-    @discardableResult
-    public func remove(_ item: Item) async throws -> Operation {
-        let operation = Operation(store: self)
-
+    func removeItem(_ item: Item) async throws {
         try await self.removePersistedItem(item)
 
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
@@ -159,19 +199,9 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
                 itemKeys.contains(item[keyPath: self.cacheIdentifier])
             })
         }
-
-        return try await operation.remove(item)
     }
 
-    /// Removes a list of items from the store.
-    ///
-    /// Prefer removing multiple items using this method
-    /// avoid making multiple separate dispatches to the `@MainActor`.
-    /// - Parameter item: The items you are removing from the `Store`.
-    @discardableResult
-    public func remove(_ items: [Item]) async throws -> Operation {
-        let operation = Operation(store: self)
-
+    func removeItems(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         try await self.removePersistedItems(items: items)
@@ -181,24 +211,14 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
                 itemKeys.contains(item[keyPath: self.cacheIdentifier])
             })
         }
-
-        return try await operation.remove(items)
     }
 
-    /// Removes all items from the store's memory cache and storage engine.
-    ///
-    /// A separate method for performance reasons, handling removal of all data
-    /// in one operation rather than iterating over every item in the `Store` and `StorageEngine`.
-    @discardableResult
-    public func removeAll() async throws -> Operation {
-        let operation = Operation(store: self)
+    func removeAllItems() async throws {
         try await self.storageEngine.removeAllData()
 
         await MainActor.run {
             self.items = []
         }
-
-        return try await operation.removeAll()
     }
 
 }

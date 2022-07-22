@@ -10,9 +10,7 @@ public extension Store {
         }
 
         deinit {
-            print("Entered deinit", self.operations)
             self.run()
-            print("We ran!", self.operations)
         }
 
         public func run() {
@@ -27,31 +25,31 @@ public extension Store {
 
         @discardableResult
         func add(_ item: Item) async throws -> Operation {
-            self.operations.append { _ in print("+\(item)") }
+            try await store.add(item: item)
             return self
         }
 
         @discardableResult
         func add(_ items: [Item]) async throws -> Operation {
-            self.operations.append { _ in print("+\(items)") }
+            try await store.add(items: items)
             return self
         }
 
         @discardableResult
         func remove(_ item: Item) async throws -> Operation {
-            self.operations.append { _ in print("-\(item)") }
+            try await store.removeItem(item)
             return self
         }
 
         @discardableResult
         func remove(_ items: [Item]) async throws -> Operation {
-            self.operations.append { _ in print("-\(items)") }
+            try await store.removeItems(items)
             return self
         }
 
         @discardableResult
         func removeAll() async throws -> Operation {
-            self.operations.append { _ in print("--all") }
+            try await store.removeAllItems()
             return self
         }
 

@@ -41,25 +41,6 @@ final class BoutiqueTests: XCTestCase {
     }
 
     @MainActor
-    func testChainingItems() async throws {
-        XCTAssertTrue(store.items.isEmpty)
-        try await store.add(Self.uniqueItems)
-
-        print("/////////////")
-
-        try await store.remove(Self.belt)
-            .remove(Self.coat)
-            .add(Self.belt)
-            .run()
-
-        XCTAssertEqual(store.items.count, 3)
-        XCTAssertTrue(store.items.contains(Self.sweater))
-        XCTAssertTrue(store.items.contains(Self.purse))
-        XCTAssertTrue(store.items.contains(Self.belt))
-        XCTAssertFalse(store.items.contains(Self.coat))
-    }
-
-    @MainActor
     func testReadingItems() async throws {
         try await store.add(Self.allItems)
 
@@ -96,6 +77,62 @@ final class BoutiqueTests: XCTestCase {
         XCTAssertEqual(store.items.count, 4)
         try await store.removeAll()
         XCTAssertTrue(store.items.isEmpty)
+    }
+
+    @MainActor
+    func testChainingAddOperations() async throws {
+        try await store.add(Self.uniqueItems)
+
+        try await store
+            .remove(Self.coat)
+            .add(Self.belt)
+            .add(Self.belt)
+
+        XCTAssertEqual(store.items.count, 3)
+        XCTAssertTrue(store.items.contains(Self.sweater))
+        XCTAssertTrue(store.items.contains(Self.purse))
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertFalse(store.items.contains(Self.coat))
+
+        try await store.removeAll()
+
+        try await store
+            .add(Self.coat)
+            .add([Self.purse, Self.belt])
+
+        XCTAssertEqual(store.items.count, 3)
+        XCTAssertTrue(store.items.contains(Self.purse))
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertTrue(store.items.contains(Self.coat))
+    }
+
+    @MainActor
+    func testChainingRemoveOperations() async throws {
+        try await store
+            .add(Self.uniqueItems)
+            .remove(Self.belt)
+            .remove(Self.purse)
+
+        XCTAssertEqual(store.items.count, 2)
+        XCTAssertTrue(store.items.contains(Self.sweater))
+        XCTAssertTrue(store.items.contains(Self.coat))
+
+        try await store.add(items: Self.uniqueItems)
+        XCTAssertEqual(store.items.count, 4)
+
+        try await store
+            .remove([Self.sweater, Self.coat])
+            .remove(Self.belt)
+
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertTrue(store.items.contains(Self.purse))
+
+        try await store
+            .removeAll()
+            .add(Self.belt)
+
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertTrue(store.items.contains(Self.belt))
     }
 
     @MainActor
