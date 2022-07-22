@@ -19,6 +19,10 @@ final class BoutiqueTests: XCTestCase {
     func testAddingItem() async throws {
         try await store.add(Self.coat)
         XCTAssertTrue(store.items.contains(Self.coat))
+
+        try await store.add(Self.belt)
+        XCTAssertTrue(store.items.contains(Self.belt))
+        XCTAssertEqual(store.items.count, 2)
     }
 
     @MainActor
