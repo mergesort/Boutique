@@ -57,7 +57,7 @@ print(self.items) // Prints []
 // Add an item to the store, removing all of the current items 
 // from the in-memory and disk cache before saving the new object. ³
 try await store.add([purse, belt])
-try await store.add(coat, invalidationStrategy: .removeAll)
+try await store.add(coat, invalidationStrategy: .all)
 
 print(store.items) // Prints [coat]
 ```
@@ -82,7 +82,7 @@ store.$items.sink({ items in
   
 ² Under the hood the Store is doing the work of saving all changes to disk when you add or remove objects.
 
-³ There are multiple cache invalidation strategies. `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
+³ There are multiple cache invalidation strategies. `.all` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
 
 ⁴ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
 
