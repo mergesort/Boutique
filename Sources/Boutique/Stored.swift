@@ -19,28 +19,31 @@ public struct Stored<Item: Codable & Equatable> {
         box.store
     }
 
-    @MainActor public static subscript<Instance: ObservableObject>(
+    @MainActor public static subscript<Instance>(
         _enclosingInstance instance: Instance,
         wrapped wrappedKeyPath: KeyPath<Instance, [Item]>,
-        storage storageKeyPath: KeyPath<Instance, Stored>
-    ) -> [Item] where Instance.ObjectWillChangePublisher == ObservableObjectPublisher {
+        storage storageKeyPath: KeyPath<Instance, Self>
+    ) -> [Item] {
         let wrapper = instance[keyPath: storageKeyPath]
 
         if wrapper.box.cancellable == nil {
             wrapper.box.cancellable = wrapper.projectedValue
                 .objectWillChange
-                .sink(receiveValue: { [objectWillChange = instance.objectWillChange] in
-                    objectWillChange.send()
+                .sink(receiveValue: {
+                    if let objectWillChangePublisher = instance as? ObservableObjectPublisher {
+                        objectWillChangePublisher.send()
+                    }
                 })
         }
 
         return wrapper.wrappedValue
     }
+
 }
 
 private extension Stored {
 
-    class Box {
+    final class Box {
         let store: Store<Item>
         var cancellable: AnyCancellable?
 
