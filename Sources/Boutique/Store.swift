@@ -77,22 +77,94 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     }
 
     /// Adds an item to the store.
+    ///
+    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the `Store`
+    /// the item being inserted will replace the item in the `Store`. You can think of the `Store` as a bag
+    /// of items, removing complexity when it comes to managing items, indices, and more,
+    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
     /// - Parameters:
     ///   - item: The item you are adding to the `Store`.
-    ///   - invalidationStrategy: An optional `CacheInvalidationStrategy` you can provide when adding an item
-    ///   defaulting to `.removeNone`.
-    public func add(_ item: Item) async throws {
-        try await self.add([item])
+    @discardableResult
+    public func add(_ item: Item) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.performAdd(item)
+
+        return try await operation.add(item)
     }
 
-    /// Adds a list of items to the store.
+    /// Adds an array of items to the store.
     ///
-    /// Prefer adding multiple items using this method instead of calling multiple times
-    /// ``add(_:invalidationStrategy:)-5y90k`` in succession to avoid making multiple separate dispatches to the `@MainActor`.
+    /// Prefer adding multiple items using this method instead of calling ``add(_:)-1ausm``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameters:
     ///   - items: The items to add to the store.
-    ///   - invalidationStrategy: An optional invalidation strategy for this add operation.
-    public func add(_ items: [Item]) async throws {
+    @discardableResult
+    public func add(_ items: [Item]) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.performAdd(items)
+
+        return try await operation.add(items)
+    }
+
+    /// Removes an item from the store.
+    /// - Parameter item: The item you are removing from the `Store`.
+    @discardableResult
+    public func remove(_ item: Item) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.performRemove(item)
+
+        return try await operation.remove(item)
+    }
+
+    /// Removes a list of items from the store.
+    ///
+    /// Prefer removing multiple items using this method instead of calling ``remove(_:)-51ya6``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameter item: The items you are removing from the `Store`.
+    @discardableResult
+    public func remove(_ items: [Item]) async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.performRemove(items)
+
+        return try await operation.remove(items)
+    }
+
+    /// Removes all items from the store's memory cache and storage engine.
+    ///
+    /// A separate method you should use when removing all data rather than calling
+    /// ``remove(_:)-1w3lx`` or ``remove(_:)-51ya6`` multiple times.
+    /// This method handles removing all of the data in one operation rather than iterating over every item
+    /// in the `Store`, avoiding multiple dispatches to the `@MainActor`, with far better performance.
+    @discardableResult
+    public func removeAll() async throws -> Operation {
+        let operation = Operation(store: self)
+        try await self.performRemoveAll()
+
+        return try await operation.removeAll()
+    }
+
+}
+
+// Internal versions of the `add`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
+internal extension Store {
+
+    func performAdd(_ item: Item) async throws {
+        // Take the current items array and turn it into an OrderedDictionary.
+        let identifier = item[keyPath: self.cacheIdentifier]
+        let currentItems = await self.items
+        let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
+        var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
+        currentValuesDictionary[identifier] = item
+
+        // We persist only the newly added items, rather than rewriting all of the items
+        try await self.persistItem(item)
+
+        await MainActor.run { [currentValuesDictionary] in
+            self.items = Array(currentValuesDictionary.values)
+        }
+    }
+
+    func performAdd(_ items: [Item]) async throws {
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `add(items:)` by taking advantage
@@ -121,18 +193,20 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Removes an item from the store.
-    /// - Parameter item: The item you are removing from the `Store`.
-    public func remove(_ item: Item) async throws {
-        try await self.remove([item])
+    func performRemove(_ item: Item) async throws {
+        try await self.removePersistedItem(item)
+
+        let cacheKeyString = item[keyPath: self.cacheIdentifier]
+        let itemKeys = Set([cacheKeyString])
+
+        await MainActor.run {
+            self.items.removeAll(where: { item in
+                itemKeys.contains(item[keyPath: self.cacheIdentifier])
+            })
+        }
     }
 
-    /// Removes a list of items from the store.
-    ///
-    /// Prefer removing multiple items using this method
-    /// avoid making multiple separate dispatches to the `@MainActor`.
-    /// - Parameter item: The items you are removing from the `Store`.
-    public func remove(_ items: [Item]) async throws {
+    func performRemove(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         try await self.removePersistedItems(items: items)
@@ -144,11 +218,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Removes all items from the store's memory cache and storage engine.
-    ///
-    /// A separate method for performance reasons, handling removal of all data
-    /// in one operation rather than iterating over every item in the `Store` and `StorageEngine`.
-    public func removeAll() async throws {
+    func performRemoveAll() async throws {
         try await self.storageEngine.removeAllData()
 
         await MainActor.run {
@@ -160,6 +230,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
 
 private extension Store {
 
+    func persistItem(_ item: Item) async throws {
+        let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
+        let encoder = JSONEncoder()
+
+        try await self.storageEngine.write(try encoder.encode(item), key: cacheKey)
+    }
+
     func persistItems(_ items: [Item]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
         let encoder = JSONEncoder()
@@ -167,6 +244,11 @@ private extension Store {
             .map({ (key: $0, data: try encoder.encode($1)) })
 
         try await self.storageEngine.write(dataAndKeys)
+    }
+
+    func removePersistedItem(_ item: Item) async throws {
+        let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
+        try await self.storageEngine.remove(key: cacheKey)
     }
 
     func removePersistedItems(items: [Item]) async throws {
