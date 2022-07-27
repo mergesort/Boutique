@@ -1,6 +1,6 @@
 ![Boutique Logo](Images/logo.jpg)
 
-### A simple but surprisingly fancy data store
+### A simple but surprisingly fancy data store and so much more
 
 If you find Boutique valuable I would really appreciate it if you would consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
 
