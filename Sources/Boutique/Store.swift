@@ -61,7 +61,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   If no parameter is provided the default is `SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))`
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the `Store`
     ///   will use to create a unique identifier for the item when it's saved.
-    public init(storage: StorageEngine = SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))!, cacheIdentifier: KeyPath<Item, String>) {
+    public init(storage: StorageEngine = SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: "Data"))!, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
 
