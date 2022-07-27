@@ -6,6 +6,7 @@ final class BoutiqueTests: XCTestCase {
 
     private var store: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
+    @StoredValue<BoutiqueItem> private var storedItem
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(
@@ -13,6 +14,21 @@ final class BoutiqueTests: XCTestCase {
             cacheIdentifier: \.merchantID)
 
         try await store.removeAll()
+        try await self.$storedItem.reset()
+    }
+
+    @MainActor
+    func testStoredValueOperations() async throws {
+        XCTAssertEqual(self.storedItem, nil)
+
+        try await self.$storedItem.set(BoutiqueTests.belt)
+        XCTAssertEqual(self.storedItem, BoutiqueTests.belt)
+
+        try await self.$storedItem.reset()
+        XCTAssertEqual(self.storedItem, nil)
+
+        try await self.$storedItem.set(BoutiqueTests.sweater)
+        XCTAssertEqual(self.storedItem, BoutiqueTests.sweater)
     }
 
     @MainActor

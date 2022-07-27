@@ -3,10 +3,10 @@
     {
       "identity" : "bodega",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mergesort/Bodega",
+      "location" : "https://github.com/mergesort/Bodega.git",
       "state" : {
         "branch" : "2.0",
-        "revision" : "3f6416d2be78d91d9cddf4baa66cd61ccc5c6fcf"
+        "revision" : "594d120e5e6b6d102ec95b240aea3511d61b545d"
       }
     },
     {
