@@ -6,8 +6,7 @@ final class BoutiqueTests: XCTestCase {
 
     private var store: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
-    @StoredValue<BoutiqueItem>(key: "testItem") private var storedItem
-    @StoredValue<BoutiqueItem>(key: "alternativeTestItem") private var alternativeStoredItem
+    @StoredValue<BoutiqueItem> private var storedItem
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(
@@ -25,31 +24,11 @@ final class BoutiqueTests: XCTestCase {
         try await self.$storedItem.set(BoutiqueTests.belt)
         XCTAssertEqual(self.storedItem, BoutiqueTests.belt)
 
-        try await self.$alternativeStoredItem.set(BoutiqueTests.belt)
-        XCTAssertEqual(self.alternativeStoredItem, BoutiqueTests.belt)
-        XCTAssertEqual(self.storedItem, BoutiqueTests.belt)
-
-        try await self.$alternativeStoredItem.set(BoutiqueTests.coat)
-        XCTAssertEqual(self.alternativeStoredItem, BoutiqueTests.coat)
-        XCTAssertEqual(self.storedItem, BoutiqueTests.belt)
-
         try await self.$storedItem.reset()
         XCTAssertEqual(self.storedItem, nil)
-        XCTAssertEqual(self.alternativeStoredItem, BoutiqueTests.coat)
-
-        try await self.$alternativeStoredItem.reset()
-        XCTAssertEqual(self.storedItem, nil)
-        XCTAssertEqual(self.alternativeStoredItem, nil)
 
         try await self.$storedItem.set(BoutiqueTests.sweater)
         XCTAssertEqual(self.storedItem, BoutiqueTests.sweater)
-
-        if let storedItem = self.storedItem {
-            try await self.$alternativeStoredItem.set(storedItem)
-            XCTAssertEqual(self.alternativeStoredItem, BoutiqueTests.sweater)
-        } else {
-            XCTFail("Item should not be nil")
-        }
     }
 
     @MainActor
