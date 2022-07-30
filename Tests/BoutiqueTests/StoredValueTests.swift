@@ -3,8 +3,6 @@ import XCTest
 
 final class StoredValueTests: XCTestCase {
 
-    // make sure these actually work
-
     @StoredValue<BoutiqueItem>(key: "storedItem")
     private var storedItem
 
