@@ -1,4 +1,5 @@
 import Combine
+import Foundation
 
 /// A `@StoredValue` property wrapper to automagically persist a single `Item` rather than
 /// an array of items that would be persisted in a `Store` or using `@Stored`.
@@ -38,8 +39,12 @@ public struct StoredValue<Item: Codable & Equatable> {
     /// - Parameters:
     ///   - wrappedValue: An value set when initializing a `@StoredValue`
     ///   - key: The key to store.
-    public init(wrappedValue: Item? = nil, key: String) {
-        let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: key))!, cacheIdentifier: \.id)
+    ///   - directory: A directory where `@StoredValue` will be saved.
+    ///   The default location should generally be used but is if you need to specify a location
+    ///   for where values are stored, such as the `.sharedContainer` for extensions.
+    public init(wrappedValue: Item? = nil, key: String, directory: FileManager.Directory = .defaultStorageDirectory(appendingPath: "")) {
+        let directory = FileManager.Directory(url: directory.url.appendingPathComponent(key))
+        let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: directory)!, cacheIdentifier: \.id)
         self.box = Box(innerStore)
 
         do { try wrappedValue.map(self.synchronousSet) } catch { }

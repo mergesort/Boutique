@@ -14,6 +14,9 @@ final class StoredValueTests: XCTestCase {
     @StoredValue<BoutiqueItem>(key: "defaultNilValueItem")
     private var defaultNilValueItem = nil
 
+    @StoredValue<BoutiqueItem>(key: "defaultDirectoryItem", directory: .temporary(appendingPath: "Test"))
+    private var directoryInitializedItem = BoutiqueItem.sweater
+
     override func setUp() async throws {
         try await self.$storedItem.reset()
     }
@@ -38,4 +41,14 @@ final class StoredValueTests: XCTestCase {
         XCTAssertEqual(self.defaultNilValueItem, nil)
     }
 
+    @MainActor
+    func testDirectoryInitializedValue() async throws {
+        XCTAssertEqual(self.directoryInitializedItem, BoutiqueItem.sweater)
+
+        try await self.$directoryInitializedItem.set(BoutiqueItem.belt)
+        XCTAssertEqual(self.directoryInitializedItem, BoutiqueItem.belt)
+
+        try await self.$directoryInitializedItem.reset()
+        XCTAssertEqual(self.defaultNilValueItem, nil)
+    }
 }
