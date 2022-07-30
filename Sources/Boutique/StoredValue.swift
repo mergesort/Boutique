@@ -1,15 +1,48 @@
 import Combine
 
-/// A `@StoredValue` property wrapper to automagically persist any item rather than
+/// A `@StoredValue` property wrapper to automagically persist a single `Item` rather than
 /// an array of items that would be persisted in a `Store` or using `@Stored`.
 @propertyWrapper
 public struct StoredValue<Item: Codable & Equatable> {
 
     private let box: Box
 
-    public init(using storage: StorageEngine = SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))!) {
-        let innerStore = Store<UniqueItem>(storage: storage, cacheIdentifier: \.id)
+    /// Initializes a `@StoredValue`.
+    ///
+    /// There are two notable differences between `@Store` and `@StoredValue`.
+    /// 1. A `@StoredValue` stores only one item, as opposed to a `@Store` which stores
+    /// an array of items exposed as the `items: [Item]` property. A `@StoredValue` exposes only
+    /// one value, an `Item?`. This is useful for similar use cases as `UserDefaults`,
+    /// where it's common to store only an item such as the app's `lastOpenedDate`,
+    /// an object of the user's preferences, configurations, and more.
+    /// 2. When you use a `@Store` you have to consider how the item will be stored,
+    /// but with `@StoredValue` a database will be transparently created for you to store the item.
+    /// This ensures that you will be able to retrieve the item quickly since there is only one item,
+    /// useful for situations where you need a value at the launch of your app.
+    ///
+    /// Creating a `@StoredValue` is straightforward and easy, resmebling the `@AppStorage` API.
+    ///
+    /// You can initialize the `@StoredValue` with a default value like you would any other Swift property.
+    /// ```
+    /// @StoredValue(key: "redPanda")
+    /// private var redPanda = RedPanda(cuteRating: 100)
+    /// ```
+    ///
+    /// It's perfectly reasonable to not provide a default value for your `@StoredValue`,
+    /// but you will have to define such as the below example.
+    /// ```
+    /// @StoredValue<RedPanda>(key: "pandaRojo")
+    /// private var spanishRedPanda
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: An value set when initializing a `@StoredValue`
+    ///   - key: The key to store.
+    public init(wrappedValue: Item? = nil, key: String) {
+        let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: key))!, cacheIdentifier: \.id)
         self.box = Box(innerStore)
+
+        do { try wrappedValue.map(self.synchronousSet) } catch { }
     }
 
     @MainActor
@@ -53,6 +86,17 @@ public struct StoredValue<Item: Codable & Equatable> {
     /// Sets the `@StoredValue` to nil.
     public func reset() async throws {
         try await self.box.store.removeAll()
+    }
+
+}
+
+private extension StoredValue {
+
+    // A synchronous version of set to seed default values in @StoredValue initializers
+    func synchronousSet(_ value: Item) throws {
+        Task {
+            try await self.set(value)
+        }
     }
 
 }
