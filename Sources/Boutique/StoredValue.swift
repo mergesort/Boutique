@@ -21,7 +21,7 @@ public struct StoredValue<Item: Codable & Equatable> {
     /// This ensures that you will be able to retrieve the item quickly since there is only one item,
     /// useful for situations where you need a value at the launch of your app.
     ///
-    /// Creating a `@StoredValue` is straightforward and easy, resmebling the `@AppStorage` API.
+    /// Creating a `@StoredValue` is straightforward and easy, resembling the `@AppStorage` API.
     ///
     /// You can initialize the `@StoredValue` with a default value like you would any other Swift property.
     /// ```
@@ -79,7 +79,7 @@ public struct StoredValue<Item: Codable & Equatable> {
 
     /// A Combine publisher that allows you to observe any changes to the `@StoredValue`.
     public var publisher: AnyPublisher<Item?, Never> {
-        return box.store.$items.map(\.first?.value).eraseToAnyPublisher()
+        return self.box.store.$items.map(\.first?.value).removeDuplicates().eraseToAnyPublisher()
     }
 
     /// Sets a value for the `@StoredValue` property.

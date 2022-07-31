@@ -1,7 +1,10 @@
 import Boutique
+import Combine
 import XCTest
 
 final class StoredValueTests: XCTestCase {
+
+    private var cancellables: Set<AnyCancellable> = []
 
     @StoredValue<BoutiqueItem>(key: "storedItem")
     private var storedItem
@@ -48,5 +51,32 @@ final class StoredValueTests: XCTestCase {
 
         try await self.$directoryInitializedItem.reset()
         XCTAssertEqual(self.defaultNilValueItem, nil)
+    }
+
+    @MainActor
+    func testPublishedValueSubscription() async throws {
+        let expectation = XCTestExpectation(description: "@StoredValue publishes values correctly")
+
+        var values: [BoutiqueItem] = []
+        try await self.$storedItem.set(BoutiqueItem.coat)
+
+        self.$storedItem.publisher
+            .sink(receiveValue: { item in
+                if let item = item {
+                    values.append(item)
+                }
+
+                if values.count == 4 {
+                    XCTAssertEqual(values, [BoutiqueItem.coat, .sweater, .purse, .belt])
+                    expectation.fulfill()
+                }
+            })
+            .store(in: &cancellables)
+
+        try await self.$storedItem.set(BoutiqueItem.sweater)
+        try await self.$storedItem.set(BoutiqueItem.purse)
+        try await self.$storedItem.set(BoutiqueItem.belt)
+
+        wait(for: [expectation], timeout: 1)
     }
 }
