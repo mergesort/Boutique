@@ -27,13 +27,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///
     /// **How The Store Works**
     ///
-    /// A `Store` is a higher level abstraction than ``Bodega/ObjectStorage``, containing and leveraging
+    /// A `Store` is a higher level abstraction than Bodega's `ObjectStorage`, containing and leveraging
     /// an in-memory store, the `items` array, and a `StrorageEngine` for it's persistence layer.
     ///
     /// The `StorageEngine` you initialize a `Store` with (such as `DiskStorageEngine` or `SQLiteStorageEngine`)
     /// will be where items are stored permanently. If you do not provide a `StorageEngine` parameter
-    /// then the `Store` will default to using an ``/Bodega/SQLiteStorageEngine`` with a database
-    /// located in the app's Documents directory, in a "Data" subdirectory.
+    /// then the `Store` will default to using an Bodega's SQLiteStorageEngine with a database
+    /// located in the app's `defaultStorageDirectory`, in a "Data" subdirectory.
     ///
     /// As a user you will always be interacting with the `Store`s memory layer,
     /// represented by the `Store`'s array of `items`. This means after initializing a `Store`
@@ -61,7 +61,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   If no parameter is provided the default is `SQLiteStorageEngine(directory: .documents(appendingPath: "Data"))`
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the `Store`
     ///   will use to create a unique identifier for the item when it's saved.
-    public init(storage: StorageEngine = SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: "Data"))!, cacheIdentifier: KeyPath<Item, String>) {
+    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
 
