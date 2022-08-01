@@ -87,6 +87,7 @@ final class StoreTests: XCTestCase {
             .remove(BoutiqueItem.coat)
             .add(BoutiqueItem.belt)
             .add(BoutiqueItem.belt)
+            .run()
 
         XCTAssertEqual(store.items.count, 3)
         XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
@@ -99,6 +100,7 @@ final class StoreTests: XCTestCase {
         try await store
             .add(BoutiqueItem.coat)
             .add([BoutiqueItem.purse, BoutiqueItem.belt])
+            .run()
 
         XCTAssertEqual(store.items.count, 3)
         XCTAssertTrue(store.items.contains(BoutiqueItem.purse))
@@ -112,6 +114,7 @@ final class StoreTests: XCTestCase {
             .add(BoutiqueItem.uniqueItems)
             .remove(BoutiqueItem.belt)
             .remove(BoutiqueItem.purse)
+            .run()
 
         XCTAssertEqual(store.items.count, 2)
         XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
@@ -123,6 +126,7 @@ final class StoreTests: XCTestCase {
         try await store
             .remove([BoutiqueItem.sweater, BoutiqueItem.coat])
             .remove(BoutiqueItem.belt)
+            .run()
 
         XCTAssertEqual(store.items.count, 1)
         XCTAssertTrue(store.items.contains(BoutiqueItem.purse))
@@ -130,9 +134,22 @@ final class StoreTests: XCTestCase {
         try await store
             .removeAll()
             .add(BoutiqueItem.belt)
+            .run()
 
         XCTAssertEqual(store.items.count, 1)
         XCTAssertTrue(store.items.contains(BoutiqueItem.belt))
+    }
+
+    @MainActor
+    func testChainingOperationsDontExecuteUnlessRun() async throws {
+        let operation = try await store
+            .add(BoutiqueItem.coat)
+            .add([BoutiqueItem.purse, BoutiqueItem.belt])
+
+        XCTAssertEqual(store.items.count, 0)
+        XCTAssertFalse(store.items.contains(BoutiqueItem.purse))
+        XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
+        XCTAssertFalse(store.items.contains(BoutiqueItem.coat))
     }
 
     @MainActor

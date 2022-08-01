@@ -11,14 +11,10 @@ public extension Store {
 
         private let store: Store
         private var committed = false
-        private var operations = [(Store) -> Void]()
+        private var operations = [(Store) async throws -> Void]()
 
         internal init(store: Store) {
             self.store = store
-        }
-
-        deinit {
-            self.run()
         }
 
         /// Adds an item to the store.
@@ -29,9 +25,8 @@ public extension Store {
         /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
         /// - Parameters:
         ///   - item: The item you are adding to the `Store`.
-        @discardableResult
         public func add(_ item: Item) async throws -> Operation {
-            try await store.performAdd(item)
+            operations.append { try await $0.performAdd(item) }
             return self
         }
 
@@ -41,29 +36,25 @@ public extension Store {
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
         /// - Parameters:
         ///   - items: The items to add to the store.
-        @discardableResult
         public func add(_ items: [Item]) async throws -> Operation {
-            try await store.performAdd(items)
+            operations.append { try await $0.performAdd(items) }
             return self
         }
 
         /// Removes an item from the store.
         /// - Parameter item: The item you are removing from the `Store`.
-        @discardableResult
         public func remove(_ item: Item) async throws -> Operation {
-            try await store.performRemove(item)
+            operations.append { try await $0.performRemove(item) }
             return self
         }
-
 
         /// Removes a list of items from the store.
         ///
         /// Prefer removing multiple items using this method instead of calling ``remove(_:)-8ufsb``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
         /// - Parameter item: The items you are removing from the `Store`.
-        @discardableResult
         public func remove(_ items: [Item]) async throws -> Operation {
-            try await store.performRemove(items)
+            operations.append { try await $0.performRemove(items) }
             return self
         }
 
@@ -73,9 +64,8 @@ public extension Store {
         /// ``remove(_:)-8ufsb`` or ``remove(_:)-2tqlz`` multiple times.
         /// This method handles removing all of the data in one operation rather than iterating over every item
         /// in the `Store`, avoiding multiple dispatches to the `@MainActor`, with far better performance.
-        @discardableResult
         public func removeAll() async throws -> Operation {
-            try await store.performRemoveAll()
+            operations.append { try await $0.performRemoveAll() }
             return self
         }
 
@@ -84,13 +74,13 @@ public extension Store {
         /// This function is automatically called on deinit, running them in the order they were chained together.
         /// You can also manually invoke `.run()` if you independently build a chain of `Operation`s
         /// and then wish to run them.
-        public func run() {
+        public func run() async throws {
             guard !self.committed else { return }
 
             self.committed = true
 
             for operation in self.operations {
-                operation(self.store)
+                try await operation(self.store)
             }
         }
 

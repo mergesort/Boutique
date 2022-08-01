@@ -84,12 +84,23 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
     /// - Parameters:
     ///   - item: The item you are adding to the `Store`.
-    @discardableResult
+    /// - Returns: An `Operation` that can be used to add an item as part of a chain.
+    @_disfavoredOverload
     public func add(_ item: Item) async throws -> Operation {
         let operation = Operation(store: self)
-        try await self.performAdd(item)
-
         return try await operation.add(item)
+    }
+
+    /// Adds an item to the store.
+    ///
+    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the `Store`
+    /// the item being inserted will replace the item in the `Store`. You can think of the `Store` as a bag
+    /// of items, removing complexity when it comes to managing items, indices, and more,
+    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    /// - Parameters:
+    ///   - item: The item you are adding to the `Store`.
+    public func add(_ item: Item) async throws {
+        try await self.performAdd(item)
     }
 
     /// Adds an array of items to the store.
@@ -98,35 +109,57 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameters:
     ///   - items: The items to add to the store.
-    @discardableResult
+    /// - Returns: An `Operation` that can be used to add items as part of a chain.
+    @_disfavoredOverload
     public func add(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
-        try await self.performAdd(items)
-
         return try await operation.add(items)
+    }
+
+    /// Adds an array of items to the store.
+    ///
+    /// Prefer adding multiple items using this method instead of calling ``add(_:)-1np7h``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameters:
+    ///   - items: The items to add to the store.
+    public func add(_ items: [Item]) async throws {
+        try await self.performAdd(items)
     }
 
     /// Removes an item from the store.
     /// - Parameter item: The item you are removing from the `Store`.
-    @discardableResult
+    /// - Returns: An `Operation` that can be used to remove an item as part of a chain.
+    @_disfavoredOverload
     public func remove(_ item: Item) async throws -> Operation {
         let operation = Operation(store: self)
-        try await self.performRemove(item)
-
         return try await operation.remove(item)
+    }
+
+    /// Removes an item from the store.
+    /// - Parameter item: The item you are removing from the `Store`.
+    public func remove(_ item: Item) async throws {
+        try await self.performRemove(item)
     }
 
     /// Removes a list of items from the store.
     ///
     /// Prefer removing multiple items using this method instead of calling ``remove(_:)-51ya6``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-    /// - Parameter item: The items you are removing from the `Store`.
-    @discardableResult
+    /// - Parameter items: The items you are removing from the `Store`.
+    /// - Returns: An `Operation` that can be used to remove items as part of a chain.
+    @_disfavoredOverload
     public func remove(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
-        try await self.performRemove(items)
-
         return try await operation.remove(items)
+    }
+
+    /// Removes a list of items from the store.
+    ///
+    /// Prefer removing multiple items using this method instead of calling ``remove(_:)-5dwyv``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameter items: The items you are removing from the `Store`.
+    public func remove(_ items: [Item]) async throws {
+        try await self.performRemove(items)
     }
 
     /// Removes all items from the store's memory cache and storage engine.
@@ -135,12 +168,21 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// ``remove(_:)-1w3lx`` or ``remove(_:)-51ya6`` multiple times.
     /// This method handles removing all of the data in one operation rather than iterating over every item
     /// in the `Store`, avoiding multiple dispatches to the `@MainActor`, with far better performance.
-    @discardableResult
+    /// - Returns: An `Operation` that can be used to remove items as part of a chain.
+    @_disfavoredOverload
     public func removeAll() async throws -> Operation {
         let operation = Operation(store: self)
-        try await self.performRemoveAll()
-
         return try await operation.removeAll()
+    }
+
+    /// Removes all items from the store's memory cache and storage engine.
+    ///
+    /// A separate method you should use when removing all data rather than calling
+    /// ``remove(_:)-5dwyv`` or ``remove(_:)-3nzlq`` multiple times.
+    /// This method handles removing all of the data in one operation rather than iterating over every item
+    /// in the `Store`, avoiding multiple dispatches to the `@MainActor`, with far better performance.
+    public func removeAll() async throws {
+        try await self.performRemoveAll()
     }
 
 }

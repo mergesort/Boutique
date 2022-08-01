@@ -79,7 +79,7 @@ public struct StoredValue<Item: Codable & Equatable> {
 
     /// A Combine publisher that allows you to observe any changes to the `@StoredValue`.
     public var publisher: AnyPublisher<Item?, Never> {
-        return self.box.store.$items.map(\.first?.value).removeDuplicates().eraseToAnyPublisher()
+        return self.box.store.$items.map(\.first?.value).eraseToAnyPublisher()
     }
 
     /// Sets a value for the `@StoredValue` property.
