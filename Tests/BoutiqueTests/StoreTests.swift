@@ -9,7 +9,7 @@ final class StoreTests: XCTestCase {
 
     override func setUp() async throws {
         store = Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Tests"))!,
+            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
             cacheIdentifier: \.merchantID)
 
         try await store.removeAll()

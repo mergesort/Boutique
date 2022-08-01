@@ -30,7 +30,6 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// ```
     ///
     /// - Parameter storage: A `StorageEngine` to initialize a `Store` instance with.
-    ///   If no parameter is provided the default is `SQLiteStorageEngine(directory: .documents(appendingPath: "data"))`
     convenience init(storage: StorageEngine) {
         self.init(storage: storage, cacheIdentifier: \.id)
     }
