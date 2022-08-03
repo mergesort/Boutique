@@ -1,7 +1,7 @@
 public extension Store {
 
-    /// An operation is a function that allows you to stack `add()`, `remove()`, or `removeAll()`
-    /// calls in a chained manner.
+    /// An operation is a type that allows you to stack ``add(_:)-82sdc``,
+    /// ``remove(_:)-8ufsb``, or ``removeAll()-1xc24`` calls in a chained manner.
     ///
     /// This allows for simple fluent syntax such as `store.removeAll().add(items)`, rather than having
     /// them be split over two operations, and making two separate dispatches to the `@MainActor`.
@@ -17,20 +17,20 @@ public extension Store {
             self.store = store
         }
 
-        /// Adds an item to the store.
+        /// Adds an item to the ``Store``.
         ///
-        /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the `Store`
-        /// the item being inserted will replace the item in the `Store`. You can think of the `Store` as a bag
+        /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
+        /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
         /// of items, removing complexity when it comes to managing items, indices, and more,
         /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
         /// - Parameters:
-        ///   - item: The item you are adding to the `Store`.
+        ///   - item: The item you are adding to the ``Store``.
         public func add(_ item: Item) async throws -> Operation {
             operations.append { try await $0.performAdd(item) }
             return self
         }
 
-        /// Adds an array of items to the store.
+        /// Adds an array of items to the ``Store``.
         ///
         /// Prefer adding multiple items using this method instead of calling ``add(_:)-82sdc
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
@@ -41,14 +41,14 @@ public extension Store {
             return self
         }
 
-        /// Removes an item from the store.
-        /// - Parameter item: The item you are removing from the `Store`.
+        /// Removes an item from the ``Store``.
+        /// - Parameter item: The item you are removing from the ``Store``.
         public func remove(_ item: Item) async throws -> Operation {
             operations.append { try await $0.performRemove(item) }
             return self
         }
 
-        /// Removes a list of items from the store.
+        /// Removes a list of items from the ``Store``.
         ///
         /// Prefer removing multiple items using this method instead of calling ``remove(_:)-8ufsb``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
@@ -58,12 +58,12 @@ public extension Store {
             return self
         }
 
-        /// Removes all items from the store's memory cache and storage engine.
+        /// Removes all items from the ``Store``'s memory cache and StorageEngine.
         ///
         /// A separate method you should use when removing all data rather than calling
         /// ``remove(_:)-8ufsb`` or ``remove(_:)-2tqlz`` multiple times.
         /// This method handles removing all of the data in one operation rather than iterating over every item
-        /// in the `Store`, avoiding multiple dispatches to the `@MainActor`, with far better performance.
+        /// in the ``Store``, avoiding multiple dispatches to the `@MainActor`, with far better performance.
         public func removeAll() async throws -> Operation {
             operations.append { try await $0.performRemoveAll() }
             return self
@@ -72,7 +72,7 @@ public extension Store {
         /// A function that runs a series of chained operations.
         ///
         /// This function is automatically called on deinit, running them in the order they were chained together.
-        /// You can also manually invoke `.run()` if you independently build a chain of `Operation`s
+        /// You can also manually invoke ``run()`` if you independently build a chain of ``Operation``s
         /// and then wish to run them.
         public func run() async throws {
             guard !self.committed else { return }

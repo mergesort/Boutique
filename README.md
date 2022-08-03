@@ -69,7 +69,7 @@ print(store.items) // Prints [coat]
 And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind.
 
 ```swift
-// Since items is an @Published property 
+// Since items is a @Published property 
 // you can subscribe to any changes in realtime.
 store.$items.sink({ items in
     print("Items was updated", items)
@@ -101,7 +101,7 @@ That was easy, but I want to show you something that makes Boutique feel downrig
 ```swift
 final class ImagesController: ObservableObject {
 
-    /// Creates an @Stored property to handle an in-memory and on-disk cache of images. ⁵
+    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁵
     @Stored(in: Store.imagesStore) var images
 
     /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
