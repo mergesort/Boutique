@@ -2,14 +2,14 @@ import Foundation
 
 public extension Store where Item: Identifiable, Item.ID == String {
 
-    /// Initializes a `Store` with a memory cache and a disk cache.
-    /// 
-    /// This initializer eschews providing a `cacheIdentifier` when our `Object` conforms to `Identifiable`
-    /// with a `String` for it's `id`. While it's not required for your `Object` to conform to `Identifiable`,
+    /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth.
+    ///
+    /// This initializer eschews providing a `cacheIdentifier` when our `Item` conforms to `Identifiable`
+    /// with an `id` that is a `String`. While it's not required for your `Item` to conform to `Identifiable`,
     /// many SwiftUI-related objects do so this initializer provides a nice convenience.
-    /// - Parameter storagePath: A URL representing the folder on disk that your files will be written to.
-    convenience init(storagePath: URL) {
-        self.init(storagePath: storagePath, cacheIdentifier: \.id)
+    /// - Parameter storage: A `StorageEngine` to initialize a ``Store`` instance with.
+    convenience init(storage: StorageEngine) {
+        self.init(storage: storage, cacheIdentifier: \.id)
     }
 
 }

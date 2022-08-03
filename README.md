@@ -1,13 +1,14 @@
 ![Boutique Logo](Images/logo.jpg)
 
-### A simple but surprisingly fancy data store
+### A simple but surprisingly fancy data store and so much more
+
+>*"I ripped out Core Data, this is the way it should work"* 
+
+— [Josh Holtz](https://github.com/joshdholtz)
 
 If you find Boutique valuable I would really appreciate it if you would consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
 
 ---
-
-> **Note**
-> If you're starting with Boutique today I highly recommend using the [2.0 branch](https://github.com/mergesort/Boutique/tree/2.0/). It's only about a week away from release, and has a lot of [really big updates](https://github.com/mergesort/Boutique/pull/25). I expect no changes, if there are any they will be very minor, as I work on updating all of the current documentation and adding a lot more.
 
 Boutique is a simple but powerful persistence library, and more. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
@@ -58,9 +59,9 @@ store.removeAll()
 print(self.items) // Prints []
 
 // Add an item to the store, removing all of the current items 
-// from the in-memory and disk cache before saving the new object. ³
-try await store.add([purse, belt])
-try await store.add(coat, invalidationStrategy: .all)
+// from the in-memory and disk cache before saving the new item. ³
+try await store.add([purse, belt], invalidationStrategy: .removeNone)
+try await store.add(coat, invalidationStrategy: .removeAll)
 
 print(store.items) // Prints [coat]
 ```
@@ -68,7 +69,7 @@ print(store.items) // Prints [coat]
 And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind.
 
 ```swift
-// Since items is an @Published property 
+// Since items is a @Published property 
 // you can subscribe to any changes in realtime.
 store.$items.sink({ items in
     print("Items was updated", items)
@@ -83,9 +84,9 @@ store.$items.sink({ items in
 
 ¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours.
   
-² Under the hood the Store is doing the work of saving all changes to disk when you add or remove objects.
+² Under the hood the Store is doing the work of saving all changes to disk when you add or remove items.
 
-³ There are multiple cache invalidation strategies. `.all` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
+³ There are multiple cache invalidation strategies. `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
 
 ⁴ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
 
@@ -100,7 +101,7 @@ That was easy, but I want to show you something that makes Boutique feel downrig
 ```swift
 final class ImagesController: ObservableObject {
 
-    /// Creates an @Stored property to handle an in-memory and on-disk cache of images. ⁵
+    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁵
     @Stored(in: Store.imagesStore) var images
 
     /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.

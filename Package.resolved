@@ -3,10 +3,19 @@
     {
       "identity" : "bodega",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mergesort/Bodega",
+      "location" : "https://github.com/mergesort/Bodega.git",
       "state" : {
-        "revision" : "1b72eef5eda5e83fe9b3bb808a2bd899575c057d",
-        "version" : "1.1.1"
+        "branch" : "main",
+        "revision" : "d351e836a3f77aa26d0912ca29441e4ca2dad588"
+      }
+    },
+    {
+      "identity" : "sqlite.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stephencelis/SQLite.swift.git",
+      "state" : {
+        "revision" : "4d543d811ee644fa4cc4bfa0be996b4dd6ba0f54",
+        "version" : "0.13.3"
       }
     },
     {
