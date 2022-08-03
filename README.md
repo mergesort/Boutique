@@ -6,6 +6,9 @@ If you find Boutique valuable I would really appreciate it if you would consider
 
 ---
 
+> **Note**
+> If you're starting with Boutique today I highly recommend using the [2.0 branch](https://github.com/mergesort/Boutique/tree/2.0/). It's only about a week away from release, and has a lot of [really big updates](https://github.com/mergesort/Boutique/pull/25). I expect no changes, if there are any they will be very minor, as I work on updating all of the current documentation and adding a lot more.
+
 Boutique is a simple but powerful persistence library, and more. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
 ---
