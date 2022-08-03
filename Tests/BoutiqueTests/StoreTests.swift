@@ -16,6 +16,20 @@ final class StoreTests: XCTestCase {
     }
 
     @MainActor
+    func testStoreWithItemsInitializer() async {
+        let store = await Store<BoutiqueItem>(
+            storage: DiskStorageEngine(directory: .documents(appendingPath: "Items")),
+            items: [.belt, .sweater, .purse],
+            cacheIdentifier: \.merchantID
+        )
+
+        XCTAssertEqual(store.items.count, 3)
+        XCTAssertEqual(store.items[0], .belt)
+        XCTAssertEqual(store.items[1], .sweater)
+        XCTAssertEqual(store.items[2], .purse)
+    }
+
+    @MainActor
     func testAddingItem() async throws {
         try await store.add(BoutiqueItem.coat)
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
@@ -150,6 +164,10 @@ final class StoreTests: XCTestCase {
         XCTAssertFalse(store.items.contains(BoutiqueItem.purse))
         XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
         XCTAssertFalse(store.items.contains(BoutiqueItem.coat))
+
+        // Adding this line to get rid of the error about
+        // `operation` being unused, given that's the point of the test.
+        _ = operation
     }
 
     @MainActor
