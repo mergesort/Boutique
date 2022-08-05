@@ -7,42 +7,50 @@ final class StoredValueTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
     @StoredValue<BoutiqueItem>(key: "storedItem")
-    private var storedItem
+    private var storedItem = BoutiqueItem.coat
 
-    @StoredValue<BoutiqueItem>(key: "defaultValueItem")
-    private var defaultValueItem = BoutiqueItem.coat
+    @StoredValue<BoutiqueItem?>(key: "nilStoredValue")
+    private var nilStoredValue = nil
 
-    @StoredValue<BoutiqueItem>(key: "defaultNilValueItem")
-    private var defaultNilValueItem = nil
+    @StoredValue(key: "boolStoredValue")
+    private var boolStoredValue = false
 
     @StoredValue<BoutiqueItem>(key: "defaultDirectoryItem", directory: .temporary(appendingPath: "Test"))
     private var directoryInitializedItem = BoutiqueItem.sweater
 
     override func setUp() async throws {
         try await self.$storedItem.reset()
+        try await self.$nilStoredValue.reset()
+        try await self.$boolStoredValue.reset()
+        try await self.$directoryInitializedItem.reset()
     }
 
-    @MainActor
     func testStoredValueOperations() async throws {
-        XCTAssertEqual(self.storedItem, nil)
+        XCTAssertEqual(self.storedItem, BoutiqueItem.coat)
 
         try await self.$storedItem.set(BoutiqueItem.belt)
         XCTAssertEqual(self.storedItem, BoutiqueItem.belt)
 
         try await self.$storedItem.reset()
-        XCTAssertEqual(self.storedItem, nil)
+        XCTAssertEqual(self.storedItem, BoutiqueItem.coat)
 
         try await self.$storedItem.set(BoutiqueItem.sweater)
         XCTAssertEqual(self.storedItem, BoutiqueItem.sweater)
     }
 
-    @MainActor
-    func testDefaultValue() async throws {
-        XCTAssertEqual(self.defaultValueItem, BoutiqueItem.coat)
-        XCTAssertEqual(self.defaultNilValueItem, nil)
+    func testNilStoredValue() async throws {
+        XCTAssertEqual(self.nilStoredValue, nil)
+
+        try await self.$nilStoredValue.set(BoutiqueItem.belt)
+        XCTAssertEqual(self.nilStoredValue, BoutiqueItem.belt)
+
+        try await self.$nilStoredValue.reset()
+        XCTAssertEqual(self.nilStoredValue, nil)
+
+        try await self.$nilStoredValue.set(BoutiqueItem.sweater)
+        XCTAssertEqual(self.nilStoredValue, BoutiqueItem.sweater)
     }
 
-    @MainActor
     func testDirectoryInitializedValue() async throws {
         XCTAssertEqual(self.directoryInitializedItem, BoutiqueItem.sweater)
 
@@ -50,21 +58,30 @@ final class StoredValueTests: XCTestCase {
         XCTAssertEqual(self.directoryInitializedItem, BoutiqueItem.belt)
 
         try await self.$directoryInitializedItem.reset()
-        XCTAssertEqual(self.defaultNilValueItem, nil)
+        XCTAssertEqual(self.directoryInitializedItem, BoutiqueItem.sweater)
     }
 
-    @MainActor
+    func testBoolStoredValueToggle() async throws {
+        XCTAssertEqual(self.boolStoredValue, false)
+
+        try await self.$boolStoredValue.toggle()
+        XCTAssertEqual(self.boolStoredValue, true)
+
+        try await self.$boolStoredValue.set(false)
+        XCTAssertEqual(self.boolStoredValue, false)
+
+        try await self.$boolStoredValue.toggle()
+        XCTAssertEqual(self.boolStoredValue, true)
+    }
+
     func testPublishedValueSubscription() async throws {
         let expectation = XCTestExpectation(description: "@StoredValue publishes values correctly")
 
         var values: [BoutiqueItem] = []
-        try await self.$storedItem.set(BoutiqueItem.coat)
 
         self.$storedItem.publisher
             .sink(receiveValue: { item in
-                if let item = item {
-                    values.append(item)
-                }
+                values.append(item)
 
                 if values.count == 4 {
                     XCTAssertEqual(values, [BoutiqueItem.coat, .sweater, .purse, .belt])
@@ -79,4 +96,5 @@ final class StoredValueTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
+
 }
