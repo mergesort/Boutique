@@ -10,7 +10,7 @@ public extension Store {
     final class Operation {
 
         private let store: Store
-        private var committed = false
+        private var operationsHaveRun = false
         private var operations = [(Store) async throws -> Void]()
 
         internal init(store: Store) {
@@ -75,9 +75,9 @@ public extension Store {
         /// You can also manually invoke ``run()`` if you independently build a chain of ``Operation``s
         /// and then wish to run them.
         public func run() async throws {
-            guard !self.committed else { return }
+            guard !self.operationsHaveRun else { return }
 
-            self.committed = true
+            self.operationsHaveRun = true
 
             for operation in self.operations {
                 try await operation(self.store)
