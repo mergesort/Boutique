@@ -30,12 +30,16 @@ public struct Stored<Item: Codable & Equatable> {
         let wrapper = instance[keyPath: storageKeyPath]
 
         if wrapper.box.cancellable == nil {
-            wrapper.box.cancellable = wrapper.projectedValue
+            wrapper.box.cancellable = wrapper.box.store
                 .objectWillChange
-                .sink(receiveValue: {
-                    if let objectWillChangePublisher = instance as? ObservableObjectPublisher {
-                        objectWillChangePublisher.send()
+                .sink(receiveValue: { [instance] in
+                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
+                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
                     }
+
+                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
+
+                    objectWillChangePublisher?.send()
                 })
         }
 
