@@ -41,10 +41,12 @@ import Foundation
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
+@MainActor
 @propertyWrapper
 public struct StoredValue<Item: Codable & Equatable> {
 
     private let box: Box
+    private let defaultValue: Item
 
     /// Initializes an ``StoredValue``.
     ///
@@ -54,36 +56,42 @@ public struct StoredValue<Item: Codable & Equatable> {
     ///   - directory: A directory where @``StoredValue`` will be saved.
     ///   The default location should generally be used but is if you need to specify a location
     ///   for where values are stored, such as the `.sharedContainer` for extensions.
-    public init(wrappedValue: Item? = nil, key: String, directory: FileManager.Directory = .defaultStorageDirectory(appendingPath: "")) {
+    public init(wrappedValue: Item, key: String, directory: FileManager.Directory = .defaultStorageDirectory(appendingPath: "")) {
         let directory = FileManager.Directory(url: directory.url.appendingPathComponent(key))
         let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: directory)!, cacheIdentifier: \.id)
         self.box = Box(innerStore)
 
-        do { try wrappedValue.map(self.synchronousSet) } catch { }
+        self.defaultValue = wrappedValue
+        if self.wrappedValue != self.defaultValue {
+            self.synchronousSet(self.defaultValue)
+        }
     }
 
-    @MainActor
     /// The currently stored value
-    public var wrappedValue: Item? {
-        self.box.store.items.first?.value
+    public var wrappedValue: Item {
+        self.box.store.items.first?.value ?? self.defaultValue
     }
 
     public var projectedValue: StoredValue<Item> { self }
 
-    @MainActor public static subscript<Instance>(
+    public static subscript<Instance>(
         _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item?>,
+        wrapped wrappedKeyPath: KeyPath<Instance, Item>,
         storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item? {
+    ) -> Item {
         let wrapper = instance[keyPath: storageKeyPath]
 
         if wrapper.box.cancellable == nil {
             wrapper.box.cancellable = wrapper.box.store
                 .objectWillChange
                 .sink(receiveValue: { [instance] in
-                    if let objectWillChangePublisher = instance as? ObservableObjectPublisher {
-                        objectWillChangePublisher.send()
+                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
+                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
                     }
+
+                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
+
+                    objectWillChangePublisher?.send()
                 })
         }
 
@@ -91,8 +99,11 @@ public struct StoredValue<Item: Codable & Equatable> {
     }
 
     /// A Combine publisher that allows you to observe any changes to the @``StoredValue``.
-    public var publisher: AnyPublisher<Item?, Never> {
-        return self.box.store.$items.map(\.first?.value).eraseToAnyPublisher()
+    public var publisher: AnyPublisher<Item, Never> {
+        self.box.store.$items.map({
+            $0.first?.value ?? self.defaultValue
+        })
+        .eraseToAnyPublisher()
     }
 
     /// Sets a value for the @``StoredValue`` property.
@@ -149,7 +160,7 @@ public struct StoredValue<Item: Codable & Equatable> {
 private extension StoredValue {
 
     // A synchronous version of set to seed default values in @StoredValue initializers
-    func synchronousSet(_ value: Item) throws {
+    func synchronousSet(_ value: Item) {
         Task {
             try await self.set(value)
         }
@@ -174,4 +185,25 @@ private extension StoredValue {
         var value: Item
     }
 
+}
+
+// I'm gonna be honest, I have no idea how this works but it does.
+// Basically there's a proxy that extracts the nested ObservableObjectPublisher
+// but I don't know how it works. You can thank Ian Keen (@iankay on Twitter)
+// for this code, he's an absolutely brilliant developer and great guy.
+
+private protocol ObservableObjectProxy {
+    func extractObjectWillChange<T>(_ instance: T) -> ObservableObjectPublisher
+}
+
+private struct Proxy<Base> {
+    func extract<A, B, C>(_ instance: A, _ extract: (Base) -> B) -> C {
+        return extract(instance as! Base) as! C
+    }
+}
+
+extension Proxy: ObservableObjectProxy where Base: ObservableObject, Base.ObjectWillChangePublisher == ObservableObjectPublisher {
+    func extractObjectWillChange<T>(_ instance: T) -> ObservableObjectPublisher {
+        extract(instance) { $0.objectWillChange }
+    }
 }
