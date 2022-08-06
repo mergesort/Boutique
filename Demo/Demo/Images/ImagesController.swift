@@ -46,6 +46,14 @@ final class ImagesController: ObservableObject {
         try await self.$images.add(image)
     }
 
+    // This function is unused but I wanted to demonstrate how you can chain operations together
+    func saveImageAfterClearingCache(image: RemoteImage) async throws {
+        try await self.$images
+            .removeAll()
+            .add(image)
+            .run()
+    }
+
     /// Removes one image from the `Store` in memory and on disk.
     /// - Parameter image: A `RemoteImage` to be removed.
     func removeImage(image: RemoteImage) async throws {
