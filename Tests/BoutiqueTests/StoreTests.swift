@@ -16,20 +16,6 @@ final class StoreTests: XCTestCase {
     }
 
     @MainActor
-    func testStoreWithItemsInitializer() async {
-        let store = await Store<BoutiqueItem>(
-            storage: DiskStorageEngine(directory: .documents(appendingPath: "Items")),
-            items: [.belt, .sweater, .purse],
-            cacheIdentifier: \.merchantID
-        )
-
-        XCTAssertEqual(store.items.count, 3)
-        XCTAssertEqual(store.items[0], .belt)
-        XCTAssertEqual(store.items[1], .sweater)
-        XCTAssertEqual(store.items[2], .purse)
-    }
-
-    @MainActor
     func testAddingItem() async throws {
         try await store.add(BoutiqueItem.coat)
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))

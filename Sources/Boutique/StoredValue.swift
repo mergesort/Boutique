@@ -1,3 +1,4 @@
+import Bodega
 import Combine
 import Foundation
 
@@ -11,10 +12,11 @@ import Foundation
 /// where it's common to store only an item such as the app's `lastOpenedDate`,
 /// an object of the user's preferences, configurations, and more.
 ///
-/// 2. When you use a @``Store`` you have to consider how the item will be stored,
+/// 2. When you use a @``Store`` you always have to consider how the item will be stored,
 /// but with @``StoredValue`` a database will be transparently created for you to store the item.
 /// This ensures that you will be able to retrieve the item quickly since there is only one item,
-/// useful for situations where you need a value at the launch of your app.
+/// useful for situations where you need a value at the launch of your app. If you do need
+/// more control over storage you can use ``init(wrappedValue:storage:)`` to define that.
 ///
 /// Creating a @``StoredValue`` is straightforward and easy, resembling the `@AppStorage` API.
 ///
@@ -48,7 +50,7 @@ public struct StoredValue<Item: Codable & Equatable> {
     private let box: Box
     private let defaultValue: Item
 
-    /// Initializes an ``StoredValue``.
+    /// Initializes a @``StoredValue``, this is the recommended initializer to use when possible.
     ///
     /// - Parameters:
     ///   - wrappedValue: An value set when initializing a @``StoredValue``
@@ -59,6 +61,26 @@ public struct StoredValue<Item: Codable & Equatable> {
     public init(wrappedValue: Item, key: String, directory: FileManager.Directory = .defaultStorageDirectory(appendingPath: "")) {
         let directory = FileManager.Directory(url: directory.url.appendingPathComponent(key))
         let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: directory)!, cacheIdentifier: \.id)
+        self.box = Box(innerStore)
+
+        self.defaultValue = wrappedValue
+        if self.wrappedValue != self.defaultValue {
+            self.synchronousSet(self.defaultValue)
+        }
+    }
+
+    /// Initializes a @``StoredValue``.
+    ///
+    /// This initializer is meant to provide full control for how a @``StoredValue`` should be stored.
+    /// For example if you create a `StorageEngine` that has it's own concept of keys, or even allows
+    /// you to store items in the Keychain, you may need to provide the underlying storage mechanism.
+    /// While ``init(wrappedValue:key:directory:)`` provides a great default by using `SQLiteStorageEngine`,
+    /// that approach can't always be used.
+    /// - Parameters:
+    ///   - wrappedValue: An value set when initializing a @``StoredValue``
+    ///   - storage: A `StorageEngine` that defines where the value will be stored.
+    public init(wrappedValue: Item, storage: StorageEngine) {
+        let innerStore = Store<UniqueItem>(storage: storage, cacheIdentifier: \.id)
         self.box = Box(innerStore)
 
         self.defaultValue = wrappedValue

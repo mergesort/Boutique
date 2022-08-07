@@ -18,11 +18,15 @@ final class StoredValueTests: XCTestCase {
     @StoredValue<BoutiqueItem>(key: "defaultDirectoryItem", directory: .temporary(appendingPath: "Test"))
     private var directoryInitializedItem = BoutiqueItem.sweater
 
+    @StoredValue<BoutiqueItem>(storage: SQLiteStorageEngine.default(appendingPath: "storageEngineBackedStoredValue"))
+    private var storageEngineBackedStoredValue = BoutiqueItem.sweater
+
     override func setUp() async throws {
         try await self.$storedItem.reset()
         try await self.$nilStoredValue.reset()
         try await self.$boolStoredValue.reset()
         try await self.$directoryInitializedItem.reset()
+        try await self.$storageEngineBackedStoredValue.reset()
     }
 
     func testStoredValueOperations() async throws {
@@ -36,6 +40,16 @@ final class StoredValueTests: XCTestCase {
 
         try await self.$storedItem.set(BoutiqueItem.sweater)
         XCTAssertEqual(self.storedItem, BoutiqueItem.sweater)
+    }
+
+    func testStorageEngineBackedStoredValue() async throws {
+        XCTAssertEqual(self.storageEngineBackedStoredValue, BoutiqueItem.sweater)
+
+        try await self.$storageEngineBackedStoredValue.set(BoutiqueItem.belt)
+        XCTAssertEqual(self.storageEngineBackedStoredValue, BoutiqueItem.belt)
+
+        try await self.$storageEngineBackedStoredValue.reset()
+        XCTAssertEqual(self.storageEngineBackedStoredValue, BoutiqueItem.sweater)
     }
 
     func testNilStoredValue() async throws {
