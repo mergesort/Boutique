@@ -77,8 +77,6 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    /// Initializes a new ``Store`` with a default set of items, persisting those items
-    /// to a memory cache and a storage engine, to act as a source of truth.
     ///
     /// Due to this initializer being marked async it cannot be used as a static property
     /// or in the @``Stored`` property wrapper, but still may be useful for places you need
@@ -86,24 +84,33 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
+    ///   will use to create a unique identifier for the item when it's saved.
+
+#if DEBUG
+    /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
+    ///
+    /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
+    /// in a SwiftUI Preview. It will create a a ``Store`` that **only** holds items in memory
+    /// so it should not be used in production, nor will it compile for Release builds.
+    ///
+    /// - Parameters:
     ///   - items: The items that the ``Store`` will be initialized with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
-    @MainActor
-    public init(storage: StorageEngine, items: [Item], cacheIdentifier: KeyPath<Item, String>) async {
-        self.storageEngine = storage
-        self.cacheIdentifier = cacheIdentifier
+    /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    public static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
+        let store = Store(
+            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
+            cacheIdentifier: cacheIdentifier
+        )
 
-        do {
-            try await self.removeAll()
-                .add(items)
-                .run()
-
-            self.items = items
-        } catch {
-            self.items = []
+        Task.detached { @MainActor in
+            store.items = items
         }
+
+        return store
     }
+#endif
 
     /// Adds an item to the store.
     ///
