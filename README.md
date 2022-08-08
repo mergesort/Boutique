@@ -162,6 +162,22 @@ If you'd like to learn more about how it works you can read about the philosophy
 
 ---
 
+### Feedback
+
+This project provides multiple forms of delivering feedback to maintainers.
+
+- If you have a question about Boutique, we ask that you first consult the [documentation](https://build.ms/boutique/docs) to see if your question has been answered there.
+
+- This project is heavily documented but also includes multiple sample projects.
+    - The first app is a [Demo app](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to build a canonical Boutique app using the Model View Controller Store pattern. The app is heavily documented with inline explanations to help you build an intuition for how a Boutique app works and save you time by teaching you best practices along the way.
+    - The second app is a [Performance Profiler](https://github.com/mergesort/Boutique/tree/main/Performance%20Profiler) also using Boutique's preferred architecture. If you're working on a custom `StorageEngine` this project will serve you well as a way to test the performance of the operations you need to build.
+
+- If you still have a question, enhancement, or a way to improve Boutique, this project leverages GitHub's [Discussions](https://github.com/mergesort/Boutique/discussions) feature.
+
+- If you find a bug and wish to report an [issue](https://github.com/mergesort/Boutique/issues) would be appreciated.
+
+---
+
 ### Requirements
 
 - iOS 13.0+
