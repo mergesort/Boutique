@@ -77,41 +77,6 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         }
     }
 
-    ///
-    /// Due to this initializer being marked async it cannot be used as a static property
-    /// or in the @``Stored`` property wrapper, but still may be useful for places you need
-    /// a ``Store`` with a specific set of items such as a test.
-    ///
-    /// - Parameters:
-    ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
-    ///   will use to create a unique identifier for the item when it's saved.
-
-#if DEBUG
-    /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
-    ///
-    /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
-    /// in a SwiftUI Preview. It will create a a ``Store`` that **only** holds items in memory
-    /// so it should not be used in production, nor will it compile for Release builds.
-    ///
-    /// - Parameters:
-    ///   - items: The items that the ``Store`` will be initialized with.
-    ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
-    ///   will use to create a unique identifier for the item when it's saved.
-    /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
-    public static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
-        let store = Store(
-            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
-            cacheIdentifier: cacheIdentifier
-        )
-
-        Task.detached { @MainActor in
-            store.items = items
-        }
-
-        return store
-    }
-#endif
-
     /// Adds an item to the store.
     ///
     /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
@@ -222,6 +187,36 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     }
 
 }
+
+#if DEBUG
+public extension Store {
+
+    /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
+    ///
+    /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
+    /// in a SwiftUI Preview. It will create a a ``Store`` that **only** holds items in memory
+    /// so it should not be used in production, nor will it compile for Release builds.
+    ///
+    /// - Parameters:
+    ///   - items: The items that the ``Store`` will be initialized with.
+    ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
+    ///   will use to create a unique identifier for the item when it's saved.
+    /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
+        let store = Store(
+            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
+            cacheIdentifier: cacheIdentifier
+        )
+
+        Task.detached { @MainActor in
+            store.items = items
+        }
+
+        return store
+    }
+
+}
+#endif
 
 // Internal versions of the `add`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
 internal extension Store {
