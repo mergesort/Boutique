@@ -1,0 +1,35 @@
+name: Documentation
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  update_documentation:
+    name: Update documentation
+    runs-on: macos-12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Swift version
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "5.6"
+      - name: Generate documentation
+        uses: fwcd/swift-docc-action@v1
+        with:
+          target: Boutique
+          output: ./docs
+          hosting-base-path: Boutique
+          disable-indexing: 'true'
+          transform-for-static-hosting: 'true'
+      - name: Commit documentation
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ./docs/**
+          git commit -m "Generating documentation"
+          git push
+

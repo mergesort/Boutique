@@ -1,4 +1,4 @@
-name: Swift
+name: Build and Test
 
 on:
   push:
@@ -7,8 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  build-and-test:
     runs-on: macos-12
 
     steps:
@@ -18,9 +17,3 @@ jobs:
     - name: Run tests
       run: swift test -v
 
-    - uses: fwcd/swift-docc-action@v1
-      with:
-        target: Bodega
-        output: ./docs
-        disable-indexing: 'true'
-        transform-for-static-hosting: 'true'
