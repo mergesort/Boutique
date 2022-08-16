@@ -15,7 +15,7 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedBoolValue")
     private var storedBoolValue = false
 
-    override func setUp() async throws {
+    override func setUp() {
         self.$storedItem.reset()
         self.$storedNilValue.reset()
         self.$storedBoolValue.reset()
@@ -76,8 +76,8 @@ final class StoredValueTests: XCTestCase {
             })
             .store(in: &cancellables)
 
-        self.$storedItem.set(BoutiqueItem.sweater)
         self.$storedItem.set(BoutiqueItem.purse)
+        self.$storedItem.set(BoutiqueItem.sweater)
         self.$storedItem.set(BoutiqueItem.belt)
 
         wait(for: [expectation], timeout: 1)
