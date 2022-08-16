@@ -1,5 +1,5 @@
-// This code is used in `@Stored` and `@StoredValue` and I gotta be honest
-// I have no idea how this works but it does.
+// This code is used in `@Stored`, `@StoredValue`, and `@AsyncStoredValue`
+// but I gotta be honest I have no idea how this works but it does.
 //
 // Basically there's a proxy that extracts the nested ObservableObjectPublisher
 // but I don't know how it works. You can thank Ian Keen (@iankay on Twitter)

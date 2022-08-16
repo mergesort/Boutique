@@ -1,44 +1,37 @@
-import Bodega
 import Combine
 import Foundation
 
-/// The @``StoredValue`` property wrapper to automagically persist a single `Item` rather than
-/// an array of items that would be persisted in a ``Store`` or using @``Stored``.
+/// The @``StoredValue`` property wrapper to automagically persist a single `Item` in `UserDefaults`
+/// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
 ///
-/// There are two notable differences between @``Store`` and @``StoredValue``.
-/// 1. A @``StoredValue`` stores only one item, as opposed to a @``Store`` which stores
-/// an array of items exposed as the `items: [Item]` property. A @``StoredValue`` exposes only
-/// one value, an `Item?`. This is useful for similar use cases as `UserDefaults`,
-/// where it's common to store only an item such as the app's `lastOpenedDate`,
-/// an object of the user's preferences, configurations, and more.
+/// You should use a @``StoredValue`` if you're only storing a single item, as opposed to a @``Store``
+/// which stores an array of items exposed as the `items: [Item]` property.
 ///
-/// 2. When you use a @``Store`` you always have to consider how the item will be stored,
-/// but with @``StoredValue`` a database will be transparently created for you to store the item.
-/// This ensures that you will be able to retrieve the item quickly since there is only one item,
-/// useful for situations where you need a value at the launch of your app. If you do need
-/// more control over storage you can use ``init(wrappedValue:storage:)`` to define that.
+/// This is useful for similar use cases as `UserDefaults`, where it's common to store only a single item
+/// such as the app's `lastOpenedDate`, an object of the user's preferences, configurations, and more.
 ///
-/// Creating a @``StoredValue`` is straightforward and easy, resembling the `@AppStorage` API.
+/// Results are delivered synchronously so values are available on app launch, using `UserDefaults` as the
+/// backing store to accomplish this. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
 ///
-/// You can initialize the @``StoredValue`` with a default value like you would any other Swift property.
+/// You must initialize a @``StoredValue`` with a default value like you would any other Swift property.
 /// ```
 /// @StoredValue(key: "redPanda")
 /// private var redPanda = RedPanda(cuteRating: 100)
 /// ```
 ///
-/// It's perfectly reasonable to not provide a default value for your @``StoredValue``,
-/// but you will have to define such as the below example.
+/// A @``StoredValue`` can be nullable, but in that case you will have to specify the type as well.
 /// ```
-/// @StoredValue<RedPanda>(key: "pandaRojo")
-/// private var spanishRedPanda
+/// @StoredValue<RedPanda?>(key: "pandaRojo")
+/// private var spanishRedPanda = nil
 /// ```
 ///
 /// Using @``StoredValue`` is also straightforward, there are only two functions.
-/// To change the values of the @``StoredValue``, you can use the ``set(_:)`` and ``reset()`` functions.
+/// To change the value of the @``StoredValue``, you can use the ``set(_:)`` and ``reset()`` functions.
 /// ```
 /// $redPanda.set(RedPanda(cuteRating: 99)) // The @StoredValue has a new red panda
-/// $redPanda.reset() // The @StoredValue is nil
+/// $redPanda.reset() // The @AsyncStoredValue is nil
 /// ```
+///
 /// One last bit of advice, when calling ``set(_:)`` and ``reset()`` don't forget to put a `$`
 /// in front of the the `$storedValue`.
 ///
@@ -47,85 +40,32 @@ import Foundation
 @propertyWrapper
 public struct StoredValue<Item: Codable & Equatable> {
 
-    private let box: Box
+    private let cancellableBox = CancellableBox()
     private let defaultValue: Item
+    private let key: String
+    private let userDefaults: UserDefaults
+    private let itemSubject: CurrentValueSubject<Item, Never>
 
-    /// Initializes a @``StoredValue``, this is the recommended initializer to use when possible.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: An value set when initializing a @``StoredValue``
-    ///   - key: The key to store.
-    ///   - directory: A directory where @``StoredValue`` will be saved.
-    ///   The default location should generally be used but is if you need to specify a location
-    ///   for where values are stored, such as the `.sharedContainer` for extensions.
-    public init(wrappedValue: Item, key: String, directory: FileManager.Directory = .defaultStorageDirectory(appendingPath: "")) {
-        let directory = FileManager.Directory(url: directory.url.appendingPathComponent(key))
-        let innerStore = Store<UniqueItem>(storage: SQLiteStorageEngine(directory: directory)!, cacheIdentifier: \.id)
-        self.box = Box(innerStore)
-
+    public init(wrappedValue: Item, key: String, suiteName: String? = nil) {
+        self.key = key
         self.defaultValue = wrappedValue
-        if self.wrappedValue != self.defaultValue {
-            self.synchronousSet(self.defaultValue)
-        }
-    }
+        self.userDefaults = UserDefaults(suiteName: suiteName) ?? .standard
 
-    /// Initializes a @``StoredValue``.
-    ///
-    /// This initializer is meant to provide full control for how a @``StoredValue`` should be stored.
-    /// For example if you create a `StorageEngine` that has it's own concept of keys, or even allows
-    /// you to store items in the Keychain, you may need to provide the underlying storage mechanism.
-    /// While ``init(wrappedValue:key:directory:)`` provides a great default by using `SQLiteStorageEngine`,
-    /// that approach can't always be used.
-    /// - Parameters:
-    ///   - wrappedValue: An value set when initializing a @``StoredValue``
-    ///   - storage: A `StorageEngine` that defines where the value will be stored.
-    public init(wrappedValue: Item, storage: StorageEngine) {
-        let innerStore = Store<UniqueItem>(storage: storage, cacheIdentifier: \.id)
-        self.box = Box(innerStore)
-
-        self.defaultValue = wrappedValue
-        if self.wrappedValue != self.defaultValue {
-            self.synchronousSet(self.defaultValue)
-        }
+        let initialValue = Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: defaultValue)
+        self.itemSubject = CurrentValueSubject(initialValue)
     }
 
     /// The currently stored value
     public var wrappedValue: Item {
-        self.box.store.items.first?.value ?? self.defaultValue
+        Self.storedValue(forKey: self.key, userDefaults: self.userDefaults, defaultValue: self.defaultValue)
     }
 
+    /// A `StoredValue` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
     public var projectedValue: StoredValue<Item> { self }
 
-    public static subscript<Instance>(
-        _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item>,
-        storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item {
-        let wrapper = instance[keyPath: storageKeyPath]
-
-        if wrapper.box.cancellable == nil {
-            wrapper.box.cancellable = wrapper.box.store
-                .objectWillChange
-                .sink(receiveValue: { [instance] in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-
-                    objectWillChangePublisher?.send()
-                })
-        }
-
-        return wrapper.wrappedValue
-    }
-
-    /// A Combine publisher that allows you to observe any changes to the @``StoredValue``.
+    /// A Combine publisher that allows you to observe all changes to the @``StoredValue``.
     public var publisher: AnyPublisher<Item, Never> {
-        self.box.store.$items.map({
-            $0.first?.value ?? self.defaultValue
-        })
-        .eraseToAnyPublisher()
+        self.itemSubject.eraseToAnyPublisher()
     }
 
     /// Sets a value for the @``StoredValue`` property.
@@ -149,11 +89,15 @@ public struct StoredValue<Item: Codable & Equatable> {
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
     /// - Parameter value: The value to set @``StoredValue`` to.
-    public func set(_ value: Item) async throws {
-        try await self.box.store.add(UniqueItem(value: value))
+    public func set(_ value: Item) {
+        let boxedValue = BoxedValue(value: value)
+        if let data = try? JSONEncoder().encode(boxedValue) {
+            self.userDefaults.set(data, forKey: self.key)
+            self.itemSubject.send(value)
+        }
     }
 
-    /// Sets the @``StoredValue`` to nil.
+    /// Resets the @``StoredValue`` to the default value.
     ///
     /// You may run into an error that says
     ///
@@ -173,18 +117,47 @@ public struct StoredValue<Item: Codable & Equatable> {
     /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
-    public func reset() async throws {
-        try await self.box.store.removeAll()
+    public func reset() {
+        let boxedValue = BoxedValue(value: self.defaultValue)
+        if let data = try? JSONEncoder().encode(boxedValue) {
+            self.userDefaults.set(data, forKey: self.key)
+            self.itemSubject.send(self.defaultValue)
+        }
+    }
+
+    public static subscript<Instance>(
+        _enclosingInstance instance: Instance,
+        wrapped wrappedKeyPath: KeyPath<Instance, Item>,
+        storage storageKeyPath: KeyPath<Instance, Self>
+    ) -> Item {
+        let wrapper = instance[keyPath: storageKeyPath]
+
+        if wrapper.cancellableBox.cancellable == nil {
+            wrapper.cancellableBox.cancellable = wrapper.itemSubject
+                .receive(on: RunLoop.main)
+                .sink(receiveValue: { [instance] _ in
+                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
+                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
+                    }
+
+                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
+                    objectWillChangePublisher?.send()
+                })
+        }
+
+        return wrapper.wrappedValue
     }
 
 }
 
 private extension StoredValue {
 
-    // A synchronous version of set to seed default values in @StoredValue initializers
-    func synchronousSet(_ value: Item) {
-        Task {
-            try await self.set(value)
+    static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
+        if let storedValue = userDefaults.object(forKey: key) as? Data,
+           let boxedValue = try? JSONDecoder().decode(BoxedValue<Item>.self, from: storedValue) {
+            return boxedValue.value
+        } else {
+            return defaultValue
         }
     }
 
@@ -192,19 +165,12 @@ private extension StoredValue {
 
 private extension StoredValue {
 
-    final class Box {
-        let store: Store<UniqueItem>
+    private struct BoxedValue<T: Codable>: Codable {
+        var value: T
+    }
+
+    final class CancellableBox {
         var cancellable: AnyCancellable?
-        init(_ store: Store<UniqueItem>) {
-            self.store = store
-        }
-    }
-
-    // An internal type to box the item being saved in the Store ensuring
-    // we can only ever have one item due to the hard-coded `cacheIdentifier`.
-    struct UniqueItem: Codable, Equatable {
-        var id: String { "unique-value" }
-        var value: Item
     }
 
 }

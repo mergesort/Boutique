@@ -4,22 +4,22 @@ import Combine
 @propertyWrapper
 public struct Stored<Item: Codable & Equatable> {
 
-    private let box: Box
+    private let cancellableBox: CancellableBox
 
     /// Initializes a @``Stored`` property that will be exposed as an `[Item]` and project a `Store<Item>`.
     /// - Parameter store: The store that will be wrapped to expose as an array.
     public init(in store: Store<Item>) {
-        self.box = Box(store)
+        self.cancellableBox = CancellableBox(store)
     }
 
     @MainActor
     /// The currently stored items
     public var wrappedValue: [Item] {
-        box.store.items
+        cancellableBox.store.items
     }
 
     public var projectedValue: Store<Item> {
-        box.store
+        cancellableBox.store
     }
 
     @MainActor public static subscript<Instance>(
@@ -29,8 +29,8 @@ public struct Stored<Item: Codable & Equatable> {
     ) -> [Item] {
         let wrapper = instance[keyPath: storageKeyPath]
 
-        if wrapper.box.cancellable == nil {
-            wrapper.box.cancellable = wrapper.box.store
+        if wrapper.cancellableBox.cancellable == nil {
+            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
                 .objectWillChange
                 .sink(receiveValue: { [instance] in
                     func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
@@ -50,7 +50,7 @@ public struct Stored<Item: Codable & Equatable> {
 
 private extension Stored {
 
-    final class Box {
+    final class CancellableBox {
         let store: Store<Item>
         var cancellable: AnyCancellable?
 
