@@ -64,7 +64,7 @@ struct FavoritesCarouselView: View {
 
                 Button(action: {
                     Task {
-                        try await self.appState.$funkyRedPandaModeEnabled.toggle()
+                        self.appState.$funkyRedPandaModeEnabled.toggle()
                     }
                 }, label: {
                     Image(systemName: "sun.max.circle.fill")
