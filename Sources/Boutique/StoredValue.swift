@@ -45,10 +45,10 @@ public struct StoredValue<Item: Codable & Equatable> {
     private let userDefaults: UserDefaults
     private let itemSubject: CurrentValueSubject<Item, Never>
 
-    public init(wrappedValue: Item, key: String, suiteName: String? = nil) {
+    public init(wrappedValue: Item, key: String, storage userDefaults: UserDefaults = UserDefaults.standard) {
         self.key = key
         self.defaultValue = wrappedValue
-        self.userDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        self.userDefaults = userDefaults
 
         let initialValue = Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: defaultValue)
         self.itemSubject = CurrentValueSubject(initialValue)
