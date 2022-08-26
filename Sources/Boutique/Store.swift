@@ -221,10 +221,16 @@ public extension Store {
 // Internal versions of the `add`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
 internal extension Store {
 
-    func performAdd(_ item: Item) async throws {
+    func performAdd(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        var currentItems = await self.items
+
+        if let strategy = existingItemsStrategy {
+            // Remove items from disk and memory based on the cache invalidation strategy
+            try await self.removeItems(withStrategy: strategy, items: &currentItems)
+        }
+
         // Take the current items array and turn it into an OrderedDictionary.
         let identifier = item[keyPath: self.cacheIdentifier]
-        let currentItems = await self.items
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
         currentValuesDictionary[identifier] = item
@@ -237,7 +243,14 @@ internal extension Store {
         }
     }
 
-    func performAdd(_ items: [Item]) async throws {
+    func performAdd(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        var currentItems = await self.items
+
+        if let strategy = existingItemsStrategy {
+            // Remove items from disk and memory based on the cache invalidation strategy
+            try await self.removeItems(withStrategy: strategy, items: &currentItems)
+        }
+
         var addedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `add(items:)` by taking advantage
@@ -248,7 +261,6 @@ internal extension Store {
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
-        let currentItems: [Item] = await self.items
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
 
@@ -327,6 +339,24 @@ private extension Store {
     func removePersistedItems(items: [Item]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
         try await self.storageEngine.remove(keys: itemKeys)
+    }
+
+    func removeItems(withStrategy strategy: ItemRemovalStrategy<Item>, items: inout [Item]) async throws {
+        let itemsToRemove = strategy.removedItems(items)
+
+        // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
+        guard itemsToRemove.count != 0 else { return }
+
+        // If we're using the `.removeAll` strategy then we want to remove all the data without iterating
+        // Else, we're using a strategy and need to iterate over all of the `itemsToInvalidate` and invalidate them
+        if items.count == itemsToRemove.count {
+            items = []
+            try await self.storageEngine.removeAllData()
+        } else {
+            items = items.filter { !itemsToRemove.contains($0) }
+            let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+            try await self.storageEngine.remove(keys: itemKeys)
+        }
     }
 
 }

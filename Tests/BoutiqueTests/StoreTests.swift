@@ -98,6 +98,20 @@ final class StoreTests: XCTestCase {
         try await store.removeAll()
 
         try await store
+            .add(BoutiqueItem.belt)
+            .add(BoutiqueItem.coat)
+            .remove([BoutiqueItem.belt])
+            .add(BoutiqueItem.sweater)
+            .run()
+
+        XCTAssertEqual(store.items.count, 2)
+        XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
+        XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
+        XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
+
+        try await store.removeAll()
+
+        try await store
             .add(BoutiqueItem.coat)
             .add([BoutiqueItem.purse, BoutiqueItem.belt])
             .run()
@@ -133,6 +147,15 @@ final class StoreTests: XCTestCase {
 
         try await store
             .removeAll()
+            .add(BoutiqueItem.belt)
+            .run()
+
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertTrue(store.items.contains(BoutiqueItem.belt))
+
+        try await store
+            .removeAll()
+            .remove(BoutiqueItem.belt)
             .add(BoutiqueItem.belt)
             .run()
 
