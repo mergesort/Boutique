@@ -109,6 +109,20 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
         XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
 
+        try await store
+            .add(BoutiqueItem.belt)
+            .add(BoutiqueItem.coat)
+            .add(BoutiqueItem.purse)
+            .remove([BoutiqueItem.belt, .coat])
+            .add(BoutiqueItem.sweater)
+            .run()
+
+        XCTAssertEqual(store.items.count, 2)
+        XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
+        XCTAssertTrue(store.items.contains(BoutiqueItem.purse))
+        XCTAssertFalse(store.items.contains(BoutiqueItem.coat))
+        XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
+
         try await store.removeAll()
 
         try await store

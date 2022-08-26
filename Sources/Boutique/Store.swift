@@ -355,7 +355,12 @@ private extension Store {
         } else {
             items = items.filter { !itemsToRemove.contains($0) }
             let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
-            try await self.storageEngine.remove(keys: itemKeys)
+
+            if itemKeys.count == 1 {
+                try await self.storageEngine.remove(key: itemKeys[0])
+            } else {
+                try await self.storageEngine.remove(keys: itemKeys)
+            }
         }
     }
 
