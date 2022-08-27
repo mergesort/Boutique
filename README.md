@@ -12,20 +12,24 @@ If you find Boutique valuable I would really appreciate it if you would consider
 
 ## If you're getting started with Boutique today, it is highly recommended that you point your Package.swift to the `main` branch. The update is feature complete with only minor or likely no changes expected. It will be officially released when I finish adding documentation to provide tutorials, best practices, and updated sample projects. While v2 is a huge upgrade, the API changes from 1.0 are minimal enough that it shouldn't be difficult to get started without updated docs in the mean time.
 
-Boutique is a simple but powerful persistence library, and more. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a reference implementation of an app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
+Boutique is a simple but powerful persistence library, a small set of property wrappers and types that enable building incredibly simple state-driven apps for SwiftUI, UIKit, and AppKit. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a demo app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
 ---
 
 * [Getting Started](#getting-started)
 * [Store](#store)
 * [The Magic Of @Stored](#the-magic-of-stored)
+* [@StoredValue & @AsyncStoredValue](#storedvalue--asyncstoredvalue)
+* [Documentation](#documentation)
 * [Further Exploration](#further-exploration)
 
 ---
 
 ### Getting Started
 
-Boutique only has one concept to understand, the `Store`. You may be familiar with the `Store` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about interacting with `Action`s or `Reducer`s. With this `Store` implementation all your data is cached on disk for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
+Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The @``StoredValue`` and @``AsyncStoredValue`` property wrappers work the same way, but instead of an array they work with singular Swift values. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
+
+You may be familiar with the ``Store`` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about adding Actions or Reducers. With this ``Store`` implementation all your data is persisted for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
 
 ---
 
@@ -35,40 +39,49 @@ The entire surface area of the API for achieving full offline support and realti
 
 ```swift
 // Create a Store ¹
-let store = Store<Item>(
-    storagePath: Store.documentsDirectory(appendingPathComponent: "Items"),
+let store = Store<Animal>(
+    storage: SQLiteStorageEngine.default(appendingPath: "Animals"),
     cacheIdentifier: \.id
 )
 
 // Add an item to the Store ²
-let coat = Item(name: "coat")
-try await store.add(coat)
+let redPanda = Animal(id: "red_panda")
+try await store.add(redPanda)
 
-// Remove an item from the Store
-try await store.remove(coat)
+// Remove an animal from the Store
+try await store.remove(redPanda)
 
-// Add two more items to the Store
-let purse = Item(name: "purse")
-let belt = Item(name: "belt")
-try await store.add([purse, belt])
+// Add two more animals to the Store
+let dog = Item(name: "dog")
+let cat = Item(name: "cat")
+try await store.add([dog, cat])
 
 // You can read items directly
-print(store.items) // Prints [coat, belt]
+print(store.items) // Prints [dog, cat]
 
 // Clear your store by removing all the items at once.
 store.removeAll()
 
-print(self.items) // Prints []
+print(store.items) // Prints []
 
-// Add an item to the store, removing all of the current items 
-// from the in-memory and disk cache before saving the new item. ³
-try await store.add([purse, belt], invalidationStrategy: .removeNone)
-try await store.add(coat, invalidationStrategy: .removeAll)
+// You can even chain commands together
+try await store
+    .add(dog)
+    .add(cat)
+    .run()
+    
+print(store.items) // Prints [dog, cat]
 
-print(store.items) // Prints [coat]
+// This is a good way to clear stale cached data
+try await store
+    .removeAll()
+    .add(redPanda)
+    .run()
+
+print(store.items) // Prints [redPanda]
 ```
 
-And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind.
+And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind. (But works well in UIKit and AppKit of course. 😉)
 
 ```swift
 // Since items is a @Published property 
@@ -84,13 +97,11 @@ store.$items.sink({ items in
 ```
 ---
 
-¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours.
+¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours. You'll also notice, that's a concept from Bodega which you can read about in Bodega's [StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
   
 ² Under the hood the Store is doing the work of saving all changes to disk when you add or remove items.
 
-³ There are multiple cache invalidation strategies. `removeAll` would be useful when you are downloading completely new data from the server and want to avoid a stale cache.
-
-⁴ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
+³ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
 
 > **Warning** Storing images or other binary data in Boutique is technically supported but not recommended. The reason is that storing images in Boutique's can balloon up the in-memory store, and your app's memory as a result. For similar reasons as it's not recommended to store images or binary blobs in a database, it's not recommended to store images or binary blobs in Boutique.
 
@@ -101,10 +112,19 @@ store.$items.sink({ items in
 That was easy, but I want to show you something that makes Boutique feel downright magical. The `Store` is a simple way to gain the benefits of offline storage and realtime updates, but by using the `@Stored` property wrapper we can cache any property in-memory and on disk with just one line of code.
 
 ```swift
+extension Store where Item == RemoteImage {
+
+    // Initialize a Store to save our images into
+    static let imagesStore = Store<RemoteImage>(
+        storage: SQLiteStorageEngine.default(appendingPath: "Images")
+    )
+
+}
+
 final class ImagesController: ObservableObject {
 
-    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁵
-    @Stored(in: Store.imagesStore) var images
+    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁴
+    @Stored(in: .imagesStore) var images
 
     /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
     func fetchImage() async throws -> RemoteImage {
@@ -134,11 +154,11 @@ final class ImagesController: ObservableObject {
 }
 ```
 
-That's it, that's really it. It's hard to believe that now your app can update its state in real time with full offline storage thanks to only one line of code. `@Stored(in: Store.imagesStore) var images`
+That's it, that's really it. This technique scales very well, and sharing this data across many views is exactly how Boutique scales from simple to complex apps without adding API complexity. It's hard to believe that now your app can update its state in real time with full offline storage thanks to only one line of code. `@Stored(in: .imagesStore) var images`
 
 ---
 
-⁵ (If you'd prefer to decouple the store from your view model, controller, or manager object, you can inject stores into the object like this.)
+⁴ (If you'd prefer to decouple the store from your view model, controller, or manager object, you can inject stores into the object like this.)
 
 ```swift
 final class ImagesController: ObservableObject {
@@ -152,6 +172,61 @@ final class ImagesController: ObservableObject {
 }
 ```
 
+### StoredValue & AsyncStoredValue
+
+The `Store` and `@Stored` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where @`StoredValue` and @`AsyncStoredValue` come in handy.
+
+Whether you need to save an important piece of information for the next time your app is launched or if want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
+
+Often times people will choose to store individual items like that in `UserDefaults`. If you've used `@AppStorage` then @`StoredValue` will feel right at home, it has a very similar API with some additional features. A @`StoredValue` will end up being stored in `UserDefaults`, but it also exposes a `publisher` so you can easily subscribe to changes.
+
+```swift
+// Setup a `@StoredValue, @AsyncStoredValue has the same API.
+@StoredValue(key: "hasHapticsEnabled")
+var hasHapticsEnabled = false
+
+// You can also store nil values
+@StoredValue(key: "lastOpenedDate")
+var lastOpenedDate: Date? = nil
+
+// Enums work as well, as long as it conforms to `Codable` and `Equatable`.
+@StoredValue(key: "currentTheme")
+var currentlySelectedTheme = .light
+
+// Complex objects work as well
+struct UserPreferences: Codable, Equatable {
+    var hasHapticsEnabled: Bool
+    var prefersDarkMode: Bool
+    var prefersWideScreen: Bool
+    var spatialAudioEnabled: Bool
+}
+
+@StoredValue(key: "userPreferences")
+var preferences = UserPreferences()
+
+// Set the lastOpenedDate to now
+$lastOpenedDate.set(.now)
+
+// currentlySelected is now .dark
+$currentlySelectedTheme.set(.dark)
+
+// StoredValues that are backed by a boolean also have a toggle() function
+$hasHapticsEnabled.toggle()
+```
+
+An @``AsyncStoredValue`` is very similar to @``StoredValue``, the main difference is that rather than storing individual values in `UserDefaults` an @``AsyncStoredValue`` is stored in a `StorageEngine`, much like a ``Store``. This allows you to build your own custom persistence layer for storing values, such as building a `KeychainStorageEngine` to store individual values in the keychain much the same way we can choose our own persistence layer for @``Stored``.
+
+### Documentation
+
+If you have any questions I would ask that you please look at the documentation first, both Boutique and Bodega are very heavily documented. On top of that Boutique comes with not one but two demo apps, each serving a different purpose but demonstrating how you can build a Boutique-backed app.
+
+As I was building v1 I noticed that people who got Boutique loved it, and people who thought it might be good but had questions grew to love it once they understood how to use it. Because of that I sought out to write a lot of documentation explaining the concepts and common use cases you'll encouter when building an iOS or macOS app. If you still have questions or suggestions I'm very open to feedback, how to contribute is discussed in the aptly named [Feedback](#feedback) section of this readme.
+
+- [Boutique Documentation](https://build.ms/boutique/docs)
+- [Bodega Documentation](https://build.ms/bodega/docs)
+- [Boutique Demo App](https://github.com/mergesort/Boutique/tree/main/Demo)
+- [Performance Profiler App](https://github.com/mergesort/Boutique/tree/main/Performance%20Profiler)
+
 ---
 
 ### Further Exploration
@@ -159,6 +234,8 @@ final class ImagesController: ObservableObject {
 Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
 
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/2022/06/22/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
+
+We've only scratched the surface of what Boutique can do here. Leveraging Bodega's `StorageEngine` you can build complex data pipelines that do everything from caching data to interfacing with your API server. Boutique and Bodega are more than libraries, they're a set of primitives for any data-driven application, so I suggest giving them a shot, playing with the [demo app](https://github.com/mergesort/Boutique/tree/main/Demo), and even building an app of your own!
 
 ---
 
