@@ -207,7 +207,7 @@ An @``AsyncStoredValue`` is very similar to @``StoredValue``, the main differenc
 
 The API for using @``AsyncStoredValue`` is identical to @``StoredValue``, so the @``StoredValue`` examples above will work for @``AsyncStoredValue``. The main difference is that values are received in an async manner, so you have to be prepared to not receive a value immediately or on demand. It may seem strange to have an async alternative to @``StoredValue``, but if you have a `StorageEngine` based upon a remote service such as CloudKit or built atop your app's server API, you'll appreciate the ability to transparently store and persist individual values the same way you would any other data received from your API.
 
-## Further Exploration, @StoredValue and @AsyncStoredValue
+## Further Exploration
 
 Now that we've covered @``Stored``, @``StoredValue``, and @``AsyncStoredValue`` we can see how these property wrappers enable your app to work with regular Swift values and arrays, but have your app available offline with realtime state updates easier than ever. There isn't much left to learn about using Boutique, but if you want to explore further you can start using Boutique in one of your apps!
 
