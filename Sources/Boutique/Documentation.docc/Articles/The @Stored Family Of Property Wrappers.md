@@ -152,7 +152,7 @@ Setting up a @``StoredValue`` is simple
 var hasHapticsEnabled = false
 ```
 
-You can also use nil values
+You can also store nil values
 ```swift
 @StoredValue(key: "lastOpenedDate")
 var lastOpenedDate: Date? = nil
@@ -165,7 +165,6 @@ var currentlySelectedTheme = .light
 ```
 
 A more complex example for a hypothetical video player app may look something like this.
-
 ```swift
 struct UserPreferences: Codable, Equatable {
     var hasHapticsEnabled: Bool

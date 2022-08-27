@@ -27,4 +27,5 @@ extension Store where Item == RemoteImage {
     static let imagesStore = Store<RemoteImage>(
         storage: SQLiteStorageEngine.default(appendingPath: "Images")
     )
+
 }
