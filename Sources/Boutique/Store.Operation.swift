@@ -114,9 +114,8 @@ public extension Store {
 
         /// A function that runs a series of chained operations.
         ///
-        /// This function is automatically called on deinit, running them in the order they were chained together.
-        /// You can also manually invoke ``run()`` if you independently build a chain of ``Operation``s
-        /// and then wish to run them.
+        /// If you create an `Operation` chain you must manually invoke ``run()`` for the operations to execute.
+        /// If you do not then each `Operation` will be created, but not executed.
         public func run() async throws {
             guard !self.operationsHaveRun else { return }
 

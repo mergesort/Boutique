@@ -6,11 +6,17 @@
 
 — [Josh Holtz](https://github.com/joshdholtz)
 
+>*"Boutique is ridiculously easy to implement and makes persistence a breeze. It's become my first addition to every project I start.*
+
+— [Tyler Hillsman](https://github.com/thillsman)
+
+>*"Boutique has become invaluable, I use it in every side project now. Not having to care about persistence is great and the cost of getting started is practically zero."*
+
+— [Romain Pouclet](https://github.com/palleas)
+
 If you find Boutique valuable I would really appreciate it if you would consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
 
 ---
-
-## If you're getting started with Boutique today, it is highly recommended that you point your Package.swift to the `main` branch. The update is feature complete with only minor or likely no changes expected. It will be officially released when I finish adding documentation to provide tutorials, best practices, and updated sample projects. While v2 is a huge upgrade, the API changes from 1.0 are minimal enough that it shouldn't be difficult to get started without updated docs in the mean time.
 
 Boutique is a simple but powerful persistence library, a small set of property wrappers and types that enable building incredibly simple state-driven apps for SwiftUI, UIKit, and AppKit. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a demo app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/MVCS) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
@@ -240,7 +246,7 @@ As I was building v1 I noticed that people who got Boutique loved it, and people
 
 ### Further Exploration
 
-Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's made even more powerful by the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
+Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's even more powerful when you use the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
 
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/2022/06/22/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
