@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mergesort/Bodega.git",
       "state" : {
-        "revision" : "aaecb9d02eb791ac2256dbdaea65dc0da6920822",
-        "version" : "2.0.0-rc-2"
+        "revision" : "8e240838b37f2596026b23934e3b87a36354b728",
+        "version" : "2.0.0"
       }
     },
     {
@@ -25,6 +25,15 @@
       "state" : {
         "revision" : "48254824bb4248676bf7ce56014ff57b142b77eb",
         "version" : "1.0.2"
+      }
+    },
+    {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-docc-plugin",
+      "state" : {
+        "revision" : "3303b164430d9a7055ba484c8ead67a52f7b74f6",
+        "version" : "1.0.0"
       }
     }
   ],
