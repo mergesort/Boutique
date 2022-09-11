@@ -310,4 +310,4 @@ Boutique is a labor of love to help developers build better apps, making it easi
 
 ---
 
-**Now that you know what's *in store* for you, it's time to get started.** 🏪
+**Now that you know what's *in store* for you, it's time to get started** 🏪
