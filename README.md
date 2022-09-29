@@ -307,3 +307,7 @@ See the [license](LICENSE) for more information about how you can use Boutique.
 ### Sponsorship
 
 Boutique is a labor of love to help developers build better apps, making it easier for you to unlock your creativity and make something amazing for your yourself and your users. If you find Boutique valuable I would really appreciate it if you'd consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
+
+---
+
+**Now that you know what's *in store* for you, it's time to get started** 🏪
