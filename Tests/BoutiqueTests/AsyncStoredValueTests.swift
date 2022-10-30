@@ -12,6 +12,9 @@ final class AsyncStoredValueTests: XCTestCase {
     @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedBool"))
     private var storedBoolValue = false
 
+    @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedDictionary"))
+    private var storedDictionaryValue: [String : String] = [:]
+
     override func setUp() async throws {
         try await self.$storedBoolValue.reset()
         try await self.$storedItem.reset()
@@ -51,6 +54,19 @@ final class AsyncStoredValueTests: XCTestCase {
 
         try await self.$storedBoolValue.toggle()
         XCTAssertEqual(self.storedBoolValue, true)
+    }
+
+    func testStoredDictionaryValueUpdate() async throws {
+        XCTAssertEqual(self.storedDictionaryValue, [:])
+
+        try await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater.value)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+
+        try await self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+
+        try await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
+        XCTAssertEqual(self.storedDictionaryValue, [:])
     }
 
     func testStoredValuePublishedSubscription() async throws {

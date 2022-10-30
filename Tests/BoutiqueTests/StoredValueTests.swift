@@ -15,6 +15,9 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedBoolValue")
     private var storedBoolValue = false
 
+    @StoredValue(key: "storedDictionary")
+    private var storedDictionaryValue: [String : String] = [:]
+
     override func setUp() {
         self.$storedItem.reset()
         self.$storedNilValue.reset()
@@ -58,6 +61,19 @@ final class StoredValueTests: XCTestCase {
 
         self.$storedBoolValue.toggle()
         XCTAssertEqual(self.storedBoolValue, true)
+    }
+
+    func testStoredDictionaryValueUpdate() async throws {
+        XCTAssertEqual(self.storedDictionaryValue, [:])
+
+        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater.value)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+
+        self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+
+        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
+        XCTAssertEqual(self.storedDictionaryValue, [:])
     }
 
     func testPublishedValueSubscription() async throws {

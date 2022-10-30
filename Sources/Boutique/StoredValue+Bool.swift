@@ -2,7 +2,7 @@ public extension StoredValue where Item == Bool {
 
     /// A function to toggle an @``StoredValue`` that represent a `Bool`.
     ///
-    /// This is meant to provide a simple ergonomic improvement, to avoid callsites like this.
+    /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
     /// ```
     /// self.appState.$proFeaturesEnabled.set(!self.appState.proFeaturesEnabled)
     /// ```
@@ -21,7 +21,7 @@ public extension AsyncStoredValue where Item == Bool {
 
     /// A function to toggle an @``AsyncStoredValue`` that represent a `Bool`.
     ///
-    /// This is meant to provide a simple ergonomic improvement, to avoid callsites like this.
+    /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
     /// ```
     /// try await self.appState.$proFeaturesEnabled.set(!self.appState.proFeaturesEnabled)
     /// ```
