@@ -5,7 +5,7 @@ public extension StoredValue {
     ///
     /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
     /// ```
-    /// var updatedRedPandaList = try await self.redPandaList
+    /// var updatedRedPandaList = self.redPandaList
     /// updatedRedPandaList["best"] = "Pabu"
     /// self.$redPandaList.set(updatedRedPandaList)
     /// ```
