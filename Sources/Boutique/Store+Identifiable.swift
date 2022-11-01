@@ -8,8 +8,9 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// with an `id` that is a `String`. While it's not required for your `Item` to conform to `Identifiable`,
     /// many SwiftUI-related objects do so this initializer provides a nice convenience.
     /// - Parameter storage: A `StorageEngine` to initialize a ``Store`` instance with.
-    convenience init(storage: StorageEngine) {
-        self.init(storage: storage, cacheIdentifier: \.id)
+    /// - Parameter sortBy: An optional function that the ``Store`` uses to keep the items added to it sorted
+    convenience init(storage: StorageEngine, sortBy: ((Item, Item) -> Bool)? = nil) {
+        self.init(storage: storage, cacheIdentifier: \.id, sortBy: sortBy)
     }
 
 }
@@ -22,8 +23,9 @@ public extension Store where Item: Identifiable, Item.ID == UUID {
     /// with an `id` that is a `UUID`. While it's not required for your `Item` to conform to `Identifiable`,
     /// many SwiftUI-related objects do so this initializer provides a nice convenience.
     /// - Parameter storage: A `StorageEngine` to initialize a ``Store`` instance with.
-    convenience init(storage: StorageEngine) {
-        self.init(storage: storage, cacheIdentifier: \.id.uuidString)
+    /// - Parameter sortBy: An optional function that the ``Store`` uses to keep the items added to it sorted
+    convenience init(storage: StorageEngine, sortBy: ((Item, Item) -> Bool)? = nil) {
+        self.init(storage: storage, cacheIdentifier: \.id.uuidString, sortBy: sortBy)
     }
 
 }

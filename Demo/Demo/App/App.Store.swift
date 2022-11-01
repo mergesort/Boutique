@@ -25,7 +25,8 @@ extension Store where Item == RemoteImage {
     /// but with your very own data layer. You can even endlessly compose `StorageEngine`s to create a
     /// complex data pipeline that hits your API and saves items into a database, all in one API call.
     static let imagesStore = Store<RemoteImage>(
-        storage: SQLiteStorageEngine.default(appendingPath: "Images")
+        storage: SQLiteStorageEngine.default(appendingPath: "Images"),
+        sortBy: { $0.createdAt > $1.createdAt }
     )
 
 }

@@ -2,6 +2,7 @@
 import Combine
 import XCTest
 
+@MainActor
 final class StoreTests: XCTestCase {
 
     private var store: Store<BoutiqueItem>!
@@ -10,12 +11,12 @@ final class StoreTests: XCTestCase {
     override func setUp() async throws {
         store = Store<BoutiqueItem>(
             storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
-            cacheIdentifier: \.merchantID)
+            cacheIdentifier: \.merchantID
+        )
 
         try await store.removeAll()
     }
 
-    @MainActor
     func testAddingItem() async throws {
         try await store.add(BoutiqueItem.coat)
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
@@ -25,7 +26,6 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 2)
     }
 
-    @MainActor
     func testAddingItems() async throws {
         try await store.add([BoutiqueItem.coat, BoutiqueItem.sweater, BoutiqueItem.sweater, BoutiqueItem.purse])
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
@@ -33,14 +33,12 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(BoutiqueItem.purse))
     }
 
-    @MainActor
     func testAddingDuplicateItems() async throws {
         XCTAssertTrue(store.items.isEmpty)
         try await store.add(BoutiqueItem.allItems)
         XCTAssertEqual(store.items.count, 4)
     }
 
-    @MainActor
     func testReadingItems() async throws {
         try await store.add(BoutiqueItem.allItems)
 
@@ -52,7 +50,6 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 4)
     }
 
-    @MainActor
     func testRemovingItems() async throws {
         try await store.add(BoutiqueItem.allItems)
         try await store.remove(BoutiqueItem.coat)
@@ -67,7 +64,6 @@ final class StoreTests: XCTestCase {
         XCTAssertFalse(store.items.contains(BoutiqueItem.purse))
     }
 
-    @MainActor
     func testRemoveAll() async throws {
         try await store.add(BoutiqueItem.coat)
         XCTAssertEqual(store.items.count, 1)
@@ -79,7 +75,6 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.isEmpty)
     }
 
-    @MainActor
     func testChainingAddOperations() async throws {
         try await store.add(BoutiqueItem.uniqueItems)
 
@@ -136,7 +131,6 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
     }
 
-    @MainActor
     func testChainingRemoveOperations() async throws {
         try await store
             .add(BoutiqueItem.uniqueItems)
@@ -177,7 +171,6 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(BoutiqueItem.belt))
     }
 
-    @MainActor
     func testChainingOperationsDontExecuteUnlessRun() async throws {
         let operation = try await store
             .add(BoutiqueItem.coat)
@@ -193,7 +186,6 @@ final class StoreTests: XCTestCase {
         _ = operation
     }
 
-    @MainActor
     func testPublishedItemsSubscription() async throws {
         let uniqueItems = BoutiqueItem.uniqueItems
         let expectation = XCTestExpectation(description: "uniqueItems is published and read")
@@ -211,6 +203,25 @@ final class StoreTests: XCTestCase {
         // Sets items under the hood
         try await store.add(uniqueItems)
         wait(for: [expectation], timeout: 1)
+    }
+
+    func testSorting() async throws {
+        let sortingStore = Store<BoutiqueItem>(
+            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+            cacheIdentifier: \.merchantID,
+            sortBy: { $0.merchantID > $1.merchantID }
+        )
+        try await sortingStore.removeAll()
+
+        try await sortingStore.add(BoutiqueItem.allItems)
+
+        let itemsInReverseOrder = [
+            BoutiqueItem.belt,
+            BoutiqueItem.purse,
+            BoutiqueItem.sweater,
+            BoutiqueItem.coat,
+        ]
+        XCTAssertEqual(sortingStore.items, itemsInReverseOrder)
     }
 
 }

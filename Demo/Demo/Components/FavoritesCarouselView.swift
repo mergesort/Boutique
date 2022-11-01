@@ -150,7 +150,7 @@ struct FavoritesCarouselView: View {
             }
         }
         .onReceive(self.imagesController.$images.$items, perform: {
-            self.images = $0.sorted(by: { $0.createdAt > $1.createdAt})
+            self.images = $0
         })
         .frame(height: 200.0)
         .background(Color.palette.background)

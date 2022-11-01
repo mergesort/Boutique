@@ -47,6 +47,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
+    private let sortBy: ((Item, Item) -> Bool)?
 
     /// The items held onto by the ``Store``.
     ///
@@ -62,15 +63,25 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
-    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
+    ///   - sortBy: An optional function that the ``Store`` uses to keep the items added to it sorted
+    public init(
+        storage: StorageEngine,
+        cacheIdentifier: KeyPath<Item, String>,
+        sortBy: ((Item, Item) -> Bool)? = nil
+    ) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
+        self.sortBy = sortBy
 
         Task { @MainActor in
             do {
                 let decoder = JSONDecoder()
-                self.items = try await self.storageEngine.readAllData()
+                var items = try await self.storageEngine.readAllData()
                     .map({ try decoder.decode(Item.self, from: $0) })
+                if let sortBy {
+                    items.sort(by: sortBy)
+                }
+                self.items = items
             } catch {
                 self.items = []
             }
@@ -218,7 +229,7 @@ public extension Store {
 }
 #endif
 
-// Internal versions of the `add`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
+// Internal versions of the `add`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
 
     func performAdd(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
@@ -239,7 +250,7 @@ internal extension Store {
         try await self.persistItem(item)
 
         await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
+            self.items = updatedItems(from: currentValuesDictionary)
         }
     }
 
@@ -274,7 +285,7 @@ internal extension Store {
         try await self.persistItems(Array(addedItemsDictionary.values))
 
         await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
+            self.items = updatedItems(from: currentValuesDictionary)
         }
     }
 
@@ -309,6 +320,14 @@ internal extension Store {
         await MainActor.run {
             self.items = []
         }
+    }
+
+    func updatedItems(from currentValuesDictionary: OrderedDictionary<String, Item>) -> [Item] {
+        var items = Array(currentValuesDictionary.values)
+        if let sortBy {
+            items.sort(by: sortBy)
+        }
+        return items
     }
 
 }
