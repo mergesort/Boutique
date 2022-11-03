@@ -9,7 +9,7 @@ import Foundation
 /// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
 ///
 /// Under the hood the ``Store`` is doing the work of saving all changes to a persistence layer
-/// when you add or remove items, which allows you to build an offline-first app
+/// when you insert or remove items, which allows you to build an offline-first app
 /// for free, all inclusive, *no extra code required*.
 ///
 /// **How The Store Works**
@@ -52,7 +52,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///
     /// The user can read the state of ``items`` at any time
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
-    /// you must use ``add(_:)-dfro``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
+    /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
     @MainActor @Published public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
@@ -87,9 +87,29 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - item: The item you are adding to the ``Store``.
     /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
     @_disfavoredOverload
+    @available(
+        *, deprecated,
+         renamed: "insert",
+         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+    )
     public func add(_ item: Item) async throws -> Operation {
         let operation = Operation(store: self)
-        return try await operation.add(item)
+        return try await operation.insert(item)
+    }
+
+    /// Inserts an item into the store.
+    ///
+    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
+    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
+    /// of items, removing complexity when it comes to managing items, indices, and more,
+    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    /// - Parameters:
+    ///   - item: The item you are inserting into the ``Store``.
+    /// - Returns: An ``Operation`` that can be used to insert an item as part of a chain.
+    @_disfavoredOverload
+    public func insert(_ item: Item) async throws -> Operation {
+        let operation = Operation(store: self)
+        return try await operation.insert(item)
     }
 
     /// Adds an item to the ``Store``.
@@ -100,8 +120,25 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
+    @available(
+        *, deprecated,
+         renamed: "insert",
+         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+    )
     public func add(_ item: Item) async throws {
-        try await self.performAdd(item)
+        try await self.performInsert(item)
+    }
+
+    /// Inserts an item into the ``Store``.
+    ///
+    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
+    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
+    /// of items, removing complexity when it comes to managing items, indices, and more,
+    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    /// - Parameters:
+    ///   - item: The item you are inserting into the ``Store``.
+    public func insert(_ item: Item) async throws {
+        try await self.performInsert(item)
     }
 
     /// Adds an array of items to the ``Store``.
@@ -112,19 +149,52 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - items: The items to add to the store.
     /// - Returns: An ``Operation`` that can be used to add items as part of a chain.
     @_disfavoredOverload
+    @available(
+        *, deprecated,
+        renamed: "insert",
+        message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+    )
     public func add(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
-        return try await operation.add(items)
+        return try await operation.insert(items)
+    }
+
+    /// Inserts an array of items into the ``Store``.
+    ///
+    /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-7z2oe``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameters:
+    ///   - items: The items to insert into the store.
+    /// - Returns: An ``Operation`` that can be used to insert items as part of a chain.
+    @_disfavoredOverload
+    public func insert(_ items: [Item]) async throws -> Operation {
+        let operation = Operation(store: self)
+        return try await operation.insert(items)
     }
 
     /// Adds an array of items to the ``Store``.
     ///
-    /// Prefer adding multiple items using this method instead of calling ``add(_:)-1np7h``
+    /// Prefer adding multiple items using this method instead of calling ``insert(_:)-7z2oe``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameters:
     ///   - items: The items to add to the store.
+    @available(
+        *, deprecated,
+         renamed: "insert",
+         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+    )
     public func add(_ items: [Item]) async throws {
-        try await self.performAdd(items)
+        try await self.performInsert(items)
+    }
+
+    /// Inserts an array of items into the ``Store``.
+    ///
+    /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-3j9hw``
+    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    /// - Parameters:
+    ///   - items: The items to insert into the store.
+    public func insert(_ items: [Item]) async throws {
+        try await self.performInsert(items)
     }
 
     /// Removes an item from the ``Store``.
@@ -218,10 +288,10 @@ public extension Store {
 }
 #endif
 
-// Internal versions of the `add`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
+// Internal versions of the `insert`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
 internal extension Store {
 
-    func performAdd(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+    func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         var currentItems = await self.items
 
         if let strategy = existingItemsStrategy {
@@ -243,7 +313,7 @@ internal extension Store {
         }
     }
 
-    func performAdd(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+    func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         var currentItems = await self.items
 
         if let strategy = existingItemsStrategy {
@@ -251,13 +321,13 @@ internal extension Store {
             try await self.removeItems(withStrategy: strategy, items: &currentItems)
         }
 
-        var addedItemsDictionary = OrderedDictionary<String, Item>()
+        var insertedItemsDictionary = OrderedDictionary<String, Item>()
 
-        // Deduplicate items passed into `add(items:)` by taking advantage
+        // Deduplicate items passed into `insert(items:)` by taking advantage
         // of the fact that an OrderedDictionary can't have duplicate keys.
         for item in items {
             let identifier = item[keyPath: self.cacheIdentifier]
-            addedItemsDictionary[identifier] = item
+            insertedItemsDictionary[identifier] = item
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
@@ -265,13 +335,13 @@ internal extension Store {
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
 
         // Add the new items into the dictionary representation of our items.
-        for item in addedItemsDictionary {
+        for item in insertedItemsDictionary {
             let identifier = item.value[keyPath: self.cacheIdentifier]
             currentValuesDictionary[identifier] = item.value
         }
 
         // We persist only the newly added items, rather than rewriting all of the items
-        try await self.persistItems(Array(addedItemsDictionary.values))
+        try await self.persistItems(Array(insertedItemsDictionary.values))
 
         await MainActor.run { [currentValuesDictionary] in
             self.items = Array(currentValuesDictionary.values)

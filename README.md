@@ -45,7 +45,7 @@ You can read a high level overview of Boutique below, but Boutique is also fully
 
 We'll go through a high level overview of the `Store` below, but the `Store` is fully documented with context, use cases, and examples [here](https://mergesort.github.io/Boutique/documentation/boutique/using-stores/).
 
-The entire surface area of the API for achieving full offline support and realtime model updates across your entire app is three methods, `.add()`, `.remove()`, and `.removeAll()`.
+The entire surface area of the API for achieving full offline support and realtime model updates across your entire app is three methods, `.insert()`, `.remove()`, and `.removeAll()`.
 
 ```swift
 // Create a Store ¹
@@ -54,17 +54,17 @@ let store = Store<Animal>(
     cacheIdentifier: \.id
 )
 
-// Add an item to the Store ²
+// Insert an item into the Store ²
 let redPanda = Animal(id: "red_panda")
-try await store.add(redPanda)
+try await store.insert(redPanda)
 
 // Remove an animal from the Store
 try await store.remove(redPanda)
 
-// Add two more animals to the Store
+// Insert two more animals to the Store
 let dog = Item(name: "dog")
 let cat = Item(name: "cat")
-try await store.add([dog, cat])
+try await store.insert([dog, cat])
 
 // You can read items directly
 print(store.items) // Prints [dog, cat]
@@ -76,8 +76,8 @@ print(store.items) // Prints []
 
 // You can even chain commands together
 try await store
-    .add(dog)
-    .add(cat)
+    .insert(dog)
+    .insert(cat)
     .run()
     
 print(store.items) // Prints [dog, cat]
@@ -85,7 +85,7 @@ print(store.items) // Prints [dog, cat]
 // This is a good way to clear stale cached data
 try await store
     .removeAll()
-    .add(redPanda)
+    .insert(redPanda)
     .run()
 
 print(store.items) // Prints [redPanda]
@@ -151,7 +151,7 @@ final class ImagesController: ObservableObject {
   
     /// Saves an image to the `Store` in memory and on disk.
     func saveImage(image: RemoteImage) async throws {
-        try await self.$images.add(image)
+        try await self.$images.insert(image)
     }
   
     /// Removes one image from the `Store` in memory and on disk.

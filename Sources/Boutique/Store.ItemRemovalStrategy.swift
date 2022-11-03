@@ -5,7 +5,7 @@ public extension Store {
     /// An invalidation strategy for a `Store` instance.
     ///
     /// An `ItemRemovalStrategy` provides control over how items are removed from the `Store`
-    /// and `StorageEngine` cache when you are adding new items to the `Store`.
+    /// and `StorageEngine` cache when you are inserting new items into the `Store`.
     ///
     /// This type used to be used publicly but now it's only used internally. As a result you
     /// can no longer construct your own strategies, only `.all` and `.items(_:)` remain.

@@ -4,7 +4,7 @@ Property Wrappers that take the ``Store`` and make it magical. ✨
 
 ## Overview
 
-In <doc:Using-Stores> discussed how to initialize a ``Store``, and how to subsequently use it to add and remove items from that ``Store``. All of the code treats the ``Store`` as an easier to use database, but what if we could remove that layer of abstraction?
+In <doc:Using-Stores> discussed how to initialize a ``Store``, and how to subsequently use it to insert and remove items from that ``Store``. All of the code treats the ``Store`` as an easier to use database, but what if we could remove that layer of abstraction?
 
 The promise of Boutique is that you work with regular Swift values and arrays, yet have your data persisted automatically. The @``Stored``, @``StoredValue`` and @``AsyncStoredValue`` property wrappers are what help Boutique deliver on that promise.
 
@@ -14,7 +14,7 @@ That's a lot of words to discuss how @``Stored`` works under the hood, but seein
 
 ## The @Stored Array
 
-Below we have a `NotesController`, a data controller. It has common operations such as the ability to fetch our notes from an API, along with adding, removing, and clearing them in our app.
+Below we have a `NotesController`, a data controller. It has common operations such as the ability to fetch our notes from an API, along with inserting, removing, and clearing them in our app.
 
 ```swift
 final class NotesController: ObservableObject {
@@ -27,12 +27,12 @@ final class NotesController: ObservableObject {
 
     func fetchNotesFromAPI() -> [Note] {
         // Make an API call that fetches an array of notes from the server... 
-        self.$notes.add(notes)
+        self.$notes.insert(notes)
     }
 
     func addNote(note: Note) {
-        // Make an API call that adds the note to the server... 
-        try await self.$notes.add(note)
+        // Make an API call that inserts the note to the server... 
+        try await self.$notes.insert(note)
     }
 
     func removeNote(note: Note) {
@@ -67,15 +67,15 @@ self.notes // The type of the `wrappedValue` is [Note]
 self.$notes // The type of the `projectedValue` is Store<Note>
 ```
 
-By exposing a ``Store`` as the `projectedValue` we're now able to call `self.$notes.add(note)` to add a note to the `notes` array, an array that is `@Published public private(set)`.
+By exposing a ``Store`` as the `projectedValue` we're now able to call `self.$notes.insert(note)` to insert a note into the `notes` array, an array that is `@Published public private(set)`.
 
 Since `items` is an `@Published` array that means every time the value is updated, the changes will propagate across our entire app. That's how Boutique achieves it's realtime updating, keeping your entire app in sync without any additional code. 
 
 Making the access control of `items` `public private(set)` makes the `notes` array read-only, letting us observe that array safely in our views. 
 
 ```swift
-self.notes.add(note) // Does not work because `notes` is a *read-only* array.
-self.$notes.add(note) // Works because $notes represents a `Store`
+self.notes.insert(note) // Does not work because `notes` is a *read-only* array.
+self.$notes.insert(note) // Works because $notes represents a `Store`
 ```
 
 ## Observing a Store's values

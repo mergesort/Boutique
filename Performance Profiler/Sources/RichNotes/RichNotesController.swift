@@ -21,7 +21,7 @@ final class RichNotesController: ObservableObject {
             // Profiling how fast the operation is, consider elevating this to the UI
             let timeBeforeAction = Date().timeIntervalSince1970
 
-            try await self.$notes.add(items)
+            try await self.$notes.insert(items)
 
             let timeAfterAction = Date().timeIntervalSince1970
             print(timeBeforeAction, timeAfterAction, String(format: "%.5fs", timeAfterAction - timeBeforeAction))

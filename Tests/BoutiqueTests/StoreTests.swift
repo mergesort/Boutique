@@ -16,33 +16,33 @@ final class StoreTests: XCTestCase {
     }
 
     @MainActor
-    func testAddingItem() async throws {
-        try await store.add(BoutiqueItem.coat)
+    func testInsertingItem() async throws {
+        try await store.insert(BoutiqueItem.coat)
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
 
-        try await store.add(BoutiqueItem.belt)
+        try await store.insert(BoutiqueItem.belt)
         XCTAssertTrue(store.items.contains(BoutiqueItem.belt))
         XCTAssertEqual(store.items.count, 2)
     }
 
     @MainActor
-    func testAddingItems() async throws {
-        try await store.add([BoutiqueItem.coat, BoutiqueItem.sweater, BoutiqueItem.sweater, BoutiqueItem.purse])
+    func testInsertingItems() async throws {
+        try await store.insert([BoutiqueItem.coat, BoutiqueItem.sweater, BoutiqueItem.sweater, BoutiqueItem.purse])
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
         XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
         XCTAssertTrue(store.items.contains(BoutiqueItem.purse))
     }
 
     @MainActor
-    func testAddingDuplicateItems() async throws {
+    func testInsertingDuplicateItems() async throws {
         XCTAssertTrue(store.items.isEmpty)
-        try await store.add(BoutiqueItem.allItems)
+        try await store.insert(BoutiqueItem.allItems)
         XCTAssertEqual(store.items.count, 4)
     }
 
     @MainActor
     func testReadingItems() async throws {
-        try await store.add(BoutiqueItem.allItems)
+        try await store.insert(BoutiqueItem.allItems)
 
         XCTAssertEqual(store.items[0], BoutiqueItem.coat)
         XCTAssertEqual(store.items[1], BoutiqueItem.sweater)
@@ -54,7 +54,7 @@ final class StoreTests: XCTestCase {
 
     @MainActor
     func testRemovingItems() async throws {
-        try await store.add(BoutiqueItem.allItems)
+        try await store.insert(BoutiqueItem.allItems)
         try await store.remove(BoutiqueItem.coat)
 
         XCTAssertFalse(store.items.contains(BoutiqueItem.coat))
@@ -69,24 +69,24 @@ final class StoreTests: XCTestCase {
 
     @MainActor
     func testRemoveAll() async throws {
-        try await store.add(BoutiqueItem.coat)
+        try await store.insert(BoutiqueItem.coat)
         XCTAssertEqual(store.items.count, 1)
         try await store.removeAll()
 
-        try await store.add(BoutiqueItem.uniqueItems)
+        try await store.insert(BoutiqueItem.uniqueItems)
         XCTAssertEqual(store.items.count, 4)
         try await store.removeAll()
         XCTAssertTrue(store.items.isEmpty)
     }
 
     @MainActor
-    func testChainingAddOperations() async throws {
-        try await store.add(BoutiqueItem.uniqueItems)
+    func testChainingInsertOperations() async throws {
+        try await store.insert(BoutiqueItem.uniqueItems)
 
         try await store
             .remove(BoutiqueItem.coat)
-            .add(BoutiqueItem.belt)
-            .add(BoutiqueItem.belt)
+            .insert(BoutiqueItem.belt)
+            .insert(BoutiqueItem.belt)
             .run()
 
         XCTAssertEqual(store.items.count, 3)
@@ -98,10 +98,10 @@ final class StoreTests: XCTestCase {
         try await store.removeAll()
 
         try await store
-            .add(BoutiqueItem.belt)
-            .add(BoutiqueItem.coat)
+            .insert(BoutiqueItem.belt)
+            .insert(BoutiqueItem.coat)
             .remove([BoutiqueItem.belt])
-            .add(BoutiqueItem.sweater)
+            .insert(BoutiqueItem.sweater)
             .run()
 
         XCTAssertEqual(store.items.count, 2)
@@ -110,11 +110,11 @@ final class StoreTests: XCTestCase {
         XCTAssertFalse(store.items.contains(BoutiqueItem.belt))
 
         try await store
-            .add(BoutiqueItem.belt)
-            .add(BoutiqueItem.coat)
-            .add(BoutiqueItem.purse)
+            .insert(BoutiqueItem.belt)
+            .insert(BoutiqueItem.coat)
+            .insert(BoutiqueItem.purse)
             .remove([BoutiqueItem.belt, .coat])
-            .add(BoutiqueItem.sweater)
+            .insert(BoutiqueItem.sweater)
             .run()
 
         XCTAssertEqual(store.items.count, 2)
@@ -126,8 +126,8 @@ final class StoreTests: XCTestCase {
         try await store.removeAll()
 
         try await store
-            .add(BoutiqueItem.coat)
-            .add([BoutiqueItem.purse, BoutiqueItem.belt])
+            .insert(BoutiqueItem.coat)
+            .insert([BoutiqueItem.purse, BoutiqueItem.belt])
             .run()
 
         XCTAssertEqual(store.items.count, 3)
@@ -139,7 +139,7 @@ final class StoreTests: XCTestCase {
     @MainActor
     func testChainingRemoveOperations() async throws {
         try await store
-            .add(BoutiqueItem.uniqueItems)
+            .insert(BoutiqueItem.uniqueItems)
             .remove(BoutiqueItem.belt)
             .remove(BoutiqueItem.purse)
             .run()
@@ -148,7 +148,7 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(BoutiqueItem.sweater))
         XCTAssertTrue(store.items.contains(BoutiqueItem.coat))
 
-        try await store.add(BoutiqueItem.uniqueItems)
+        try await store.insert(BoutiqueItem.uniqueItems)
         XCTAssertEqual(store.items.count, 4)
 
         try await store
@@ -161,7 +161,7 @@ final class StoreTests: XCTestCase {
 
         try await store
             .removeAll()
-            .add(BoutiqueItem.belt)
+            .insert(BoutiqueItem.belt)
             .run()
 
         XCTAssertEqual(store.items.count, 1)
@@ -170,7 +170,7 @@ final class StoreTests: XCTestCase {
         try await store
             .removeAll()
             .remove(BoutiqueItem.belt)
-            .add(BoutiqueItem.belt)
+            .insert(BoutiqueItem.belt)
             .run()
 
         XCTAssertEqual(store.items.count, 1)
@@ -180,8 +180,8 @@ final class StoreTests: XCTestCase {
     @MainActor
     func testChainingOperationsDontExecuteUnlessRun() async throws {
         let operation = try await store
-            .add(BoutiqueItem.coat)
-            .add([BoutiqueItem.purse, BoutiqueItem.belt])
+            .insert(BoutiqueItem.coat)
+            .insert([BoutiqueItem.purse, BoutiqueItem.belt])
 
         XCTAssertEqual(store.items.count, 0)
         XCTAssertFalse(store.items.contains(BoutiqueItem.purse))
@@ -209,7 +209,7 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.isEmpty)
 
         // Sets items under the hood
-        try await store.add(uniqueItems)
+        try await store.insert(uniqueItems)
         wait(for: [expectation], timeout: 1)
     }
 

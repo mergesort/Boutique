@@ -96,7 +96,7 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     /// - Parameter value: The value to set @``AsyncStoredValue`` to.
     public func set(_ value: Item) async throws {
-        try await self.cancellableBox.store.add(UniqueItem(value: value))
+        try await self.cancellableBox.store.insert(UniqueItem(value: value))
     }
 
     /// Resets the @``AsyncStoredValue`` to the default value.

@@ -22,7 +22,7 @@ let store = Store<Item>(
 
 - The `storage` parameter is populated with a `StorageEngine`, you can read more about it in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines). Our SQLite database will be created in the platform's default storage directory, nested in an `Items` subdirectory. On macOS this will be the `Application Support` directory, and on every other platform such as iOS this will be the `Documents` directory. If you need finer control over the location you can specify a `FileManager.Directory` such as `.documents`, `.caches`, `.temporary`, or even provide your own URL, also explored in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
 
-- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be added to our ``Store`` and saved to disk our models must conform to `Codable & Equatable`, both of which are reasonable constraints given the data has to be serializable and searchable. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
+- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be inserted into our ``Store`` and saved to disk our models must conform to `Codable & Equatable`, both of which are reasonable constraints given the data has to be serializable and searchable. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
 
 If your model (in this case `Item`) already conforms to `Identifiable`, we can simplify our initializer by eschewing the `cacheIdentifier` parameter.
 
@@ -44,11 +44,11 @@ This is how simple it is to create a full database-backed persistence layer, onl
 
 ## How Are Items Stored?
 
-We'll explore how to use `.add(item: Item)` to save items, but it's worth taking a minute to discuss how items are stored in the ``Store``. When an item is saved to a ``Store``, that item is added to an array of `items`, and it is also persisted by the `StorageEngine`. If we use `DiskStorageEngine` the item will be saved to a disk, or if we use `SQLiteStorageEngine` the item will be saved to a database. The items are saved to the directory specified in the `DiskStorageEngine` or `SQLiteStorageEngine` initializer, and each item will be stored uniquely based on it's `cacheIdentifier` key.
+We'll explore how to use `.insert(item: Item)` to save items, but it's worth taking a minute to discuss how items are stored in the ``Store``. When an item is saved to a ``Store``, that item is added to an array of `items`, and it is also persisted by the `StorageEngine`. If we use `DiskStorageEngine` the item will be saved to a disk, or if we use `SQLiteStorageEngine` the item will be saved to a database. The items are saved to the directory specified in the `DiskStorageEngine` or `SQLiteStorageEngine` initializer, and each item will be stored uniquely based on it's `cacheIdentifier` key.
 
-The `cacheIdentifier` provides a mechanism for disambiguating objects, guaranteeing uniqueness of the items in our ``Store``. You never have to think about whether the item needs to be added or inserted (overwriting a matching item), or what index to insert an item at. Since we have a `cacheIdentifier` for every item we will know when an item should be added or overwritten inside of the ``Store``. This behavior means the ``Store`` operates more like a `Set` than an `Array`, because we are adding items into a bag of objects, and don't care in what order.
+The `cacheIdentifier` provides a mechanism for disambiguating objects, guaranteeing uniqueness of the items in our ``Store``. You never have to think about whether the item needs to be added or inserted (overwriting a matching item), or what index to insert an item at. Since we have a `cacheIdentifier` for every item we will know when an item should be added or overwritten inside of the ``Store``. This behavior means the ``Store`` operates more like a `Set` than an `Array`, because we are inserting items into a bag of objects, and don't care in what order.
 
-As a result the only operations you have to know are `.add`, `.remove`, and `.removeAll`, all of which are explored in the **Store Operations** section below. If you do need to sort the items into a particular order, for example if you're displaying the items alphabetically, you can always use the `items` property of a ``Store`` and sort, filter, map, or transform it as you would any other array.
+As a result the only operations you have to know are `.insert`, `.remove`, and `.removeAll`, all of which are explored in the **Store Operations** section below. If you do need to sort the items into a particular order, for example if you're displaying the items alphabetically, you can always use the `items` property of a ``Store`` and sort, filter, map, or transform it as you would any other array.
 
 To see how this looks I would highly recommend checking out the [Boutique demo app](https://github.com/mergesort/Boutique/tree/main/Demo), as it shows off more complex examples of what Boutique and the Store can do. There's even an example of how to sort items in a View based on time of creation [here](https://github.com/mergesort/Boutique/blob/main/Demo/Demo/Components/FavoritesCarouselView.swift#L152-L154).
 
@@ -56,11 +56,11 @@ To see how this looks I would highly recommend checking out the [Boutique demo a
 
 The `items` property of a ``Store`` has an access control of `public private (set)`, preventing the direct modification of the `items` array. If you want to mutate the `items` of a ``Store`` you need to use the three functions the ``Store`` exposes. The API surface area is very small though, there are only three functions you need to know.
 
-Add an item to the ``Store``
+Inserts an item into the ``Store``
 
 ```swift
 let coat = Item(name: "coat")
-try await store.add(coat)
+try await store.insert(coat)
 ```
 
 Remove an item from the ``Store``
@@ -80,7 +80,7 @@ You can even chain operations using the `.run()` function, executing them in the
 ```swift
 try await store
     .removeAll()
-    .add(coat)
+    .insert(coat)
     .run()
 ```
 
