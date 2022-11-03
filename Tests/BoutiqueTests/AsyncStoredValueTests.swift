@@ -1,5 +1,6 @@
 import Boutique
 import Combine
+import SwiftUI
 import XCTest
 
 final class AsyncStoredValueTests: XCTestCase {
@@ -15,9 +16,14 @@ final class AsyncStoredValueTests: XCTestCase {
     @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedDictionary"))
     private var storedDictionaryValue: [String : String] = [:]
 
+    @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedBinding"))
+    private var storedBinding = BoutiqueItem.sweater
+
     override func setUp() async throws {
-        try await self.$storedBoolValue.reset()
         try await self.$storedItem.reset()
+        try await self.$storedBoolValue.reset()
+        try await self.$storedDictionaryValue.reset()
+        try await self.$storedBinding.reset()
     }
 
     func testStorageEngineBackedStoredValue() async throws {
@@ -67,6 +73,13 @@ final class AsyncStoredValueTests: XCTestCase {
 
         try await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])
+    }
+
+    func testStoredBinding() async throws {
+        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
+
+        try await self.$storedBinding.set(BoutiqueItem.belt)
+        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
     }
 
     func testStoredValuePublishedSubscription() async throws {

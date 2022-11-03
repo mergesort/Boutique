@@ -1,5 +1,6 @@
 import Boutique
 import Combine
+import SwiftUI
 import XCTest
 
 final class StoredValueTests: XCTestCase {
@@ -18,10 +19,15 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedDictionary")
     private var storedDictionaryValue: [String : String] = [:]
 
+    @StoredValue(key: "storedBinding")
+    private var storedBinding = BoutiqueItem.sweater
+
     override func setUp() {
         self.$storedItem.reset()
-        self.$storedNilValue.reset()
         self.$storedBoolValue.reset()
+        self.$storedNilValue.reset()
+        self.$storedDictionaryValue.reset()
+        self.$storedBinding.reset()
     }
 
     func testStoredValueOperations() async throws {
@@ -74,6 +80,15 @@ final class StoredValueTests: XCTestCase {
 
         self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])
+    }
+
+    func testStoredBinding() async throws {
+        // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
+        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
+
+        self.$storedBinding.set(BoutiqueItem.belt)
+
+        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
     }
 
     func testPublishedValueSubscription() async throws {
