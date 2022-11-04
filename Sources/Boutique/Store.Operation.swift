@@ -17,6 +17,23 @@ public extension Store {
             self.store = store
         }
 
+        /// Adds an item to the ``Store``.
+        ///
+        /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
+        /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
+        /// of items, removing complexity when it comes to managing items, indices, and more,
+        /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+        /// - Parameters:
+        ///   - item: The item you are adding to the ``Store``.
+        @available(
+            *, deprecated,
+             renamed: "insert",
+             message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+        )
+        public func add(_ item: Item) async throws -> Operation {
+            try await self.insert(item)
+        }
+
         /// Inserts an item into the ``Store``.
         ///
         /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
@@ -47,7 +64,22 @@ public extension Store {
             return self
         }
 
-        /// Inserts an array of items to the ``Store``.
+        /// Adds an array of items to the ``Store``.
+        ///
+        /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-1nu61``
+        /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+        /// - Parameters:
+        ///   - items: The items to add to the store.
+        @available(
+            *, deprecated,
+             renamed: "insert",
+             message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+        )
+        public func add(_ items: [Item]) async throws -> Operation {
+            try await self.insert(items)
+        }
+
+        /// Inserts an array of items into the ``Store``.
         ///
         /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-1nu61``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.

@@ -90,7 +90,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @available(
         *, deprecated,
          renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
     )
     public func add(_ item: Item) async throws -> Operation {
         let operation = Operation(store: self)
@@ -123,7 +123,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @available(
         *, deprecated,
          renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
     )
     public func add(_ item: Item) async throws {
         try await self.performInsert(item)
@@ -152,7 +152,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @available(
         *, deprecated,
         renamed: "insert",
-        message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+        message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
     )
     public func add(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
@@ -181,7 +181,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @available(
         *, deprecated,
          renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in v3. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
+         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
     )
     public func add(_ items: [Item]) async throws {
         try await self.performInsert(items)
