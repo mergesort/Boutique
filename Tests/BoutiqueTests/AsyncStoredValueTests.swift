@@ -76,10 +76,10 @@ final class AsyncStoredValueTests: XCTestCase {
     }
 
     func testStoredBinding() async throws {
-        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
 
         try await self.$storedBinding.set(BoutiqueItem.belt)
-        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
     }
 
     func testStoredValuePublishedSubscription() async throws {

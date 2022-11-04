@@ -84,11 +84,11 @@ final class StoredValueTests: XCTestCase {
 
     func testStoredBinding() async throws {
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
-        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
 
         self.$storedBinding.set(BoutiqueItem.belt)
 
-        XCTAssertEqual(self.$storedBinding.binding().wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
     }
 
     func testPublishedValueSubscription() async throws {
