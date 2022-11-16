@@ -56,7 +56,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @MainActor @Published public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
-    /// and a storage engine, to act as a source of truth.
+    /// and a storage engine, to act as a source of truth. The content will be loaded
+    /// asynchronously on a background task.
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
@@ -74,6 +75,27 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
             } catch {
                 self.items = []
             }
+        }
+    }
+  
+    /// Initializes a new ``Store`` for persisting items to a memory cache
+    /// and a storage engine, to act as a source of truth.
+    ///
+    /// - Parameters:
+    ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
+    ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
+    ///   will use to create a unique identifier for the item when it's saved.
+    @MainActor
+    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async {
+        self.storageEngine = storage
+        self.cacheIdentifier = cacheIdentifier
+        
+        do {
+            let decoder = JSONDecoder()
+            self.items = try await self.storageEngine.readAllData()
+                .map({ try decoder.decode(Item.self, from: $0) })
+        } catch {
+            self.items = []
         }
     }
 
