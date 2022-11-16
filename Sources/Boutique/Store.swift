@@ -56,7 +56,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @MainActor @Published public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
-    /// and a storage engine, to act as a source of truth. The content will be loaded
+    /// and a storage engine, to act as a source of truth. The items will be loaded
     /// asynchronously on a background task.
     ///
     /// - Parameters:
