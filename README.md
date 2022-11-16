@@ -235,7 +235,7 @@ An @``AsyncStoredValue`` is very similar to @``StoredValue``, the main differenc
 
 If you have any questions I would ask that you please look at the documentation first, both Boutique and Bodega are very heavily documented. On top of that Boutique comes with not one but two demo apps, each serving a different purpose but demonstrating how you can build a Boutique-backed app.
 
-As I was building v1 I noticed that people who got Boutique loved it, and people who thought it might be good but had questions grew to love it once they understood how to use it. Because of that I sought out to write a lot of documentation explaining the concepts and common use cases you'll encouter when building an iOS or macOS app. If you still have questions or suggestions I'm very open to feedback, how to contribute is discussed in the aptly named [Feedback](#feedback) section of this readme.
+As I was building v1 I noticed that people who got Boutique loved it, and people who thought it might be good but had questions grew to love it once they understood how to use it. Because of that I sought out to write a lot of documentation explaining the concepts and common use cases you'll encounter when building an iOS or macOS app. If you still have questions or suggestions I'm very open to feedback, how to contribute is discussed in the aptly named [Feedback](#feedback) section of this readme.
 
 - [Boutique Documentation](https://build.ms/boutique/docs)
 - [Bodega Documentation](https://build.ms/bodega/docs)
