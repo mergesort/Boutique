@@ -8,7 +8,7 @@ final class StoreTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
-        store = Store<BoutiqueItem>(
+        store = try await Store<BoutiqueItem>(
             storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
             cacheIdentifier: \.merchantID)
 
