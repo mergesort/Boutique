@@ -86,17 +86,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
     @MainActor
-    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async {
-        self.storageEngine = storage
-        self.cacheIdentifier = cacheIdentifier
-        
-        do {
-            let decoder = JSONDecoder()
-            self.items = try await self.storageEngine.readAllData()
-                .map({ try decoder.decode(Item.self, from: $0) })
-        } catch {
-            self.items = []
-        }
+    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
+      self.storageEngine = storage
+      self.cacheIdentifier = cacheIdentifier
+      
+      let decoder = JSONDecoder()
+      self.items = try await self.storageEngine.readAllData()
+        .map({ try decoder.decode(Item.self, from: $0) })
     }
 
     /// Adds an item to the store.

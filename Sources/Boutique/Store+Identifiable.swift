@@ -19,8 +19,8 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// with an `id` that is a `String`. While it's not required for your `Item` to conform to `Identifiable`,
     /// many SwiftUI-related objects do so this initializer provides a nice convenience.
     /// - Parameter storage: A `StorageEngine` to initialize a ``Store`` instance with.
-    convenience init(storage: StorageEngine) async {
-        await self.init(storage: storage, cacheIdentifier: \.id)
+    convenience init(storage: StorageEngine) async throws {
+        try await self.init(storage: storage, cacheIdentifier: \.id)
     }
 }
 
@@ -42,7 +42,7 @@ public extension Store where Item: Identifiable, Item.ID == UUID {
     /// with an `id` that is a `UUID`. While it's not required for your `Item` to conform to `Identifiable`,
     /// many SwiftUI-related objects do so this initializer provides a nice convenience.
     /// - Parameter storage: A `StorageEngine` to initialize a ``Store`` instance with.
-    convenience init(storage: StorageEngine) async {
-        await self.init(storage: storage, cacheIdentifier: \.id.uuidString)
+    convenience init(storage: StorageEngine) async throws {
+        try await self.init(storage: storage, cacheIdentifier: \.id.uuidString)
     }
 }
