@@ -54,6 +54,16 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
     @MainActor @Published public private(set) var items: [Item] = []
+    
+    /// This is the task that loads the `Item`s after the store is initialized.
+    ///
+    /// The user can ``try await store.setupTask.value`` to make sure the ``items``
+    /// have loaded when using the synchronous version of the ``init``.
+    public private(set) lazy var setupTask: Task<Void, Error> = Task { @MainActor in
+        let decoder = JSONDecoder()
+        self.items = try await self.storageEngine.readAllData()
+            .map({ try decoder.decode(Item.self, from: $0) })
+    }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth. The items will be loaded
@@ -66,20 +76,11 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-
-        Task { @MainActor in
-            do {
-                let decoder = JSONDecoder()
-                self.items = try await self.storageEngine.readAllData()
-                    .map({ try decoder.decode(Item.self, from: $0) })
-            } catch {
-                self.items = []
-            }
-        }
+        _ = self.setupTask // Start the lazy task in the background.
     }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
-    /// and a storage engine, to act as a source of truth.
+    /// and a storage engine, to act as a source of truth, and await for the ``items`` to load.
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
@@ -88,10 +89,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     @MainActor public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-
-        let decoder = JSONDecoder()
-        self.items = try await self.storageEngine.readAllData()
-            .map({ try decoder.decode(Item.self, from: $0) })
+        try await setupTask.value
     }
 
     /// Adds an item to the store.

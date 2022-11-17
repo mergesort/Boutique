@@ -13,7 +13,7 @@ public extension Store where Item: Identifiable, Item.ID == String {
         self.init(storage: storage, cacheIdentifier: \.id)
     }
     
-    /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth.
+    /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth, and await for the ``items`` to load.
     ///
     /// This initializer eschews providing a `cacheIdentifier` when our `Item` conforms to `Identifiable`
     /// with an `id` that is a `String`. While it's not required for your `Item` to conform to `Identifiable`,
@@ -36,7 +36,7 @@ public extension Store where Item: Identifiable, Item.ID == UUID {
     convenience init(storage: StorageEngine) {
         self.init(storage: storage, cacheIdentifier: \.id.uuidString)
     }
-    /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth.
+    /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth, and await for the ``items`` to load.
     ///
     /// This initializer eschews providing a `cacheIdentifier` when our `Item` conforms to `Identifiable`
     /// with an `id` that is a `UUID`. While it's not required for your `Item` to conform to `Identifiable`,
