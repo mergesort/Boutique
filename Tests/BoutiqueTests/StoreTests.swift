@@ -53,6 +53,23 @@ final class StoreTests: XCTestCase {
     }
 
     @MainActor
+    func testReadingPersistedItems() async throws {
+        try await store.insert(BoutiqueItem.allItems)
+        
+        // The new store has to fetch items from disk.
+        let newStore = try await Store<BoutiqueItem>(
+            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+            cacheIdentifier: \.merchantID)
+        
+        XCTAssertEqual(newStore.items[0], BoutiqueItem.coat)
+        XCTAssertEqual(newStore.items[1], BoutiqueItem.sweater)
+        XCTAssertEqual(newStore.items[2], BoutiqueItem.purse)
+        XCTAssertEqual(newStore.items[3], BoutiqueItem.belt)
+
+        XCTAssertEqual(newStore.items.count, 4)
+    }
+
+    @MainActor
     func testRemovingItems() async throws {
         try await store.insert(BoutiqueItem.allItems)
         try await store.remove(BoutiqueItem.coat)
