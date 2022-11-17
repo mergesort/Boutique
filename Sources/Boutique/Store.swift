@@ -57,7 +57,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth. The items will be loaded
-    /// asynchronously on a background task.
+    /// asynchronously in a background task.
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
