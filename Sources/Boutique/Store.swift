@@ -64,17 +64,20 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
     ///
-    /// The items will be loaded asynchronously in a background task. If you need to show the
-    /// content of the Store right away, you have two options:
+    /// The items will be loaded asynchronously in a background task. If you are not using this with
+    /// `Stored` and need to show the content of the Store right away, you have two options:
     ///
-    /// - Move the initialization to an `async` context, so you can use the `async` version of the init:
+    /// - Move the Store initialization to an `async` context, so the `Store.init` returns only
+    /// once items have been loaded:
     /// ```
-    /// func loadStore() async {
-    ///     let store = try await Store(...)
-    ///     let items = await store.items
+    /// let store: Store<YourItem>
+    ///
+    /// init() async {
+    ///   store = try await Store(...)
+    ///   let items = await store.items
+    ///   // use `items`...
     /// }
     /// ```
-    /// This will return the store only when items have been loaded.
     ///
     /// - Wait for items to be loaded before accessing them:
     /// ```
