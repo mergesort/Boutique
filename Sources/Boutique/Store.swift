@@ -55,19 +55,35 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
     @MainActor @Published public private(set) var items: [Item] = []
     
-    /// This is the task that loads the `Item`s after the store is initialized.
-    ///
-    /// The user can ``try await store.setupTask.value`` to make sure the ``items``
-    /// have loaded when using the synchronous version of the ``init``.
-    public private(set) lazy var setupTask: Task<Void, Error> = Task { @MainActor in
+    private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         let decoder = JSONDecoder()
         self.items = try await self.storageEngine.readAllData()
             .map({ try decoder.decode(Item.self, from: $0) })
     }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
-    /// and a storage engine, to act as a source of truth. The items will be loaded
-    /// asynchronously in a background task.
+    /// and a storage engine, to act as a source of truth.
+    ///
+    /// The items will be loaded asynchronously in a background task. If you need to show the
+    /// content of the Store right away, you have two options:
+    ///
+    /// - Move the initialization to an `async` context, so you can use the `async` version of the init:
+    /// ```
+    /// func loadStore() async {
+    ///     let store = try await Store(...)
+    ///     let items = await store.items
+    /// }
+    /// ```
+    /// This will return the store only when items have been loaded.
+    ///
+    /// - Wait for items to be loaded before accessing them:
+    /// ```
+    /// let store: Store<YourItem> = Store(...)
+    /// func getItems() async -> [YourItem] {
+    ///     try await store.itemsHaveLoaded()
+    ///     return await store.items
+    /// }
+    /// ```
     ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
@@ -76,7 +92,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        _ = self.setupTask // Start the lazy task in the background.
+        _ = self.loadStoreTask // Start the lazy task in the background.
     }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
@@ -86,10 +102,19 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
+    @_disfavoredOverload
     @MainActor public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        try await setupTask.value
+        try await loadStoreTask.value
+    }
+
+    /// Awaits for `items` to be loaded.
+    ///
+    /// When initializing a `Store` in a non-async context, the items are loaded in a background task.
+    /// This functions provides a way to `await` its completion before accessing the `items`.
+    public func itemsHaveLoaded() async throws {
+        try await loadStoreTask.value
     }
 
     /// Adds an item to the store.

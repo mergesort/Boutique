@@ -8,11 +8,21 @@ final class StoreTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
-        store = try await Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
-            cacheIdentifier: \.merchantID)
-
+        // Returns a `Store` using the non-async init. This is a workaround for Swift prioritizing the
+        // `async` version of the overload while in an `async` context, such as the `setUp()` here.
+        // There's a separate `AsyncStoreTests` file with matching tests using the async init.
+        func makeNonAsyncStore() -> Store<BoutiqueItem> {
+            Store<BoutiqueItem>(
+                storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+                cacheIdentifier: \.merchantID)
+        }
+        
+        store = makeNonAsyncStore()
         try await store.removeAll()
+    }
+    
+    override func tearDown() {
+        cancellables.removeAll()
     }
 
     @MainActor
