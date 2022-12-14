@@ -227,7 +227,6 @@ final class StoredTests: XCTestCase {
         $items.$items
             .dropFirst()
             .sink(receiveValue: { items in
-                print("🔴", items)
                 XCTAssertEqual(items, uniqueItems)
                 expectation.fulfill()
             })

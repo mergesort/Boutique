@@ -22,6 +22,7 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// - Wait for items to be loaded before accessing them:
     /// ```
     /// let store: Store<YourItem> = Store(...)
+    ///
     /// func getItems() async -> [YourItem] {
     ///     try await store.itemsHaveLoaded()
     ///     return await store.items
@@ -69,6 +70,7 @@ public extension Store where Item: Identifiable, Item.ID == UUID {
     /// - Wait for items to be loaded before accessing them:
     /// ```
     /// let store: Store<YourItem> = Store(...)
+    /// 
     /// func getItems() async -> [YourItem] {
     ///     try await store.itemsHaveLoaded()
     ///     return await store.items

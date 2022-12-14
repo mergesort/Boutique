@@ -82,6 +82,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// - Wait for items to be loaded before accessing them:
     /// ```
     /// let store: Store<YourItem> = Store(...)
+    ///
     /// func getItems() async -> [YourItem] {
     ///     try await store.itemsHaveLoaded()
     ///     return await store.items
@@ -105,8 +106,8 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
-    @_disfavoredOverload
-    @MainActor public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
+    @MainActor
+    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
         try await loadStoreTask.value
