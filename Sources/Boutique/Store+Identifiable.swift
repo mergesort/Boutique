@@ -12,10 +12,10 @@ public extension Store where Item: Identifiable, Item.ID == String {
     /// ```
     /// let store: Store<YourItem>
     ///
-    /// init() async {
-    ///   store = try await Store(...)
-    ///   let items = await store.items
-    ///   // use `items`...
+    /// init() async throws {
+    ///     store = try await Store(...)
+    ///     // Now the store will have `items` already loaded.
+    ///     let items = await store.items
     /// }
     /// ```
     ///
@@ -60,10 +60,10 @@ public extension Store where Item: Identifiable, Item.ID == UUID {
     /// ```
     /// let store: Store<YourItem>
     ///
-    /// init() async {
-    ///   store = try await Store(...)
-    ///   let items = await store.items
-    ///   // use `items`...
+    /// init() async throws {
+    ///     store = try await Store(...)
+    ///     // Now the store will have `items` already loaded.
+    ///     let items = await store.items
     /// }
     /// ```
     ///

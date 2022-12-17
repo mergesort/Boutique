@@ -72,10 +72,10 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// ```
     /// let store: Store<YourItem>
     ///
-    /// init() async {
-    ///   store = try await Store(...)
-    ///   let items = await store.items
-    ///   // use `items`...
+    /// init() async throws {
+    ///     store = try await Store(...)
+    ///     // Now the store will have `items` already loaded.
+    ///     let items = await store.items
     /// }
     /// ```
     ///
@@ -110,7 +110,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        try await loadStoreTask.value
+        try await itemsHaveLoaded()
     }
 
     /// Awaits for `items` to be loaded.

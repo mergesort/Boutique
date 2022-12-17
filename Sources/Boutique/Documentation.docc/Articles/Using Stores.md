@@ -84,6 +84,35 @@ try await store
     .run()
 ```
 
+
+## Sync or Async?
+
+To work with @``Stored`` or other 3rd party property wrappers, the ``Store`` has to be initialized synchronously, which means that the `items` are loaded in the background. However this can be an issue if you are using the ``Store`` directly and need to show the content on launch. The ``Store`` provides you with two options to handle this:
+
+By using the `async` overload of the `init`, which returns the store once the `items` are loaded. 
+```swift
+let store: Store<YourItem>
+
+init() async throws {
+    store = try await Store(...)
+    // Now the store will have `items` already loaded.
+    let items = await store.items
+}
+```
+
+Or you could still use the regular synchronous `Store.init` and then await for items to load before accessing them:
+```swift
+let store: Store<YourItem> = Store(...)
+
+func getItems() async -> [YourItem] {
+    try await store.itemsHaveLoaded() 
+    return await store.items
+}
+```
+
+There is no "preferred" approach here, these tools are simply there to help you use the ``Store`` regardless of _how_ you use it.
+
+
 ## Further Exploration, @Stored And More
 
 Building an app using the ``Store`` can be really powerful because it leans into SwiftUI's state-driven architecture, while providing you with offline-first capabilities, realtime updates across your app, with almost no additional code required.
