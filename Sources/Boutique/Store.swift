@@ -54,23 +54,19 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
     @MainActor @Published public private(set) var items: [Item] = []
-    
-    private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
-        let decoder = JSONDecoder()
-        self.items = try await self.storageEngine.readAllData()
-            .map({ try decoder.decode(Item.self, from: $0) })
-    }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
     ///
-    /// The items will be loaded asynchronously in a background task. If you are not using this with
-    /// `Stored` and need to show the content of the Store right away, you have two options:
+    /// The ``items`` will be loaded asynchronously in a background task.
+    /// If you are not using this with @``Stored`` and need to show
+    /// the contents of the Store right away, you have two options.
     ///
-    /// - Move the Store initialization to an `async` context, so the `Store.init` returns only
-    /// once items have been loaded:
+    /// - Move the ``Store`` initialization to an `async` context
+    ///  so `init` returns only once items have been loaded.
+    ///
     /// ```
-    /// let store: Store<YourItem>
+    /// let store: Store<Item>
     ///
     /// init() async throws {
     ///     store = try await Store(...)
@@ -79,11 +75,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// }
     /// ```
     ///
-    /// - Wait for items to be loaded before accessing them:
-    /// ```
-    /// let store: Store<YourItem> = Store(...)
+    /// - Alternatively you can use the synchronous initializer
+    /// and then await for items to load before accessing them.
     ///
-    /// func getItems() async -> [YourItem] {
+    /// ```
+    /// let store: Store<Item> = Store(...)
+    ///
+    /// func getItems() async -> [Item] {
     ///     try await store.itemsHaveLoaded()
     ///     return await store.items
     /// }
@@ -96,7 +94,9 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        _ = self.loadStoreTask // Start the lazy task in the background.
+
+        // Begin loading items in the background.
+        _ = self.loadStoreTask
     }
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
@@ -113,10 +113,10 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         try await itemsHaveLoaded()
     }
 
-    /// Awaits for `items` to be loaded.
+    /// Awaits for ``items`` to be loaded.
     ///
-    /// When initializing a `Store` in a non-async context, the items are loaded in a background task.
-    /// This functions provides a way to `await` its completion before accessing the `items`.
+    /// When initializing a ``Store`` in a non-async context, the items are loaded in a background task.
+    /// This functions provides a way to `await` its completion before accessing the ``items``.
     public func itemsHaveLoaded() async throws {
         try await loadStoreTask.value
     }
@@ -298,6 +298,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// in the ``Store``, avoiding multiple dispatches to the `@MainActor`, with far better performance.
     public func removeAll() async throws {
         try await self.performRemoveAll()
+    }
+
+    /// A `Task` that will kick off loading items into the ``Store``.
+    private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
+        let decoder = JSONDecoder()
+        self.items = try await self.storageEngine.readAllData()
+            .map({ try decoder.decode(Item.self, from: $0) })
     }
 
 }

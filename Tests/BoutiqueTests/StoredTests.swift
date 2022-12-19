@@ -3,26 +3,25 @@ import Combine
 import XCTest
 
 extension Store where Item == BoutiqueItem {
-  static let boutiqueItemStore = Store<BoutiqueItem>(
-    storage: SQLiteStorageEngine.default(appendingPath: "StoredTests")
-  )
+    static let boutiqueItemsStore = Store<BoutiqueItem>(
+        storage: SQLiteStorageEngine.default(appendingPath: "StoredTests")
+    )
 }
 
 final class StoredTests: XCTestCase {
-    
-    @Stored(in: .boutiqueItemStore) private var items
-    
+
+    @Stored(in: .boutiqueItemsStore) private var items
+
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
         try await $items.itemsHaveLoaded()
         try await $items.removeAll()
     }
-  
-  override func tearDown() {
-    cancellables.removeAll()
-  }
 
+    override func tearDown() {
+        cancellables.removeAll()
+    }
 
     @MainActor
     func testInsertingItem() async throws {
@@ -52,7 +51,7 @@ final class StoredTests: XCTestCase {
     @MainActor
     func testReadingItems() async throws {
         try await $items.insert(BoutiqueItem.allItems)
-        
+
         XCTAssertEqual(items[0], BoutiqueItem.coat)
         XCTAssertEqual(items[1], BoutiqueItem.sweater)
         XCTAssertEqual(items[2], BoutiqueItem.purse)
@@ -68,7 +67,8 @@ final class StoredTests: XCTestCase {
         // The new store has to fetch items from disk.
         let newStore = try await Store<BoutiqueItem>(
             storage: SQLiteStorageEngine.default(appendingPath: "StoredTests"),
-            cacheIdentifier: \.merchantID)
+            cacheIdentifier: \.merchantID
+        )
 
         XCTAssertEqual(newStore.items.count, 4)
 
@@ -239,3 +239,4 @@ final class StoredTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 }
+

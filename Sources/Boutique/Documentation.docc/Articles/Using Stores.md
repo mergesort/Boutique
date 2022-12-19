@@ -87,11 +87,12 @@ try await store
 
 ## Sync or Async?
 
-To work with @``Stored`` or other 3rd party property wrappers, the ``Store`` has to be initialized synchronously, which means that the `items` are loaded in the background. However this can be an issue if you are using the ``Store`` directly and need to show the content on launch. The ``Store`` provides you with two options to handle this:
+To work with @``Stored`` or alternative property wrappers the ``Store`` must be initialized synchronously. This means that the `items` of your ``Store`` will be loaded in the background, and may not be available immediately. However this can be an issue if you are using the ``Store`` directly and need to show the contents of the ``Store`` immediately, such as on your app's launch'. The ``Store`` provides you with two options to handle a scenario like this.
 
-By using the `async` overload of the `init`, which returns the store once the `items` are loaded. 
+By using the `async` overload of the ``Store`` initializer your ``Store`` will be returned once all of the `items` are loaded.
+
 ```swift
-let store: Store<YourItem>
+let store: Store<Item>
 
 init() async throws {
     store = try await Store(...)
@@ -100,18 +101,18 @@ init() async throws {
 }
 ```
 
-Or you could still use the regular synchronous `Store.init` and then await for items to load before accessing them:
-```swift
-let store: Store<YourItem> = Store(...)
+Alternatively you can use the synchronous initializer, and then await for items to load before accessing them.
 
-func getItems() async -> [YourItem] {
+```swift
+let store: Store<Item> = Store(...)
+
+func getItems() async -> [Item] {
     try await store.itemsHaveLoaded() 
     return await store.items
 }
 ```
 
-There is no "preferred" approach here, these tools are simply there to help you use the ``Store`` regardless of _how_ you use it.
-
+The synchronous initializer is a sensible default, but if your app's needs dictate displaying data only once you've loaded all of the necessary items the asynchronous initializers are there to help.
 
 ## Further Exploration, @Stored And More
 

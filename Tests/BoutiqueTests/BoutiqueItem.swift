@@ -1,13 +1,15 @@
 import Foundation
 
 struct BoutiqueItem: Codable, Equatable, Identifiable {
-    var id: String { merchantID }
+    var id: String {
+        self.merchantID
+    }
+
     let merchantID: String
     let value: String
 }
 
 extension BoutiqueItem {
-
     static let coat = BoutiqueItem(
         merchantID: "1",
         value: "Coat"
@@ -47,5 +49,4 @@ extension BoutiqueItem {
         BoutiqueItem.purse,
         BoutiqueItem.belt,
     ]
-
 }
