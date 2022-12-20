@@ -288,7 +288,7 @@ public extension Store {
 }
 #endif
 
-// Internal versions of the `insert`, `remove`, and `removeAll` function code pths so we can avoid duplicating code.
+// Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
 
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
