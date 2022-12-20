@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 /// The @``StoredValue`` property wrapper to automagically persist a single `Item` in `UserDefaults`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -92,7 +93,10 @@ public struct StoredValue<Item: Codable & Equatable> {
         let boxedValue = BoxedValue(value: value)
         if let data = try? JSONEncoder().encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
-            self.itemSubject.send(value)
+
+            Task { @MainActor in
+                self.itemSubject.send(value)
+            }
         }
     }
 
@@ -120,7 +124,10 @@ public struct StoredValue<Item: Codable & Equatable> {
         let boxedValue = BoxedValue(value: self.defaultValue)
         if let data = try? JSONEncoder().encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
-            self.itemSubject.send(self.defaultValue)
+
+            Task { @MainActor in
+                self.itemSubject.send(self.defaultValue)
+            }
         }
     }
 
