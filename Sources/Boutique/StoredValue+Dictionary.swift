@@ -44,5 +44,4 @@ public extension AsyncStoredValue {
         try await self.set(updatedDictionary)
     }
 
-
 }

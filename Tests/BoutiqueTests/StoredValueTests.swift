@@ -115,3 +115,4 @@ final class StoredValueTests: XCTestCase {
     }
 
 }
+

@@ -58,6 +58,35 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
     ///
+    /// The ``items`` will be loaded asynchronously in a background task.
+    /// If you are not using this with @``Stored`` and need to show
+    /// the contents of the Store right away, you have two options.
+    ///
+    /// - Move the ``Store`` initialization to an `async` context
+    ///  so `init` returns only once items have been loaded.
+    ///
+    /// ```
+    /// let store: Store<Item>
+    ///
+    /// init() async throws {
+    ///     store = try await Store(...)
+    ///     // Now the store will have `items` already loaded.
+    ///     let items = await store.items
+    /// }
+    /// ```
+    ///
+    /// - Alternatively you can use the synchronous initializer
+    /// and then await for items to load before accessing them.
+    ///
+    /// ```
+    /// let store: Store<Item> = Store(...)
+    ///
+    /// func getItems() async -> [Item] {
+    ///     try await store.itemsHaveLoaded()
+    ///     return await store.items
+    /// }
+    /// ```
+    ///
     /// - Parameters:
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
@@ -66,15 +95,30 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
 
-        Task { @MainActor in
-            do {
-                let decoder = JSONDecoder()
-                self.items = try await self.storageEngine.readAllData()
-                    .map({ try decoder.decode(Item.self, from: $0) })
-            } catch {
-                self.items = []
-            }
-        }
+        // Begin loading items in the background.
+        _ = self.loadStoreTask
+    }
+
+    /// Initializes a new ``Store`` for persisting items to a memory cache
+    /// and a storage engine, to act as a source of truth, and await for the ``items`` to load.
+    ///
+    /// - Parameters:
+    ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
+    ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
+    ///   will use to create a unique identifier for the item when it's saved.
+    @MainActor
+    public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
+        self.storageEngine = storage
+        self.cacheIdentifier = cacheIdentifier
+        try await itemsHaveLoaded()
+    }
+
+    /// Awaits for ``items`` to be loaded.
+    ///
+    /// When initializing a ``Store`` in a non-async context, the items are loaded in a background task.
+    /// This functions provides a way to `await` its completion before accessing the ``items``.
+    public func itemsHaveLoaded() async throws {
+        try await loadStoreTask.value
     }
 
     /// Adds an item to the store.
@@ -254,6 +298,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
     /// in the ``Store``, avoiding multiple dispatches to the `@MainActor`, with far better performance.
     public func removeAll() async throws {
         try await self.performRemoveAll()
+    }
+
+    /// A `Task` that will kick off loading items into the ``Store``.
+    private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
+        let decoder = JSONDecoder()
+        self.items = try await self.storageEngine.readAllData()
+            .map({ try decoder.decode(Item.self, from: $0) })
     }
 
 }
