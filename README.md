@@ -69,6 +69,11 @@ try await store.insert([dog, cat])
 // You can read items directly
 print(store.items) // Prints [dog, cat]
 
+// You also don't have to worry about maintaining uniqueness — Store handles that for you
+let secondDog = Item(name: "dog")
+try await store.insert(secondDog)
+print(store.items) // Prints [dog, cat]
+
 // Clear your store by removing all the items at once.
 store.removeAll()
 
