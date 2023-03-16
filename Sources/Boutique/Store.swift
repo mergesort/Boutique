@@ -302,9 +302,13 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
 
     /// A `Task` that will kick off loading items into the ``Store``.
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
-        let decoder = JSONDecoder()
-        self.items = try await self.storageEngine.readAllData()
-            .map({ try decoder.decode(Item.self, from: $0) })
+        do {
+            let decoder = JSONDecoder()
+            self.items = try await self.storageEngine.readAllData()
+                .map({ try decoder.decode(Item.self, from: $0) })
+        } catch {
+            self.items = []
+        }
     }
 
 }
