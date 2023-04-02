@@ -69,7 +69,7 @@ try await store.insert([dog, cat])
 // You can read items directly
 print(store.items) // Prints [dog, cat]
 
-// You also don't have to worry about maintaining uniqueness — Store handles that for you
+// You also don't have to worry about maintaining uniqueness, the Store handles uniqueness for you
 let secondDog = Item(name: "dog")
 try await store.insert(secondDog)
 print(store.items) // Prints [dog, cat]
