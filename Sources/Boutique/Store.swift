@@ -339,6 +339,40 @@ public extension Store {
 
         return store
     }
+    
+    /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
+    ///
+    /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
+    /// in a SwiftUI Preview. It will create a a ``Store`` that **only** holds items in memory
+    /// so it should not be used in production, nor will it compile for Release builds.
+    ///
+    /// This function eschews providing a `cacheIdentifier` when our `Item` conforms to `Identifiable`
+    /// with an `id` that is a `String`. While it's not required for your `Item` to conform to `Identifiable`,
+    /// many SwiftUI-related objects do so this initializer provides a nice convenience.
+    ///
+    /// - Parameters:
+    ///   - items: The items that the ``Store`` will be initialized with.
+    /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    static func previewStore(items: [Item]) -> Store<Item> where Item: Identifiable, Item.ID == String {
+        previewStore(items: items, cacheIdentifier: \.id)
+    }
+    
+    /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
+    ///
+    /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
+    /// in a SwiftUI Preview. It will create a a ``Store`` that **only** holds items in memory
+    /// so it should not be used in production, nor will it compile for Release builds.
+    ///
+    /// This function eschews providing a `cacheIdentifier` when our `Item` conforms to `Identifiable`
+    /// with an `id` that is a `UUID`. While it's not required for your `Item` to conform to `Identifiable`,
+    /// many SwiftUI-related objects do so this initializer provides a nice convenience.
+    ///
+    /// - Parameters:
+    ///   - items: The items that the ``Store`` will be initialized with.
+    /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    static func previewStore(items: [Item]) -> Store<Item> where Item: Identifiable, Item.ID == UUID {
+        previewStore(items: items, cacheIdentifier: \.id.uuidString)
+    }
 
 }
 #endif
