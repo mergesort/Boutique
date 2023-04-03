@@ -303,7 +303,7 @@ If you prefer not to use SPM, you can integrate Boutique into your project manua
 
 ### About me
 
-Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Twitter](https://twitter.com/mergesort).
+Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Mastodon](https://macaw.social/@mergesort).
 
 ### License
 
