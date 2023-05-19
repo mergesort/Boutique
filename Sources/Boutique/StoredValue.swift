@@ -38,7 +38,7 @@ import SwiftUI
 ///
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
 @propertyWrapper
-public struct StoredValue<Item: Codable & Equatable> {
+public struct StoredValue<Item: Codable> {
 
     private let cancellableBox = CancellableBox()
     private let defaultValue: Item

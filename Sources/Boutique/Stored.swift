@@ -2,7 +2,7 @@ import Combine
 
 /// The @``Stored`` property wrapper to automagically initialize a ``Store``.
 @propertyWrapper
-public struct Stored<Item: Codable & Equatable> {
+public struct Stored<Item: Codable> {
 
     private let cancellableBox: CancellableBox
 

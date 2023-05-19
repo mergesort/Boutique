@@ -43,7 +43,7 @@ import Foundation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-public final class Store<Item: Codable & Equatable>: ObservableObject {
+public final class Store<Item: Codable>: ObservableObject {
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
@@ -512,7 +512,11 @@ private extension Store {
             items = []
             try await self.storageEngine.removeAllData()
         } else {
-            items = items.filter { !itemsToRemove.contains($0) }
+            items = items.filter { item in
+                !itemsToRemove.contains(where: {
+                    $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
+                }
+            )}
             let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
 
             if itemKeys.count == 1 {
