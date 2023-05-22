@@ -62,15 +62,15 @@ try await store.insert(redPanda)
 try await store.remove(redPanda)
 
 // Insert two more animals to the Store
-let dog = Item(name: "dog")
-let cat = Item(name: "cat")
+let dog = Animal(id: "dog")
+let cat = Animal(id: "cat")
 try await store.insert([dog, cat])
 
 // You can read items directly
 print(store.items) // Prints [dog, cat]
 
 // You also don't have to worry about maintaining uniqueness, the Store handles uniqueness for you
-let secondDog = Item(name: "dog")
+let secondDog = Animal(id: "dog")
 try await store.insert(secondDog)
 print(store.items) // Prints [dog, cat]
 
