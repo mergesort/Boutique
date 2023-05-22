@@ -62,11 +62,16 @@ try await store.insert(redPanda)
 try await store.remove(redPanda)
 
 // Insert two more animals to the Store
-let dog = Item(name: "dog")
-let cat = Item(name: "cat")
+let dog = Animal(id: "dog")
+let cat = Animal(id: "cat")
 try await store.insert([dog, cat])
 
 // You can read items directly
+print(store.items) // Prints [dog, cat]
+
+// You also don't have to worry about maintaining uniqueness, the Store handles uniqueness for you
+let secondDog = Animal(id: "dog")
+try await store.insert(secondDog)
 print(store.items) // Prints [dog, cat]
 
 // Clear your store by removing all the items at once.
@@ -298,7 +303,7 @@ If you prefer not to use SPM, you can integrate Boutique into your project manua
 
 ### About me
 
-Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Twitter](https://twitter.com/mergesort).
+Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Mastodon](https://macaw.social/@mergesort).
 
 ### License
 
