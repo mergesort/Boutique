@@ -19,6 +19,9 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedDictionary")
     private var storedDictionaryValue: [String : String] = [:]
 
+    @StoredValue(key: "storedArray")
+    private var storedArrayValue: [BoutiqueItem] = []
+
     @StoredValue(key: "storedBinding")
     private var storedBinding = BoutiqueItem.sweater
 
@@ -27,6 +30,7 @@ final class StoredValueTests: XCTestCase {
         self.$storedBoolValue.reset()
         self.$storedNilValue.reset()
         self.$storedDictionaryValue.reset()
+        self.$storedArrayValue.reset()
         self.$storedBinding.reset()
     }
 
@@ -80,6 +84,16 @@ final class StoredValueTests: XCTestCase {
 
         self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])
+    }
+
+    func testStoredArrayValueAppend() async throws {
+        XCTAssertEqual(self.storedArrayValue, [])
+
+        self.$storedArrayValue.append(BoutiqueItem.sweater)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater])
+
+        self.$storedArrayValue.append(BoutiqueItem.belt)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater, BoutiqueItem.belt])
     }
 
     func testStoredBinding() async throws {
