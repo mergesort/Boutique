@@ -307,6 +307,7 @@ public final class Store<Item: Codable & Equatable>: ObservableObject {
                 .map({ try decoder.decode(Item.self, from: $0) })
         } catch {
             self.items = []
+            throw error
         }
     }
 }
