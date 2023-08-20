@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ContentView: View {
-
     @StateObject private var carouselFocusController = ScrollFocusController<String>()
 
     var body: some View {
@@ -20,5 +19,4 @@ struct ContentView: View {
         .padding(.horizontal, 16.0)
         .background(Color.palette.background)
     }
-
 }

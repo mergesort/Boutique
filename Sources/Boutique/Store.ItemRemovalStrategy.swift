@@ -1,7 +1,6 @@
 import Foundation
 
 public extension Store {
-
     /// An invalidation strategy for a `Store` instance.
     ///
     /// An `ItemRemovalStrategy` provides control over how items are removed from the `Store`
@@ -10,7 +9,6 @@ public extension Store {
     /// This type used to be used publicly but now it's only used internally. As a result you
     /// can no longer construct your own strategies, only `.all` and `.items(_:)` remain.
     struct ItemRemovalStrategy<Item: Codable & Equatable> {
-
         public init(removedItems: @escaping ([Item]) -> [Item]) { self.removedItems = removedItems }
 
         public var removedItems: ([Item]) -> [Item]
@@ -27,7 +25,5 @@ public extension Store {
         internal static func items(_ itemsToRemove: [Item]) -> ItemRemovalStrategy {
             ItemRemovalStrategy(removedItems: { _ in itemsToRemove })
         }
-
     }
-
 }

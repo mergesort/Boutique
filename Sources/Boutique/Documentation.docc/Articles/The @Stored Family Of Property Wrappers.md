@@ -120,7 +120,6 @@ You may be tempted to remove the extra array, building something that looks like
 
 ```swift
 struct NotesListView: View {
-
     @StateObject var notesController: NotesController
 
     var body: some View {

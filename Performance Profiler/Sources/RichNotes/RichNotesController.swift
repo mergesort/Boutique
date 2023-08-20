@@ -2,7 +2,6 @@ import Boutique
 import SwiftUI
 
 final class RichNotesController: ObservableObject {
-
     @Stored var notes: [RichNote]
 
     init(store: Store<RichNote>) {
@@ -44,5 +43,4 @@ final class RichNotesController: ObservableObject {
     func removeAll() async throws {
         try await self.$notes.removeAll()
     }
-
 }

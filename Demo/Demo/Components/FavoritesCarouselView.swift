@@ -44,7 +44,6 @@ import SwiftUI
 
 /// A horizontally scrolling carousel that displays the red panda images a user has favorited.
 struct FavoritesCarouselView: View {
-
     @StateObject private var imagesController = ImagesController()
 
     @State private var animation: Animation? = nil
@@ -155,5 +154,4 @@ struct FavoritesCarouselView: View {
         .frame(height: 200.0)
         .background(Color.palette.background)
     }
-
 }

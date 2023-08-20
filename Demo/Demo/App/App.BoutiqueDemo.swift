@@ -2,7 +2,6 @@ import SwiftUI
 
 @main
 struct BoutiqueDemoApp: App {
-
     @StateObject private var appState = AppState()
 
     var body: some Scene {

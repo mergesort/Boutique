@@ -9,13 +9,11 @@ extension Store where Item == BoutiqueItem {
 }
 
 final class StoredTests: XCTestCase {
-
     @Stored(in: .boutiqueItemsStore) private var items
 
     private var cancellables: Set<AnyCancellable> = []
 
     override func setUp() async throws {
-        try await $items.itemsHaveLoaded()
         try await $items.removeAll()
     }
 

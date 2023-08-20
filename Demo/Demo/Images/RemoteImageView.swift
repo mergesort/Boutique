@@ -3,7 +3,6 @@ import SwiftUI
 
 /// A view that displays a `RemoteImage`.
 struct RemoteImageView: View {
-
     var image: RemoteImage
 
     var body: some View {
@@ -12,5 +11,4 @@ struct RemoteImageView: View {
         Image(uiImage: currentImage)
             .resizable()
     }
-
 }

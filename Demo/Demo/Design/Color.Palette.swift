@@ -5,7 +5,6 @@ extension Color {
 }
 
 extension Color {
-
     struct Palette {
         var primary: Color {
             Color(red: colorValue(195), green: colorValue(82), blue: colorValue(43))
@@ -30,25 +29,19 @@ extension Color {
         var secondaryRainbowGradient: [Color] {
             Array(self.rainbowGradientColors.suffix(2))
         }
-
     }
-
 }
 
 private extension Color.Palette {
-
     var rainbowGradientColors: [Color] {
         [Color.purple, Color.yellow, Color.blue]
     }
-
 }
 
 // I'm too lazy to build a real palette for this project so with this mediocre code.
 private extension Color {
-
     static func colorValue(_ fromRGBValue: Int) -> Double {
         return Double(fromRGBValue)/255.0
     }
-
 }
 

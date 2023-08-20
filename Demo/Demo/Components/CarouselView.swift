@@ -2,7 +2,6 @@ import SwiftUI
 
 /// A View for displaying content in a horizontally scrolling grid.
 struct CarouselView<Item: Identifiable, ContentView: View>: View {
-
     var items: [Item]
     var contentView: (Item) -> ContentView
 
@@ -30,5 +29,4 @@ struct CarouselView<Item: Identifiable, ContentView: View>: View {
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
     }
-
 }

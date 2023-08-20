@@ -1,5 +1,4 @@
 public extension StoredValue {
-
     /// A function to set a @``StoredValue`` represented by a `Dictionary`
     /// without having to manually make an intermediate copy for every value update.
     ///
@@ -19,11 +18,9 @@ public extension StoredValue {
         updatedDictionary[key] = value
         self.set(updatedDictionary)
     }
-
 }
 
 public extension AsyncStoredValue {
-
     /// A function to set an @``AsyncStoredValue`` represented by a `Dictionary`
     /// without having to manually make an intermediate copy for every value update.
     ///
@@ -43,5 +40,4 @@ public extension AsyncStoredValue {
         updatedDictionary[key] = value
         try await self.set(updatedDictionary)
     }
-
 }

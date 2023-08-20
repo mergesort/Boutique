@@ -131,7 +131,6 @@ That was easy, but I want to show you something that makes Boutique feel downrig
 
 ```swift
 extension Store where Item == RemoteImage {
-
     // Initialize a Store to save our images into
     static let imagesStore = Store<RemoteImage>(
         storage: SQLiteStorageEngine.default(appendingPath: "Images")
@@ -140,7 +139,6 @@ extension Store where Item == RemoteImage {
 }
 
 final class ImagesController: ObservableObject {
-
     /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁴
     @Stored(in: .imagesStore) var images
 
@@ -168,7 +166,6 @@ final class ImagesController: ObservableObject {
     func clearAllImages() async throws {
         try await self.$images.removeAll()
     }
-
 }
 ```
 
@@ -180,13 +177,11 @@ That's it, that's really it. This technique scales very well, and sharing this d
 
 ```swift
 final class ImagesController: ObservableObject {
-
     @Stored var images: [RemoteImage]
 
     init(store: Store<RemoteImage>) {
         self._images = Stored(in: store)
     }
-
 }
 ```
 

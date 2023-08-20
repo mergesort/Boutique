@@ -39,7 +39,6 @@ import SwiftUI
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
 @propertyWrapper
 public struct StoredValue<Item: Codable & Equatable> {
-
     private let cancellableBox = CancellableBox()
     private let defaultValue: Item
     private let key: String
@@ -153,11 +152,9 @@ public struct StoredValue<Item: Codable & Equatable> {
 
         return wrapper.wrappedValue
     }
-
 }
 
 private extension StoredValue {
-
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
         if let storedValue = userDefaults.object(forKey: key) as? Data,
            let boxedValue = try? JSONDecoder().decode(BoxedValue<Item>.self, from: storedValue) {
@@ -166,11 +163,9 @@ private extension StoredValue {
             return defaultValue
         }
     }
-
 }
 
 private extension StoredValue {
-
     private struct BoxedValue<T: Codable>: Codable {
         var value: T
     }
@@ -178,5 +173,4 @@ private extension StoredValue {
     final class CancellableBox {
         var cancellable: AnyCancellable?
     }
-
 }

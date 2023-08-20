@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct CountButton: View {
-
     let title: String
     let color: Color
     let action: () -> Void
@@ -13,5 +12,4 @@ struct CountButton: View {
             .foregroundColor(.white)
             .tint(color)
     }
-
 }

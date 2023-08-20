@@ -1,5 +1,4 @@
 public extension Store {
-
     /// An operation is a type that allows you to stack ``insert(_:)-7z2oe``,
     /// ``remove(_:)-8ufsb``, or ``removeAll()-1xc24`` calls in a chained manner.
     ///
@@ -8,7 +7,6 @@ public extension Store {
     /// (Dispatching to the main actor multiple times can lead to users seeing odd visual experiences
     /// in SwiftUI apps, which is why Boutique goes to great lengths to help avoid that.)
     final class Operation {
-
         private let store: Store
         private var operationsHaveRun = false
         private var operations = [ExecutableAction]()
@@ -157,12 +155,10 @@ public extension Store {
                 try await operation.executable(self.store)
             }
         }
-
     }
 }
 
 private extension Store.Operation {
-
     struct ExecutableAction {
         let action: Action
         let executable: (Store) async throws -> Void
@@ -174,5 +170,4 @@ private extension Store.Operation {
         case removeItems(_ items: [Item])
         case removeAll
     }
-
 }

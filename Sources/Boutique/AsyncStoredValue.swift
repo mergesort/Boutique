@@ -39,7 +39,6 @@ import Combine
 @MainActor
 @propertyWrapper
 public struct AsyncStoredValue<Item: Codable & Equatable> {
-
     private let cancellableBox: CancellableBox
     private let defaultValue: Item
 
@@ -146,11 +145,9 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
 
         return wrapper.wrappedValue
     }
-
 }
 
 private extension AsyncStoredValue {
-
     // An internal type to box the item being saved in the Store ensuring
     // we can only ever have one item due to the hard-coded `cacheIdentifier`.
     struct UniqueItem: Codable, Equatable {
@@ -166,5 +163,4 @@ private extension AsyncStoredValue {
             self.store = store
         }
     }
-
 }

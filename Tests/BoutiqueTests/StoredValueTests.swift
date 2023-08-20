@@ -4,7 +4,6 @@ import SwiftUI
 import XCTest
 
 final class StoredValueTests: XCTestCase {
-
     private var cancellables: Set<AnyCancellable> = []
 
     @StoredValue<BoutiqueItem>(key: "storedItem")
@@ -127,6 +126,5 @@ final class StoredValueTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
-
 }
 

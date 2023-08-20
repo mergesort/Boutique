@@ -3,7 +3,6 @@ import SwiftUI
 
 /// A view that fetches a red panda image from the server and allows a user to favorite the red panda.
 struct RedPandaCardView: View {
-
     @EnvironmentObject private var focusController: ScrollFocusController<String>
 
     @StateObject private var imagesController = ImagesController()
@@ -18,8 +17,8 @@ struct RedPandaCardView: View {
 
     var body: some View {
         VStack(spacing: 16.0) {
-
             Spacer()
+            
             if let currentImage = currentImage {
                 RemoteImageView(image: currentImage)
                     .onAppear(perform: {
@@ -112,11 +111,9 @@ struct RedPandaCardView: View {
             }
         })
     }
-
 }
 
 private extension RedPandaCardView {
-
     func setCurrentImage() async throws {
         self.requestInFlight = true
         defer {
@@ -134,5 +131,4 @@ private extension RedPandaCardView {
             return false
         }
     }
-
 }

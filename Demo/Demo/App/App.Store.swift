@@ -1,7 +1,6 @@
 import Boutique
 
 extension Store where Item == RemoteImage {
-
     /// The app's default images store`.
     ///
     /// Stores are low-cost and can be plugged into Controllers interchangeably, or even accessed independently.
@@ -27,5 +26,4 @@ extension Store where Item == RemoteImage {
     static let imagesStore = Store<RemoteImage>(
         storage: SQLiteStorageEngine.default(appendingPath: "Images")
     )
-
 }

@@ -3,7 +3,6 @@ import Combine
 import XCTest
 
 final class StoreTests: XCTestCase {
-
     private var store: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
 
@@ -239,5 +238,4 @@ final class StoreTests: XCTestCase {
         try await store.insert(uniqueItems)
         wait(for: [expectation], timeout: 1)
     }
-
 }

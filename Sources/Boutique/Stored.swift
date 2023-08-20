@@ -3,7 +3,6 @@ import Combine
 /// The @``Stored`` property wrapper to automagically initialize a ``Store``.
 @propertyWrapper
 public struct Stored<Item: Codable & Equatable> {
-
     private let cancellableBox: CancellableBox
 
     /// Initializes a @``Stored`` property that will be exposed as an `[Item]` and project a `Store<Item>`.
@@ -45,11 +44,9 @@ public struct Stored<Item: Codable & Equatable> {
 
         return wrapper.wrappedValue
     }
-
 }
 
 private extension Stored {
-
     final class CancellableBox {
         let store: Store<Item>
         var cancellable: AnyCancellable?
@@ -58,5 +55,4 @@ private extension Stored {
             self.store = store
         }
     }
-
 }

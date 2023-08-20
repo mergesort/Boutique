@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 struct RegularContentView: View {
-
     @StateObject private var richNotesController = RichNotesController(store: .notesStore)
 
     @State private var notes: [RichNote] = []
@@ -74,13 +73,10 @@ struct RegularContentView: View {
             self.notes = $0
         })
     }
-
 }
 
 private extension CompactContentView {
-
     static func formattedMemory(bytes: Int, unit: ByteCountFormatStyle.Units = .mb) -> String {
         ByteCountFormatStyle(style: .memory, allowedUnits: unit).format(Int64(bytes))
     }
-
 }
