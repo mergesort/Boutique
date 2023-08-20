@@ -9,8 +9,8 @@ public extension Store {
     ///
     /// This type used to be used publicly but now it's only used internally. As a result you
     /// can no longer construct your own strategies, only `.all` and `.items(_:)` remain.
-    struct ItemRemovalStrategy<Item: Codable> {
 
+    struct ItemRemovalStrategy<Item: Codable> {
         public init(removedItems: @escaping ([Item]) -> [Item]) { self.removedItems = removedItems }
 
         public var removedItems: ([Item]) -> [Item]

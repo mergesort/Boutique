@@ -1,7 +1,6 @@
 import Foundation
 
 extension RichNote: EstimatedSize {
-
     var projectedByteCount: Int {
         // Threw this in an array cause otherwise it's too large to type-check fast enough, of course...
         return [
@@ -19,7 +18,6 @@ extension RichNote: EstimatedSize {
             return $0 + $1
         })
     }
-
 }
 
 extension String: EstimatedSize {

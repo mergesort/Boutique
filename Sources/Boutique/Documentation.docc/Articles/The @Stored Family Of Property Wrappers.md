@@ -18,7 +18,6 @@ Below we have a `NotesController`, a data controller. It has common operations s
 
 ```swift
 final class NotesController: ObservableObject {
-
     @Stored var notes: [Note]
 
     init(store: Store<Note>) {
@@ -44,7 +43,6 @@ final class NotesController: ObservableObject {
         // Make an API call that removes all the notes from the server... 
         self.$notes.removeAll()
     }
-
 }
 ```
 
@@ -92,7 +90,6 @@ Even more powerful is seeing how naturally @``Stored`` arrays integrate into Swi
 
 ```swift
 struct NotesListView: View {
-
     @StateObject var notesController: NotesController
     @State private var notes: [Note] = []
 
@@ -105,7 +102,7 @@ struct NotesListView: View {
                     }
             }
         }
-        .onReceive(notesController.$notes, perform: {
+        .onReceive(notesController.$notes.$items, perform: {
             // We can even create complex pipelines, for example filtering all notes bigger than a tweet
             self.notes = $0.filter({ $0.length > 280 })
         })
@@ -123,7 +120,6 @@ You may be tempted to remove the extra array, building something that looks like
 
 ```swift
 struct NotesListView: View {
-
     @StateObject var notesController: NotesController
 
     var body: some View {

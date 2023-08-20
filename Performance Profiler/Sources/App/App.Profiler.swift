@@ -2,7 +2,6 @@ import SwiftUI
 
 @main
 struct ProfilerApp: App {
-
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -12,7 +11,6 @@ struct ProfilerApp: App {
 
 // A wrapper around each ContentView so we can access the Environment which is unavailable at the `App` level
 private struct ContentView: View {
-
     @Environment(\.isRegularSizeClass) private var isRegularSizeClass
 
     var body: some View {
@@ -24,5 +22,4 @@ private struct ContentView: View {
             CompactContentView()
         }
     }
-
 }

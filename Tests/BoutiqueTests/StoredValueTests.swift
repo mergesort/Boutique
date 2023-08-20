@@ -4,7 +4,6 @@ import SwiftUI
 import XCTest
 
 final class StoredValueTests: XCTestCase {
-
     private var cancellables: Set<AnyCancellable> = []
 
     @StoredValue<BoutiqueItem>(key: "storedItem")
@@ -19,6 +18,9 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedDictionary")
     private var storedDictionaryValue: [String : String] = [:]
 
+    @StoredValue(key: "storedArray")
+    private var storedArrayValue: [BoutiqueItem] = []
+
     @StoredValue(key: "storedBinding")
     private var storedBinding = BoutiqueItem.sweater
 
@@ -27,6 +29,7 @@ final class StoredValueTests: XCTestCase {
         self.$storedBoolValue.reset()
         self.$storedNilValue.reset()
         self.$storedDictionaryValue.reset()
+        self.$storedArrayValue.reset()
         self.$storedBinding.reset()
     }
 
@@ -82,6 +85,16 @@ final class StoredValueTests: XCTestCase {
         XCTAssertEqual(self.storedDictionaryValue, [:])
     }
 
+    func testStoredArrayValueAppend() async throws {
+        XCTAssertEqual(self.storedArrayValue, [])
+
+        self.$storedArrayValue.append(BoutiqueItem.sweater)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater])
+
+        self.$storedArrayValue.append(BoutiqueItem.belt)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater, BoutiqueItem.belt])
+    }
+
     func testStoredBinding() async throws {
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
@@ -113,6 +126,5 @@ final class StoredValueTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
-
 }
 

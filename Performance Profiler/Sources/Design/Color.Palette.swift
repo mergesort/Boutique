@@ -5,7 +5,6 @@ extension Color {
 }
 
 extension Color {
-
     struct Palette {
         var terminalYellow: Color {
             Color(red: colorValue(242), green: colorValue(168), blue: colorValue(59))
@@ -30,17 +29,13 @@ extension Color {
         var remove: Color {
             Color(red: colorValue(153), green: colorValue(30), blue: colorValue(23))
         }
-
     }
-
 }
 
 // I'm too lazy to build a real palette for this project so with this mediocre code.
 private extension Color {
-
     static func colorValue(_ fromRGBValue: Int) -> Double {
         return Double(fromRGBValue)/255.0
     }
-
 }
 

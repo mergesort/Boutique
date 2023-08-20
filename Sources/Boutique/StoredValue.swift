@@ -93,10 +93,7 @@ public struct StoredValue<Item: Codable> {
         let boxedValue = BoxedValue(value: value)
         if let data = try? JSONEncoder().encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
-
-            Task { @MainActor in
-                self.itemSubject.send(value)
-            }
+            self.itemSubject.send(value)
         }
     }
 
@@ -124,10 +121,7 @@ public struct StoredValue<Item: Codable> {
         let boxedValue = BoxedValue(value: self.defaultValue)
         if let data = try? JSONEncoder().encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
-
-            Task { @MainActor in
-                self.itemSubject.send(self.defaultValue)
-            }
+            self.itemSubject.send(self.defaultValue)
         }
     }
 
@@ -153,11 +147,9 @@ public struct StoredValue<Item: Codable> {
 
         return wrapper.wrappedValue
     }
-
 }
 
 private extension StoredValue {
-
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
         if let storedValue = userDefaults.object(forKey: key) as? Data,
            let boxedValue = try? JSONDecoder().decode(BoxedValue<Item>.self, from: storedValue) {
@@ -166,11 +158,9 @@ private extension StoredValue {
             return defaultValue
         }
     }
-
 }
 
 private extension StoredValue {
-
     private struct BoxedValue<T: Codable>: Codable {
         var value: T
     }
@@ -178,5 +168,4 @@ private extension StoredValue {
     final class CancellableBox {
         var cancellable: AnyCancellable?
     }
-
 }

@@ -1,5 +1,4 @@
 public extension StoredValue where Item == Bool {
-
     /// A function to toggle an @``StoredValue`` that represent a `Bool`.
     ///
     /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
@@ -14,11 +13,9 @@ public extension StoredValue where Item == Bool {
     func toggle() {
         self.set(!self.wrappedValue)
     }
-
 }
 
 public extension AsyncStoredValue where Item == Bool {
-
     /// A function to toggle an @``AsyncStoredValue`` that represent a `Bool`.
     ///
     /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
@@ -33,5 +30,4 @@ public extension AsyncStoredValue where Item == Bool {
     func toggle() async throws {
         try await self.set(!self.wrappedValue)
     }
-
 }

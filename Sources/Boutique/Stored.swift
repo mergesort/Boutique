@@ -45,11 +45,9 @@ public struct Stored<Item: Codable> {
 
         return wrapper.wrappedValue
     }
-
 }
 
 private extension Stored {
-
     final class CancellableBox {
         let store: Store<Item>
         var cancellable: AnyCancellable?
@@ -58,5 +56,4 @@ private extension Stored {
             self.store = store
         }
     }
-
 }

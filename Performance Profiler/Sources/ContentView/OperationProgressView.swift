@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct OperationProgressView: View {
-
     @Binding var operationInProgress: Bool
     @SizeClassDependentValue(regular: UIFont.TextStyle.title3, compact: UIFont.TextStyle.body) private var fontStyle
 
@@ -14,5 +13,4 @@ struct OperationProgressView: View {
             .foregroundColor(.white)
             .font(.telegramaRaw(style: fontStyle))
     }
-
 }

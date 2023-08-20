@@ -14,7 +14,6 @@ public struct RichNote: Codable, Equatable {
 }
 
 extension RichNote {
-
     static var demoNote: RichNote {
         RichNote(
             id: UUID().uuidString,
@@ -45,7 +44,6 @@ extension RichNote {
             imageAttachment: Image(url: URL(string: "https://imgs.xkcd.com/comics/birthday_2x.png")!, width: 635, height: 871)
         )
     }
-
 }
 
 public struct Tag: Codable, Equatable {
@@ -63,18 +61,7 @@ public struct Image: Codable, Equatable {
     let height: Float
 }
 
-extension String {
-
-    static var loremIpsum: LoremIpsum { LoremIpsum() }
-
-    struct LoremIpsum {
-
-    }
-
-}
-
 extension String.LoremIpsum {
-
     var tenWords: String {
         return "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo"
     }

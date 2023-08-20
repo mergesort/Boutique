@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct CountButtonContainerView: View {
-
     @StateObject private var richNotesController = RichNotesController(store: .notesStore)
     @Binding var operation: RichNotesOperation
 
@@ -58,11 +57,9 @@ struct CountButtonContainerView: View {
 
         self.operation.isInProgress = false
     }
-
 }
 
 private extension CountButtonContainerView {
-
     static func countButton(_ title: String, color: Color, action: @escaping () async throws -> Void) -> some View {
         Button(action: {
             Task {
@@ -82,5 +79,4 @@ private extension CountButtonContainerView {
                 .stroke(color, lineWidth: 2.0)
         )
     }
-
 }

@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 struct CompactContentView: View {
-
     @StateObject private var richNotesController = RichNotesController(store: .notesStore)
 
     @State private var notes: [RichNote] = []
@@ -65,6 +64,4 @@ struct CompactContentView: View {
             self.notes = $0
         })
     }
-
 }
-

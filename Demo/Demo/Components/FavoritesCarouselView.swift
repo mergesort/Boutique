@@ -44,109 +44,35 @@ import SwiftUI
 
 /// A horizontally scrolling carousel that displays the red panda images a user has favorited.
 struct FavoritesCarouselView: View {
-
-    @StateObject private var imagesController = ImagesController()
+    @EnvironmentObject private var imagesController: ImagesController
 
     @State private var animation: Animation? = nil
     @State private var images: [RemoteImage] = []
+    @State private var itemsHaveLoaded = false
 
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
         VStack {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Favorites")
-                    .bold()
-                    .font(.largeTitle)
-                    .foregroundColor(.black)
+            // Demonstrating how an EmptyStateView can work with Boutique by leveraging itemsHaveLoaded
+            if self.itemsHaveLoaded {
+                self.favoritesHeaderView
 
-                Spacer()
-
-                Button(action: {
-                    Task {
-                        self.appState.$funkyRedPandaModeEnabled.toggle()
-                    }
-                }, label: {
-                    Image(systemName: "sun.max.circle.fill")
-                        .opacity(self.images.isEmpty ? 0.0 : 1.0)
-                        .font(.title)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: self.appState.funkyRedPandaModeEnabled ? Color.palette.primaryRainbowGradient : [.gray],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                })
-
-                Button(action: {
-                    Task {
-                        try await imagesController.clearAllImages()
-                    }
-                }, label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .opacity(self.images.isEmpty ? 0.0 : 1.0)
-                        .font(.title)
-                        .foregroundColor(.red)
-                })
-            }
-            .padding(.top)
-
-            if self.images.isEmpty {
-                VStack {
-                    Spacer()
-
-                    Text("Red pandas you favorite will appear here!")
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .font(.title)
-                        .foregroundColor(.black)
-
-                    Spacer()
+                if self.images.isEmpty {
+                    self.favoritesEmptyStateView
+                } else {
+                    self.favoriteImagesCarouselView
+                        .transition(.move(edge: .trailing))
+                        .animation(self.animation, value: self.images)
+                        .task({
+                            // Too lazy to figure out how to not trigger the janky
+                            // initial animation because it's mostly irrelevant to this demo.
+                            try! await Task.sleep(nanoseconds: 100_000_000)
+                            self.animation = .easeInOut(duration: 0.35)
+                        })
                 }
             } else {
-                HStack {
-                    CarouselView(
-                        items: self.images,
-                        contentView: { image in
-                            ZStack(alignment: .topTrailing) {
-                                RemoteImageView(image: image)
-                                    .overlay(content: {
-                                        let fromGradientColors = appState.funkyRedPandaModeEnabled ? Color.palette.primaryRainbowGradient : []
-                                        let toGradientColors = appState.funkyRedPandaModeEnabled ? Color.palette.secondaryRainbowGradient : []
-
-                                        AnimatableGradientView(
-                                            fromGradient: Gradient(colors: fromGradientColors),
-                                            toGradient: Gradient(colors: toGradientColors)
-                                        )
-                                        .opacity(0.67)
-                                    })
-                                    .primaryBorder()
-                                    .centerCroppedCardStyle()
-
-                                Button(action: {
-                                    Task {
-                                        try await self.imagesController.removeImage(image: image)
-                                    }
-                                }, label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .shadow(color: .black, radius: 4.0, x: 2.0, y: 2.0)
-                                })
-                                .padding(8.0)
-                            }
-                        }
-                    )
-                    .transition(.move(edge: .trailing))
-                    .animation(animation, value: self.images)
-                }
-                .task({
-                    // Too lazy to figure out how to not trigger the janky
-                    // initial animation because it's mostly irrelevant to this demo.
-                    try! await Task.sleep(nanoseconds: 100_000_000)
-                    self.animation = .easeInOut(duration: 0.35)
-                })
+                EmptyView()
             }
         }
         .onReceive(self.imagesController.$images.$items, perform: {
@@ -154,6 +80,106 @@ struct FavoritesCarouselView: View {
         })
         .frame(height: 200.0)
         .background(Color.palette.background)
+        .task({
+            do {
+                try await self.imagesController.$images.itemsHaveLoaded()
+                self.itemsHaveLoaded = true
+            } catch {
+                print("Failed to load images", error)
+            }
+        })
+    }
+}
+
+private extension FavoritesCarouselView {
+    var favoritesEmptyStateView: some View {
+        VStack {
+            Spacer()
+
+            Text("Red pandas you favorite will appear here!")
+                .bold()
+                .multilineTextAlignment(.center)
+                .font(.title)
+                .foregroundColor(.black)
+
+            Spacer()
+        }
     }
 
+    var favoritesHeaderView: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Favorites")
+                .bold()
+                .font(.largeTitle)
+                .foregroundColor(.black)
+
+            Spacer()
+
+            Button(action: {
+                Task {
+                    self.appState.$funkyRedPandaModeEnabled.toggle()
+                }
+            }, label: {
+                Image(systemName: "sun.max.circle.fill")
+                    .opacity(self.images.isEmpty ? 0.0 : 1.0)
+                    .font(.title)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: self.appState.funkyRedPandaModeEnabled ? Color.palette.primaryRainbowGradient : [.gray],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            })
+
+            Button(action: {
+                Task {
+                    try await imagesController.clearAllImages()
+                }
+            }, label: {
+                Image(systemName: "xmark.circle.fill")
+                    .opacity(self.images.isEmpty ? 0.0 : 1.0)
+                    .font(.title)
+                    .foregroundColor(.red)
+            })
+        }
+        .padding(.top)
+    }
+
+    var favoriteImagesCarouselView: some View {
+        HStack {
+            CarouselView(
+                items: self.images,
+                contentView: { image in
+                    ZStack(alignment: .topTrailing) {
+                        RemoteImageView(image: image)
+                            .overlay(content: {
+                                let fromGradientColors = appState.funkyRedPandaModeEnabled ? Color.palette.primaryRainbowGradient : []
+                                let toGradientColors = appState.funkyRedPandaModeEnabled ? Color.palette.secondaryRainbowGradient : []
+
+                                AnimatableGradientView(
+                                    fromGradient: Gradient(colors: fromGradientColors),
+                                    toGradient: Gradient(colors: toGradientColors)
+                                )
+                                .opacity(0.67)
+                            })
+                            .primaryBorder()
+                            .centerCroppedCardStyle()
+
+                        Button(action: {
+                            Task {
+                                try await self.imagesController.removeImage(image: image)
+                            }
+                        }, label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 4.0, x: 2.0, y: 2.0)
+                        })
+                        .padding(8.0)
+                    }
+                }
+            )
+        }
+    }
 }

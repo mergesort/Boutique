@@ -1,7 +1,6 @@
 import Foundation
 
 public extension Store where Item: Identifiable, Item.ID == String {
-
     /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth.
     ///
     /// The ``items`` will be loaded asynchronously in a background task.
@@ -49,7 +48,6 @@ public extension Store where Item: Identifiable, Item.ID == String {
 }
 
 public extension Store where Item: Identifiable, Item.ID == UUID {
-
     /// Initializes a new ``Store`` for persisting items to a memory cache and a storage engine, acting as a source of truth.
     ///
     /// The ``items`` will be loaded asynchronously in a background task.

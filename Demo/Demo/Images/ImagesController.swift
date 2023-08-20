@@ -16,7 +16,6 @@ import SwiftUI
 
 /// A controller that allows you to fetch images remotely, and save or delete them from a `Store`.
 final class ImagesController: ObservableObject {
-
     /// The `Store` that we'll be using to save images.
     @Stored(in: .imagesStore) var images
 
@@ -64,21 +63,17 @@ final class ImagesController: ObservableObject {
     func clearAllImages() async throws {
         try await self.$images.removeAll()
     }
-
 }
 
 extension ImagesController {
-
     /// A few simple errors we can throw in case we receive bad data.
     enum DownloadError: Error {
         case badData
         case unexpectedStatusCode
     }
-
 }
 
 private extension ImagesController {
-
     /// A type representing the API response providing image metadata from the API we're interacting with.
     struct RemoteImageResponse: Codable {
         let width: Float
@@ -86,5 +81,4 @@ private extension ImagesController {
         let key: String
         let url: URL
     }
-
 }

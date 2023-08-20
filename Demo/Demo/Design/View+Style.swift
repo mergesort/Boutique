@@ -1,7 +1,6 @@
 import SwiftUI
 
 extension View {
-
     func centerCroppedCardStyle() -> some View {
         self.scaledToFill()
             .clipped()
@@ -14,5 +13,4 @@ extension View {
                 .stroke(Color.palette.primary, lineWidth: 4.0)
         )
     }
-
 }

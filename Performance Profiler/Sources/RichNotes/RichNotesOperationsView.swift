@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct RichNotesOperation {
-
     var isInProgress: Bool = false
     var action: Action?
 
@@ -10,11 +9,9 @@ struct RichNotesOperation {
         case remove
         case loading
     }
-
 }
 
 struct RichNotesOperationsView: View {
-
     @Binding var operation: RichNotesOperation
     @Environment(\.isRegularSizeClass) private var isRegularSizeClass
 

@@ -4,7 +4,6 @@ import SwiftUI
 import XCTest
 
 final class AsyncStoredValueTests: XCTestCase {
-
     private var cancellables: Set<AnyCancellable> = []
 
     @AsyncStoredValue<BoutiqueItem>(storage: SQLiteStorageEngine.default(appendingPath: "storedItem"))
@@ -16,6 +15,9 @@ final class AsyncStoredValueTests: XCTestCase {
     @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedDictionary"))
     private var storedDictionaryValue: [String : String] = [:]
 
+    @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedArray"))
+    private var storedArrayValue: [BoutiqueItem] = []
+
     @AsyncStoredValue(storage: SQLiteStorageEngine.default(appendingPath: "storedBinding"))
     private var storedBinding = BoutiqueItem.sweater
 
@@ -23,6 +25,7 @@ final class AsyncStoredValueTests: XCTestCase {
         try await self.$storedItem.reset()
         try await self.$storedBoolValue.reset()
         try await self.$storedDictionaryValue.reset()
+        try await self.$storedArrayValue.reset()
         try await self.$storedBinding.reset()
     }
 
@@ -75,6 +78,16 @@ final class AsyncStoredValueTests: XCTestCase {
         XCTAssertEqual(self.storedDictionaryValue, [:])
     }
 
+    func testStoredArrayValueAppend() async throws {
+        XCTAssertEqual(self.storedArrayValue, [])
+
+        try await self.$storedArrayValue.append(BoutiqueItem.sweater)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater])
+
+        try await self.$storedArrayValue.append(BoutiqueItem.belt)
+        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater, BoutiqueItem.belt])
+    }
+
     func testStoredBinding() async throws {
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
 
@@ -104,5 +117,4 @@ final class AsyncStoredValueTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
-
 }

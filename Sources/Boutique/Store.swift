@@ -308,14 +308,13 @@ public final class Store<Item: Codable>: ObservableObject {
                 .map({ try decoder.decode(Item.self, from: $0) })
         } catch {
             self.items = []
+            throw error
         }
     }
-
 }
 
 #if DEBUG
 public extension Store {
-
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
     ///
     /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
@@ -373,13 +372,11 @@ public extension Store {
     static func previewStore(items: [Item]) -> Store<Item> where Item: Identifiable, Item.ID == UUID {
         previewStore(items: items, cacheIdentifier: \.id.uuidString)
     }
-
 }
 #endif
 
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
-
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         var currentItems = await self.items
 
@@ -469,7 +466,6 @@ internal extension Store {
             self.items = []
         }
     }
-
 }
 
 private extension Store {
