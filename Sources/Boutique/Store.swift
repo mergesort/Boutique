@@ -43,7 +43,7 @@ import Foundation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-public final class Store<Item: Codable>: ObservableObject {
+public final class Store<Item: Codable & Sendable>: ObservableObject {
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -312,9 +312,8 @@ public final class Store<Item: Codable>: ObservableObject {
     /// A `Task` that will kick off loading items into the ``Store``.
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
-            let decoder = JSONDecoder()
             self.items = try await self.storageEngine.readAllData()
-                .map({ try decoder.decode(Item.self, from: $0) })
+                .map({ try JSONCoders.decoder.decode(Item.self, from: $0) })
         } catch {
             self.items = []
             throw error
@@ -481,16 +480,15 @@ private extension Store {
 
     func persistItem(_ item: Item) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
-        let encoder = JSONEncoder()
 
-        try await self.storageEngine.write(try encoder.encode(item), key: cacheKey)
+        try await self.storageEngine.write(try JSONCoders.encoder.encode(item), key: cacheKey)
     }
 
     func persistItems(_ items: [Item]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
-        let encoder = JSONEncoder()
+
         let dataAndKeys = try zip(itemKeys, items)
-            .map({ (key: $0, data: try encoder.encode($1)) })
+            .map({ (key: $0, data: try JSONCoders.encoder.encode($1)) })
 
         try await self.storageEngine.write(dataAndKeys)
     }

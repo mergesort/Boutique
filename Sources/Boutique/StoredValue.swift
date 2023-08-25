@@ -91,7 +91,7 @@ public struct StoredValue<Item: Codable> {
     /// - Parameter value: The value to set @``StoredValue`` to.
     public func set(_ value: Item) {
         let boxedValue = BoxedValue(value: value)
-        if let data = try? JSONEncoder().encode(boxedValue) {
+        if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
             self.itemSubject.send(value)
         }
@@ -119,7 +119,7 @@ public struct StoredValue<Item: Codable> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     public func reset() {
         let boxedValue = BoxedValue(value: self.defaultValue)
-        if let data = try? JSONEncoder().encode(boxedValue) {
+        if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
             self.itemSubject.send(self.defaultValue)
         }
@@ -152,7 +152,7 @@ public struct StoredValue<Item: Codable> {
 private extension StoredValue {
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
         if let storedValue = userDefaults.object(forKey: key) as? Data,
-           let boxedValue = try? JSONDecoder().decode(BoxedValue<Item>.self, from: storedValue) {
+           let boxedValue = try? JSONCoders.decoder.decode(BoxedValue<Item>.self, from: storedValue) {
             return boxedValue.value
         } else {
             return defaultValue
@@ -161,10 +161,6 @@ private extension StoredValue {
 }
 
 private extension StoredValue {
-    private struct BoxedValue<T: Codable>: Codable {
-        var value: T
-    }
-
     final class CancellableBox {
         var cancellable: AnyCancellable?
     }
