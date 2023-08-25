@@ -16,7 +16,7 @@ final class StoredValueTests: XCTestCase {
     private var storedBoolValue = false
 
     @StoredValue(key: "storedDictionary")
-    private var storedDictionaryValue: [String : String] = [:]
+    private var storedDictionaryValue: [String : BoutiqueItem] = [:]
 
     @StoredValue(key: "storedArray")
     private var storedArrayValue: [BoutiqueItem] = []
@@ -75,11 +75,11 @@ final class StoredValueTests: XCTestCase {
     func testStoredDictionaryValueUpdate() async throws {
         XCTAssertEqual(self.storedDictionaryValue, [:])
 
-        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater.value)
-        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
 
         self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
-        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater.value])
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
 
         self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])
@@ -124,7 +124,7 @@ final class StoredValueTests: XCTestCase {
         self.$storedItem.set(BoutiqueItem.sweater)
         self.$storedItem.set(BoutiqueItem.belt)
 
-        wait(for: [expectation], timeout: 1)
+        await wait(for: [expectation], timeout: 1)
     }
 }
 
