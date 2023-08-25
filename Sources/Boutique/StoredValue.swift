@@ -39,7 +39,6 @@ import SwiftUI
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
 @propertyWrapper
 public struct StoredValue<Item: Codable> {
-
     private let cancellableBox = CancellableBox()
     private let defaultValue: Item
     private let key: String
@@ -60,7 +59,7 @@ public struct StoredValue<Item: Codable> {
         Self.storedValue(forKey: self.key, userDefaults: self.userDefaults, defaultValue: self.defaultValue)
     }
 
-    /// A `StoredValue` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
+    /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
     public var projectedValue: StoredValue<Item> { self }
 
     /// A Combine publisher that allows you to observe all changes to the @``StoredValue``.
@@ -80,14 +79,15 @@ public struct StoredValue<Item: Codable> {
     /// you need to call `$storedValue.set(newValue)`, with a dollar sign ($) in front of `storedValue`.
     ///
     /// When using a property wrapper the ``wrappedValue`` is an `Item`, but the `projectedValue`
-    /// is a `StoredValue<Item>`. That means when you access `storedValue` you're interacting
-    /// with the item itself, of type `Item`. But it's the `projectedValue` that is
-    /// the `StoredValue<Item>` type, and has the ``set(_:) function.
+    /// is a `StoredValue<Item>`. That means you are accessing the `storedValue` you're interacting
+    /// with, a value type `Item`. But it is the `projectedValue` that is the `StoredValue<Item>`,
+    /// that property and has the ``set(_:) function.
     ///
     /// This follows similar conventions to the `@Published` property wrapper.
-    /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
-    /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
+    /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
+    /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    ///
     /// - Parameter value: The value to set @``StoredValue`` to.
     public func set(_ value: Item) {
         let boxedValue = BoxedValue(value: value)

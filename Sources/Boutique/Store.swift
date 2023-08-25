@@ -44,7 +44,6 @@ import Foundation
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
 public final class Store<Item: Codable>: ObservableObject {
-
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -127,8 +126,10 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
+    ///
     /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
     @_disfavoredOverload
     @available(
@@ -147,6 +148,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are inserting into the ``Store``.
     /// - Returns: An ``Operation`` that can be used to insert an item as part of a chain.
@@ -162,6 +164,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
     @available(
@@ -179,6 +182,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are inserting into the ``Store``.
     public func insert(_ item: Item) async throws {
@@ -189,6 +193,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer adding multiple items using this method instead of calling ``add(_:)-1ausm``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to add to the store.
     /// - Returns: An ``Operation`` that can be used to add items as part of a chain.
@@ -207,6 +212,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-7z2oe``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to insert into the store.
     /// - Returns: An ``Operation`` that can be used to insert items as part of a chain.
@@ -220,6 +226,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer adding multiple items using this method instead of calling ``insert(_:)-7z2oe``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to add to the store.
     @available(
@@ -235,6 +242,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-3j9hw``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to insert into the store.
     public func insert(_ items: [Item]) async throws {
@@ -242,6 +250,7 @@ public final class Store<Item: Codable>: ObservableObject {
     }
 
     /// Removes an item from the ``Store``.
+    ///
     /// - Parameter item: The item you are removing from the ``Store``.
     /// - Returns: An ``Operation`` that can be used to remove an item as part of a chain.
     @_disfavoredOverload
@@ -522,5 +531,4 @@ private extension Store {
             }
         }
     }
-
 }

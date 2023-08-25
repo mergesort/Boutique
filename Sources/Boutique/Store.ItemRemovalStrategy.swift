@@ -1,7 +1,6 @@
 import Foundation
 
 public extension Store {
-
     /// An invalidation strategy for a `Store` instance.
     ///
     /// An `ItemRemovalStrategy` provides control over how items are removed from the `Store`
@@ -10,10 +9,10 @@ public extension Store {
     /// This type used to be used publicly but now it's only used internally. As a result you
     /// can no longer construct your own strategies, only `.all` and `.items(_:)` remain.
 
-    struct ItemRemovalStrategy<Item: Codable> {
-        public init(removedItems: @escaping ([Item]) -> [Item]) { self.removedItems = removedItems }
+    struct ItemRemovalStrategy<RemovedItem: Codable> {
+        public init(removedItems: @escaping ([RemovedItem]) -> [RemovedItem]) { self.removedItems = removedItems }
 
-        public var removedItems: ([Item]) -> [Item]
+        public var removedItems: ([RemovedItem]) -> [RemovedItem]
 
         /// Removes all of the items from the in-memory and the StorageEngine cache before saving new items.
         internal static var all: ItemRemovalStrategy {
@@ -24,10 +23,8 @@ public extension Store {
         /// - Parameter itemsToRemove: The items being removed.
         /// - Returns: A `ItemRemovalStrategy` where the items provided are removed
         /// from the `Store` and disk cache before saving new items.
-        internal static func items(_ itemsToRemove: [Item]) -> ItemRemovalStrategy {
+        internal static func items(_ itemsToRemove: [RemovedItem]) -> ItemRemovalStrategy {
             ItemRemovalStrategy(removedItems: { _ in itemsToRemove })
         }
-
     }
-
 }

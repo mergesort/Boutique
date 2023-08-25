@@ -47,6 +47,7 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     /// This initializer allows you to specify an item to save and a `StorageEngine` where the `Item` should be stored.
     /// For example if you were to create a `StorageEngine` that has it's own concept of keys or even allows
     /// you to store items in the Keychain, you would need to be able to provide the underlying storage mechanism.
+    /// 
     /// - Parameters:
     ///   - wrappedValue: An value set when initializing an @``AsyncStoredValue``
     ///   - storage: A `StorageEngine` that defines where the value will be stored.
@@ -76,7 +77,7 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     /// Sets a value for the @``AsyncStoredValue`` property.
     ///
     /// You may run into an error that says
-    /// 
+    ///
     /// ```
     /// "'set' is inaccessible due to 'internal' protection level."
     /// ```
@@ -85,14 +86,15 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     /// you need to call `$storedValue.set(newValue)`, with a dollar sign ($) in front of `storedValue`.
     ///
     /// When using a property wrapper the ``wrappedValue`` is an `Item`, but the `projectedValue`
-    /// is a `AsyncStoredValue<Item>`. That means when you access `storedValue` you're interacting
-    /// with the item itself, of type `Item`. But it's the `projectedValue` that is
-    /// the `AsyncStoredValue<Item>` type, and has the ``set(_:) function.
+    /// is a `AsyncStoredValue<Item>`. That means you are accessing the `storedValue` you're interacting
+    /// with, a value type `Item`. But it is the `projectedValue` that is the `AsyncStoredValue<Item>`,
+    /// that property and has the ``set(_:) function.
     ///
     /// This follows similar conventions to the `@Published` property wrapper.
-    /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
-    /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
+    /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
+    /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    ///
     /// - Parameter value: The value to set @``AsyncStoredValue`` to.
     public func set(_ value: Item) async throws {
         try await self.cancellableBox.store.insert(UniqueItem(value: value))
