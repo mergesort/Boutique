@@ -124,7 +124,7 @@ final class StoredValueTests: XCTestCase {
         self.$storedItem.set(BoutiqueItem.sweater)
         self.$storedItem.set(BoutiqueItem.belt)
 
-        await wait(for: [expectation], timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 }
 
