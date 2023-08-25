@@ -37,6 +37,7 @@ import SwiftUI
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
+@MainActor
 @propertyWrapper
 public struct StoredValue<Item: Codable> {
     private let cancellableBox = CancellableBox()
