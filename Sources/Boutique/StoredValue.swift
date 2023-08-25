@@ -11,7 +11,7 @@ import SwiftUI
 /// This is useful for similar use cases as `UserDefaults`, where it's common to store only a single item
 /// such as the app's `lastOpenedDate`, an object of the user's preferences, configurations, and more.
 ///
-/// Results are delivered synchronously so values are available on app launch, using `UserDefaults` as the
+/// Values are delivered synchronously and are available on app launch, using `UserDefaults` as the
 /// backing store to accomplish this. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
 ///
 /// You must initialize a @``StoredValue`` with a default value like you would any other Swift property.

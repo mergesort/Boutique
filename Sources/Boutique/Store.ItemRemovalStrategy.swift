@@ -20,6 +20,7 @@ public extension Store {
         }
 
         /// Removes the specific items you provide from the `Store` and disk cache before saving new items.
+        /// 
         /// - Parameter itemsToRemove: The items being removed.
         /// - Returns: A `ItemRemovalStrategy` where the items provided are removed
         /// from the `Store` and disk cache before saving new items.

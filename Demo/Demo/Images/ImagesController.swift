@@ -20,6 +20,7 @@ final class ImagesController: ObservableObject {
     @Stored(in: .imagesStore) var images
 
     /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
+    /// 
     /// - Returns: The `RemoteImage` requested.
     func fetchImage() async throws -> RemoteImage {
         // Hit the API that provides you a random image's metadata

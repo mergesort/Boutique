@@ -129,7 +129,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     ///
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
-    ///
     /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
     @_disfavoredOverload
     @available(
