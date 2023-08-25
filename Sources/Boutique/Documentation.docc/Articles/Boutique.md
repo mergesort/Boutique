@@ -14,7 +14,7 @@ You'll notice that it looks almost identical to any other SwiftUI app, an explic
 
 ## Getting Started
 
-Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The @``StoredValue`` and @``AsyncStoredValue`` property wrappers work the same way, but instead of an array when you call `$storedValue.set(value)` a singular Swift value will be saved. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
+Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue`` property wrappers work the same way, but instead of an array when you call `$storedValue.set(value)` a singular Swift value will be saved. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
 
 You may be familiar with the ``Store`` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about adding Actions or Reducers. With this ``Store`` implementation all your data is persisted for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
 

@@ -2,10 +2,10 @@ import Combine
 import Foundation
 import SwiftUI
 
-/// The @``SecurelyStoredValue`` property wrapper to automagically persist a single `Item` in the system `Keychain`
+/// The @``SecurelyStoredValue`` property wrapper automagically persists a single `Item` in the system `Keychain`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
 ///
-/// You should use a @``SecurelyStoredValue`` rather than a @``StoredValue`` when you need to store
+/// You should use @``SecurelyStoredValue`` rather than @``StoredValue`` when you need to store
 /// sensitive values such as passwords or auth tokens, since a @``StoredValue`` will be persisted in `UserDefaults`.
 ///
 /// This is fulfills the same needs as many other Keychain wrappers, but in a Boutique-like manner.
@@ -20,7 +20,8 @@ import SwiftUI
 /// ```
 ///
 /// Since keychain values may or may not exist, a @``SecurelyStoredValue`` is nullable by default.
-/// You do not need to specify a nullable type, if you do as in the example below the type will be `RedPanda??`.
+/// Something to watch out for: You do not need to specify your type as nullable. If you do so
+/// the type will be a double optional (`??`) rather than optional (`?`).
 /// ```
 /// @SecurelyStoredValue<RedPanda?>(key: "redPanda")
 /// ```
@@ -52,7 +53,7 @@ public struct SecurelyStoredValue<Item: Codable> {
         Self.storedValue(service: Self.service, account: self.key)
     }
 
-    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
+    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
     public var projectedValue: SecurelyStoredValue<Item> { self }
 
     /// A Combine publisher that allows you to observe all changes to the @``SecurelyStoredValue``.

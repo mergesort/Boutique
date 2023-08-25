@@ -6,9 +6,9 @@ Property Wrappers that take the ``Store`` and make it magical. ✨
 
 In <doc:Using-Stores> discussed how to initialize a ``Store``, and how to subsequently use it to insert and remove items from that ``Store``. All of the code treats the ``Store`` as an easier to use database, but what if we could remove that layer of abstraction?
 
-The promise of Boutique is that you work with regular Swift values and arrays, yet have your data persisted automatically. The @``Stored``, @``StoredValue`` and @``AsyncStoredValue`` property wrappers are what help Boutique deliver on that promise.
+The promise of Boutique is that you work with regular Swift values and arrays, yet have your data persisted automatically. The @``Stored``, @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue`` property wrappers are what help Boutique deliver on that promise.
 
-Using @``Stored`` provides a ``Store`` with array-like ergonomics, while @``StoredValue`` and @``AsyncStoredValue`` offer similar support for storing single values rather than arrays.
+Using @``Stored`` provides a ``Store`` with array-like ergonomics, while @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue`` offer similar support for storing single values rather than arrays.
 
 That's a lot of words to discuss how @``Stored`` works under the hood, but seeing some code should make it clearer how to integrate a @``Stored`` array into your app.
 
@@ -136,7 +136,7 @@ This looks simpler, but it's deceptively unperformant. Every time `notesControll
 
 ## @StoredValue
 
-The ``Store`` and @``Stored`` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where @``StoredValue`` and @``AsyncStoredValue`` come in handy.
+The ``Store`` and @``Stored`` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where @``StoredValue``@``SecurelyStoredValue``, and @``AsyncStoredValue`` come in handy.
 
 Whether you need to save an important piece of information for the next time your app is launched or if want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
 
@@ -199,13 +199,36 @@ $hasHapticsEnabled.set(!hasHapticsEnabled)
 
 ## @AsyncStoredValue
 
-An @``AsyncStoredValue`` is very similar to @``StoredValue``, the main difference is that rather than storing individual values in `UserDefaults` an @``AsyncStoredValue`` is stored in a `StorageEngine`, much like a ``Store``. This allows you to build your own custom persistence layer for storing values, such as building a `KeychainStorageEngine` to store individual values in the keychain much the same way we can choose our own persistence layer for @``Stored``.
+An @``AsyncStoredValue`` is very similar to ``StoredValue``, the main difference is that rather than storing individual values in `UserDefaults` an ``AsyncStoredValue`` is stored in a `StorageEngine`, much like a ``Store``. This allows you to build your own custom persistence layer for storing values, such as building a `KeychainStorageEngine` to store individual values in the keychain much the same way we can choose our own persistence layer for @``Stored``.
 
 The API for using @``AsyncStoredValue`` is identical to @``StoredValue``, so the @``StoredValue`` examples above will work for @``AsyncStoredValue``. The main difference is that values are received in an async manner, so you have to be prepared to not receive a value immediately or on demand. It may seem strange to have an async alternative to @``StoredValue``, but if you have a `StorageEngine` based upon a remote service such as CloudKit or built atop your app's server API, you'll appreciate the ability to transparently store and persist individual values the same way you would any other data received from your API.
 
+## @SecurelyStoredValue
+
+The @``SecurelyStoredValue`` property wrapper automagically persists a single `Item` in the system `Keychain`
+
+The @``SecurelyStoredValue`` property wrapper is very simple, but handles the complicated task of persisting values in the keychain. Traditionally storing values in the keychain requires using arcane C security APIs, but @``SecurelyStoredValue`` makes this task incredibly easy. You should use @``SecurelyStoredValue`` rather than @``StoredValue`` when you need to store sensitive values such as passwords or auth tokens, since a @``StoredValue`` will be persisted in `UserDefaults`. @``SecurelyStoredValue`` is not a full keychain library replacement, instead the property wrapper provides a drop-dead simple alternative for the most common use case.
+
+Creating a @``SecurelyStoredValue`` is very simple. 
+```swift
+@SecurelyStoredValue<RedPanda>(key: "redPanda")
+private var redPanda
+```
+Unlike @``StoredValue`` properties @``SecurelyStoredValue`` properties cannot be provided a default value. Since keychain values may or may not exist, a @``SecurelyStoredValue`` is nullable by default. Something to watch out for: You do not need to specify your type as nullable. If you do so the type will be a double optional (`??`) rather than optional (`?`).
+```swift
+// The type here is not `RedPanda?`, but `RedPanda??`
+@SecurelyStoredValue<RedPanda?>(key: "redPanda")
+```
+
+Using a @``SecurelyStoredValue`` is the same as a regular @``StoredValue``, the only difference is that the two methods are ``set(_:)`` and ``remove()``, rather than ``set(_:)`` and ``reset()``
+```swift
+try self.$storedPassword.set("p@ssw0rd") // self.storedPassword is now set to "p@assw0rd" 
+try self.$storedPassword.remove() // self.storedPassword is now nil
+```
+
 ## Further Exploration
 
-Now that we've covered @``Stored``, @``StoredValue``, and @``AsyncStoredValue`` we can see how these property wrappers enable your app to work with regular Swift values and arrays, but have your app available offline with realtime state updates easier than ever. There isn't much left to learn about using Boutique, but if you want to explore further you can start using Boutique in one of your apps!
+Now that we've covered @``Stored``, @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue`` we can see how these property wrappers enable your app to work with regular Swift values and arrays, but have your app available offline with realtime state updates easier than ever. There isn't much left to learn about using Boutique, but if you want to explore further you can start using Boutique in one of your apps!
 
 As a reminder you can always play around with the code yourself.
 
