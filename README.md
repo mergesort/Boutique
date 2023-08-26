@@ -185,13 +185,13 @@ final class ImagesController: ObservableObject {
 }
 ```
 
-### StoredValue & AsyncStoredValue
+### StoredValue, SecurelyStoredValue, & AsyncStoredValue
 
-We'll go through a high level overview of the `@StoredValue` and `@AsyncStoredValue` property wrappers below, but they're fully documented with context, use cases, and examples [here](https://mergesort.github.io/Boutique/documentation/boutique/the-@stored-family-of-property-wrappers/).
+We'll go through a high level overview of the `@StoredValue`, `@SecurelyStoredValue`, and `@AsyncStoredValue` property wrappers below, but they're fully documented with context, use cases, and examples [here](https://mergesort.github.io/Boutique/documentation/boutique/the-@stored-family-of-property-wrappers/).
 
-The `Store` and `@Stored` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where @`StoredValue` and @`AsyncStoredValue` come in handy.
+The `Store` and `@Stored` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where `@StoredValue` `@SecurelyStoredValue`, and `@AsyncStoredValue` come in handy.
 
-Whether you need to save an important piece of information for the next time your app is launched or if want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
+Whether you need to save an important piece of information for the next time your app is launched, stored an auth token in the keychain, or you want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
 
 Often times people will choose to store individual items like that in `UserDefaults`. If you've used `@AppStorage` then @`StoredValue` will feel right at home, it has a very similar API with some additional features. A @`StoredValue` will end up being stored in `UserDefaults`, but it also exposes a `publisher` so you can easily subscribe to changes.
 
@@ -229,7 +229,9 @@ $currentlySelectedTheme.set(.dark)
 $hasHapticsEnabled.toggle()
 ```
 
-An @``AsyncStoredValue`` is very similar to @``StoredValue``, the main difference is that rather than storing individual values in `UserDefaults` an @``AsyncStoredValue`` is stored in a `StorageEngine`, much like a ``Store``. This allows you to build your own custom persistence layer for storing values, such as building a `KeychainStorageEngine` to store individual values in the keychain much the same way we can choose our own persistence layer for @``Stored``.
+The `@SecurelyStoredValue` can do everything a `@StoredValue` does, but instead of storing values in `UserDefaults` a `@SecurelyStoredValue` will persist items in the system's Keychain. This is perfect for storing sensitive values such as passwords or auth tokens, which you would not want to store in `UserDefaults`.
+
+You may not want to use `UserDefaults` or the system Keychain to store a value, in which case you can use your own `StorageEngine`. To do so you should use the `@AsyncStoredValue` property wrapper, which allows you to store a single value in a `StorageEngine` you provide. This isn't commonly needed, but it provides additional flexibility while staying true to Boutique's `@StoredValue` API.
 
 ### Documentation
 
