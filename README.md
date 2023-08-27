@@ -229,7 +229,7 @@ $currentlySelectedTheme.set(.dark)
 $hasHapticsEnabled.toggle()
 ```
 
-The `@SecurelyStoredValue` can do everything a `@StoredValue` does, but instead of storing values in `UserDefaults` a `@SecurelyStoredValue` will persist items in the system's Keychain. This is perfect for storing sensitive values such as passwords or auth tokens, which you would not want to store in `UserDefaults`.
+The `@SecurelyStoredValue` property wrapper can do everything a `@StoredValue` does, but instead of storing values in `UserDefaults` a `@SecurelyStoredValue` will persist items in the system's Keychain. This is perfect for storing sensitive values such as passwords or auth tokens, which you would not want to store in `UserDefaults`.
 
 You may not want to use `UserDefaults` or the system Keychain to store a value, in which case you can use your own `StorageEngine`. To do so you should use the `@AsyncStoredValue` property wrapper, which allows you to store a single value in a `StorageEngine` you provide. This isn't commonly needed, but it provides additional flexibility while staying true to Boutique's `@StoredValue` API.
 

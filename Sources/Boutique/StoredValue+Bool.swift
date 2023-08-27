@@ -10,6 +10,7 @@ public extension StoredValue where Item == Bool {
     /// ```
     /// self.appState.$proFeaturesEnabled.toggle()
     /// ```
+    @MainActor
     func toggle() {
         self.set(!self.wrappedValue)
     }

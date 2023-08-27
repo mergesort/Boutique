@@ -89,6 +89,7 @@ public struct StoredValue<Item: Codable> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     ///
     /// - Parameter value: The value to set @``StoredValue`` to.
+    @MainActor
     public func set(_ value: Item) {
         let boxedValue = BoxedValue(value: value)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {
@@ -117,6 +118,7 @@ public struct StoredValue<Item: Codable> {
     /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    @MainActor
     public func reset() {
         let boxedValue = BoxedValue(value: self.defaultValue)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {

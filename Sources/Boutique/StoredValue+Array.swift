@@ -13,6 +13,7 @@ public extension StoredValue {
     /// ```
     /// try await self.$redPandaList.append("Pabu")
     /// ```
+    @MainActor
     func append<Value>(_ value: Value) where Item == [Value] {
         var updatedArray = self.wrappedValue
         updatedArray.append(value)

@@ -13,6 +13,7 @@ public extension StoredValue {
     /// ```
     /// try await self.$redPandaList.update(key: "best", value: "Pabu")
     /// ```
+    @MainActor
     func update<Key: Hashable, Value>(key: Key, value: Value?) where Item == [Key: Value] {
         var updatedDictionary = self.wrappedValue
         updatedDictionary[key] = value
