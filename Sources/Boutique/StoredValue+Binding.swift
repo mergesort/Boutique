@@ -19,6 +19,7 @@ public extension SecurelyStoredValue {
     /// A convenient way to create a `Binding` from a `SecurelyStoredValue`.
     ///
     /// - Returns: A `Binding<Item?>` of the `SecurelyStoredValue<Item>` provided.
+    @MainActor
     var binding: Binding<Item?> {
         Binding(get: {
             self.wrappedValue

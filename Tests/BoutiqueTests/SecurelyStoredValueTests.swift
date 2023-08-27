@@ -27,12 +27,14 @@ final class SecurelyStoredValueTests: XCTestCase {
     @SecurelyStoredValue<String>(key: "Boutique.SecurelyStoredValue.Test")
     private var storedExistingValue
 
+    @MainActor
     override func setUp() async throws {
         if self.storedExistingValue == nil {
             try self.$storedExistingValue.set("Existence")
         }
     }
 
+    @MainActor
     override func tearDown() async throws {
         try self.$storedPassword.remove()
         try self.$storedBool.remove()
@@ -47,7 +49,18 @@ final class SecurelyStoredValueTests: XCTestCase {
         XCTAssertNotEqual(self.storedExistingValue, nil)
     }
 
-    func testStoredValue() throws {
+    func testStoredValue() async throws {
+        XCTAssertEqual(self.storedPassword, nil)
+
+        try await self.$storedPassword.set("p@ssw0rd")
+        XCTAssertEqual(self.storedPassword, "p@ssw0rd")
+
+        try await self.$storedPassword.remove()
+        XCTAssertEqual(self.storedPassword, nil)
+    }
+
+    @MainActor
+    func testStoredValueOnMainActor() throws {
         XCTAssertEqual(self.storedPassword, nil)
 
         try self.$storedPassword.set("p@ssw0rd")
@@ -57,66 +70,66 @@ final class SecurelyStoredValueTests: XCTestCase {
         XCTAssertEqual(self.storedPassword, nil)
     }
 
-    func testStoredCustomType() throws {
+    func testStoredCustomType() async throws {
         XCTAssertEqual(self.storedItem, nil)
 
-        try self.$storedItem.set(.sweater)
+        try await self.$storedItem.set(.sweater)
         XCTAssertEqual(self.storedItem, .sweater)
 
-        try self.$storedItem.set(.belt)
+        try await self.$storedItem.set(.belt)
         XCTAssertEqual(self.storedItem, .belt)
 
-        try self.$storedItem.remove()
+        try await self.$storedItem.remove()
         XCTAssertEqual(self.storedItem, nil)
     }
 
-    func testStoredArray() throws {
-        // Strings
+    func testStoredArray() async throws {
         XCTAssertEqual(self.storedArray, nil)
 
-        try self.$storedArray.set([.belt, .sweater])
+        try await self.$storedArray.set([.belt, .sweater])
         XCTAssertEqual(self.storedArray, [.belt, .sweater])
 
-        try self.$storedArray.remove()
+        try await self.$storedArray.remove()
         XCTAssertEqual(self.storedArray, nil)
     }
 
     func testStoredBoolean() async throws {
         XCTAssertEqual(self.storedBool, nil)
 
-        try self.$storedBool.set(true)
+        try await self.$storedBool.set(true)
         XCTAssertEqual(self.storedBool, true)
 
-        try self.$storedBool.set(false)
+        try await self.$storedBool.set(false)
         XCTAssertEqual(self.storedBool, false)
 
-        try self.$storedBool.toggle()
+        try await self.$storedBool.toggle()
         XCTAssertEqual(self.storedBool, true)
     }
 
     func testStoredDictionary() async throws {
         XCTAssertEqual(self.storedDictionary, nil)
 
-        try self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater)
+        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater)
         XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
 
-        try self.$storedDictionary.update(key: BoutiqueItem.belt.merchantID, value: nil)
+        try await self.$storedDictionary.update(key: BoutiqueItem.belt.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
 
-        try self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: nil)
+        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionary, [:])
     }
 
     func testStoredArrayValueAppend() async throws {
         XCTAssertEqual(self.storedArray, nil)
 
-        try self.$storedArray.append(BoutiqueItem.sweater)
+        try await self.$storedArray.append(BoutiqueItem.sweater)
         XCTAssertEqual(self.storedArray, [BoutiqueItem.sweater])
 
-        try self.$storedArray.append(BoutiqueItem.belt)
+        try await self.$storedArray.append(BoutiqueItem.belt)
         XCTAssertEqual(self.storedArray, [BoutiqueItem.sweater, BoutiqueItem.belt])
     }
 
+    @MainActor
     func testStoredBinding() async throws {
         XCTAssertEqual(self.storedBinding, nil)
         
@@ -145,10 +158,10 @@ final class SecurelyStoredValueTests: XCTestCase {
             })
             .store(in: &cancellables)
 
-        try self.$storedItem.set(BoutiqueItem.coat)
-        try self.$storedItem.set(BoutiqueItem.purse)
-        try self.$storedItem.set(BoutiqueItem.sweater)
-        try self.$storedItem.set(BoutiqueItem.belt)
+        try await self.$storedItem.set(BoutiqueItem.coat)
+        try await self.$storedItem.set(BoutiqueItem.purse)
+        try await self.$storedItem.set(BoutiqueItem.sweater)
+        try await self.$storedItem.set(BoutiqueItem.belt)
 
         await fulfillment(of: [expectation], timeout: 1)
     }

@@ -28,6 +28,7 @@ public extension SecurelyStoredValue where Item == Bool {
     /// ```
     /// self.appState.$isLoggedIn.toggle()
     /// ```
+    @MainActor
     func toggle() throws {
         if let wrappedValue {
             try self.set(!wrappedValue)

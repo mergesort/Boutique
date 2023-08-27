@@ -40,6 +40,7 @@ public extension SecurelyStoredValue {
     /// To better match expected uses calling append on a currently nil SecurelyStoredValue
     /// will return a single element array of the passed in value, 
     /// rather than returning nil or throwing an error.
+    @MainActor
     func append<Value>(_ value: Value) throws where Item == [Value] {
         var updatedArray = self.wrappedValue ?? []
         updatedArray.append(value)

@@ -37,7 +37,6 @@ import SwiftUI
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
-@MainActor
 @propertyWrapper
 public struct SecurelyStoredValue<Item: Codable> {
     private let cancellableBox = CancellableBox()
@@ -83,6 +82,7 @@ public struct SecurelyStoredValue<Item: Codable> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     ///
     /// - Parameter value: The value to set @``SecurelyStoredValue`` to.
+    @MainActor
     public func set(_ value: Item?) throws {
         if let value {
             if self.wrappedValue == nil {
@@ -115,6 +115,7 @@ public struct SecurelyStoredValue<Item: Codable> {
     /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
     /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    @MainActor
     public func remove() throws {
         if self.wrappedValue != nil {
             try self.removeItem()
