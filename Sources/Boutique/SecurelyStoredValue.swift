@@ -207,7 +207,7 @@ private extension SecurelyStoredValue {
             kSecAttrService: Self.service,
             kSecAttrAccount: key
         ]
-            .mapToStringDictionary()
+        .mapToStringDictionary()
 
 #if os(macOS)
         // This line must exist on OS X, but must not exist on iOS.
