@@ -152,9 +152,10 @@ private extension SecurelyStoredValue {
     static func storedValue(service: String, account: String, group: String?) -> Item? {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
+            kSecAttrAccessGroup: group ?? Self.service,
             kSecAttrService: service,
             kSecAttrAccount: account,
-            kSecAttrAccessGroup: group ?? Self.service,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecReturnData: true
         ]
         .mapToStringDictionary()
@@ -171,9 +172,10 @@ private extension SecurelyStoredValue {
     func insert(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
+            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrService: Self.service,
             kSecAttrAccount: self.key,
-            kSecAttrAccessGroup: self.group ?? Self.service,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
         .mapToStringDictionary()
@@ -190,9 +192,10 @@ private extension SecurelyStoredValue {
     func update(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
             kSecAttrAccessGroup: self.group ?? Self.service,
+            kSecAttrService: Self.service,
             kSecAttrAccount: self.key,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
         .mapToStringDictionary()
@@ -209,8 +212,8 @@ private extension SecurelyStoredValue {
     func removeItem() throws {
         var keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
             kSecAttrAccessGroup: self.group ?? Self.service,
+            kSecAttrService: Self.service,
             kSecAttrAccount: key
         ]
         .mapToStringDictionary()
