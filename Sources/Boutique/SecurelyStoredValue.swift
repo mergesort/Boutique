@@ -42,18 +42,18 @@ public struct SecurelyStoredValue<Item: Codable> {
     private let cancellableBox = CancellableBox()
     private let itemSubject = CurrentValueSubject<Item?, Never>(nil)
     private let key: String
-    private let group: String?
     private let service: String?
+    private let group: String?
 
-    public init(key: String, group: KeychainGroup? = nil, service: KeychainService? = nil) {
+    public init(key: String, service: KeychainService? = nil, group: KeychainGroup? = nil) {
         self.key = key
-        self.group = group?.value
         self.service = service?.value
+        self.group = group?.value
     }
 
     /// The currently stored value
     public var wrappedValue: Item? {
-        Self.storedValue(service: self.keychainService, account: self.key, group: self.group)
+        Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
     }
 
     /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
@@ -151,7 +151,7 @@ public struct SecurelyStoredValue<Item: Codable> {
 }
 
 private extension SecurelyStoredValue {
-    static func storedValue(service: String, account: String, group: String?) -> Item? {
+    static func storedValue(group: String?, service: String, account: String) -> Item? {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
