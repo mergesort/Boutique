@@ -42,9 +42,11 @@ public struct SecurelyStoredValue<Item: Codable> {
     private let cancellableBox = CancellableBox()
     private let itemSubject = CurrentValueSubject<Item?, Never>(nil)
     private let key: String
+    private let group: String?
 
-    public init(key: String) {
+    public init(key: String, group: String? = nil) {
         self.key = key
+        self.group = group
     }
 
     /// The currently stored value
@@ -170,6 +172,7 @@ private extension SecurelyStoredValue {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Self.service,
             kSecAttrAccount: self.key,
+            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
         .mapToStringDictionary()
@@ -187,6 +190,7 @@ private extension SecurelyStoredValue {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Self.service,
+            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrAccount: self.key,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
@@ -205,9 +209,10 @@ private extension SecurelyStoredValue {
         var keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Self.service,
+            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrAccount: key
         ]
-            .mapToStringDictionary()
+        .mapToStringDictionary()
 
 #if os(macOS)
         // This line must exist on OS X, but must not exist on iOS.

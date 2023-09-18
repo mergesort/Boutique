@@ -26,6 +26,9 @@ final class SecurelyStoredValueTests: XCTestCase {
 
     @SecurelyStoredValue<String>(key: "Boutique.SecurelyStoredValue.Test")
     private var storedExistingValue
+    
+    @SecurelyStoredValue<String>(key: "secureGroupString", group: "com.boutique.tests")
+    private var storedGroupValue
 
     @MainActor
     override func setUp() async throws {
@@ -42,6 +45,7 @@ final class SecurelyStoredValueTests: XCTestCase {
         try self.$storedArray.remove()
         try self.$storedDictionary.remove()
         try self.$storedBinding.remove()
+        try self.$storedGroupValue.remove()
     }
 
     func testExistingValuePersists() {
@@ -91,6 +95,16 @@ final class SecurelyStoredValueTests: XCTestCase {
 
         try await self.$storedArray.remove()
         XCTAssertEqual(self.storedArray, nil)
+    }
+
+    func testStoredGroupValue() async throws {
+        XCTAssertEqual(self.storedGroupValue, nil)
+
+        try await self.$storedGroupValue.set("p@ssw0rd")
+        XCTAssertEqual(self.storedGroupValue, "p@ssw0rd")
+
+        try await self.$storedGroupValue.remove()
+        XCTAssertEqual(self.storedGroupValue, nil)
     }
 
     func testStoredBoolean() async throws {
