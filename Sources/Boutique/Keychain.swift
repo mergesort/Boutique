@@ -34,3 +34,31 @@ public enum KeychainError: Error {
         }
     }
 }
+
+/// A type representing Tagged<String>, to statically represent the keychain's Service.
+/// This is done to be more type-safe than passing string parameters in all places.
+public struct KeychainService: ExpressibleByStringLiteral {
+    public let value: String
+
+    public init(value: String) {
+        self.value = value
+    }
+
+    public init(stringLiteral value: StaticString) {
+        self = KeychainService(value: "\(value)")
+    }
+}
+
+/// A type representing Tagged<String>, to statically represent the keychain's Group.
+/// This is done to be more type-safe than passing string parameters in all places.
+public struct KeychainGroup: ExpressibleByStringLiteral {
+    public let value: String
+
+    public init(value: String) {
+        self.value = value
+    }
+
+    public init(stringLiteral value: StaticString) {
+        self = KeychainGroup(value: "\(value)")
+    }
+}

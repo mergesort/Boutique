@@ -43,15 +43,17 @@ public struct SecurelyStoredValue<Item: Codable> {
     private let itemSubject = CurrentValueSubject<Item?, Never>(nil)
     private let key: String
     private let group: String?
+    private let service: String?
 
-    public init(key: String, group: String? = nil) {
+    public init(key: String, group: KeychainGroup? = nil, service: KeychainService? = nil) {
         self.key = key
-        self.group = group
+        self.group = group?.value
+        self.service = service?.value
     }
 
     /// The currently stored value
     public var wrappedValue: Item? {
-        Self.storedValue(service: Self.service, account: self.key, group: self.group)
+        Self.storedValue(service: self.keychainService, account: self.key, group: self.group)
     }
 
     /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
@@ -171,7 +173,7 @@ private extension SecurelyStoredValue {
     func insert(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: self.keychainService,
             kSecAttrAccount: self.key,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
@@ -190,7 +192,7 @@ private extension SecurelyStoredValue {
     func update(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: self.keychainService,
             kSecAttrAccount: self.key,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
@@ -209,7 +211,7 @@ private extension SecurelyStoredValue {
     func removeItem() throws {
         var keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: self.keychainService,
             kSecAttrAccount: key
         ]
         .withGroup(self.group)
@@ -227,7 +229,11 @@ private extension SecurelyStoredValue {
         }
     }
 
-    static var service: String {
+    var keychainService: String {
+        self.service ?? Self.defaultService
+    }
+
+    static var defaultService: String {
         // Force unwrapping because if the app somehow has a nil bundleIdentifier
         // we have much bigger problems than a nil bundleIdentifier.
         Bundle.main.bundleIdentifier!
