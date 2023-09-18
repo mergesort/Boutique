@@ -152,12 +152,11 @@ private extension SecurelyStoredValue {
     static func storedValue(service: String, account: String, group: String?) -> Item? {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrAccessGroup: group ?? Self.service,
             kSecAttrService: service,
             kSecAttrAccount: account,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecReturnData: true
         ]
+        .withGroup(group)
         .mapToStringDictionary()
 
         var extractedData: AnyObject?
@@ -172,12 +171,11 @@ private extension SecurelyStoredValue {
     func insert(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrService: Self.service,
             kSecAttrAccount: self.key,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
+        .withGroup(self.group)
         .mapToStringDictionary()
 
         let status = SecItemAdd(keychainQuery as CFDictionary, nil)
@@ -192,12 +190,11 @@ private extension SecurelyStoredValue {
     func update(_ value: Item) throws {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrService: Self.service,
             kSecAttrAccount: self.key,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
+        .withGroup(self.group)
         .mapToStringDictionary()
 
         let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
@@ -212,10 +209,10 @@ private extension SecurelyStoredValue {
     func removeItem() throws {
         var keychainQuery = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrAccessGroup: self.group ?? Self.service,
             kSecAttrService: Self.service,
             kSecAttrAccount: key
         ]
+        .withGroup(self.group)
         .mapToStringDictionary()
 
 #if os(macOS)
@@ -244,6 +241,15 @@ private extension Dictionary where Key == CFString, Value == Any {
                 return (key as String, value)
             })
         )
+    }
+
+    func withGroup(_ group: String?) -> [CFString : Any] {
+        var dictionary = self
+        if let group {
+            dictionary[kSecAttrAccessGroup] = group
+        }
+
+        return dictionary
     }
 }
 
