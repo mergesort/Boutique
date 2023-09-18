@@ -51,7 +51,7 @@ public struct SecurelyStoredValue<Item: Codable> {
 
     /// The currently stored value
     public var wrappedValue: Item? {
-        Self.storedValue(service: Self.service, account: self.key)
+        Self.storedValue(service: Self.service, account: self.key, group: self.group)
     }
 
     /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
@@ -149,11 +149,12 @@ public struct SecurelyStoredValue<Item: Codable> {
 }
 
 private extension SecurelyStoredValue {
-    static func storedValue(service: String, account: String) -> Item? {
+    static func storedValue(service: String, account: String, group: String?) -> Item? {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: account,
+            kSecAttrAccessGroup: group ?? Self.service,
             kSecReturnData: true
         ]
         .mapToStringDictionary()
