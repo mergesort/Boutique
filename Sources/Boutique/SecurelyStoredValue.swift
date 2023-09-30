@@ -202,7 +202,7 @@ private extension SecurelyStoredValue {
         .withGroup(self.group)
         .mapToStringDictionary()
 
-        let status = SecItemUpdate(dataDictionary as CFDictionary, keychainQuery as CFDictionary)
+        let status = SecItemUpdate(keychainQuery as CFDictionary, dataDictionary as CFDictionary)
 
         if status == errSecSuccess {
             self.itemSubject.send(value)
