@@ -190,16 +190,19 @@ private extension SecurelyStoredValue {
     }
 
     func update(_ value: Item) throws {
+        let data = try JSONCoders.encoder.encodeBoxedData(item: value)
+        let dataDictionary = [kSecValueData as String: value]
+
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
             kSecAttrAccount: self.key,
-            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            kSecValueData: data
         ]
         .withGroup(self.group)
         .mapToStringDictionary()
 
-        let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
+        let status = SecItemUpdate(dataDictionary as CFDictionary, keychainQuery as CFDictionary)
 
         if status == errSecSuccess {
             self.itemSubject.send(value)
