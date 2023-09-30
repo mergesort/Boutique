@@ -156,6 +156,9 @@ private extension SecurelyStoredValue {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: account,
+            kSecAttrGeneric: account,
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
+            kSecMatchLimit: kSecMatchLimitOne,
             kSecReturnData: true
         ]
         .withGroup(group)
@@ -175,6 +178,8 @@ private extension SecurelyStoredValue {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
             kSecAttrAccount: self.key,
+            kSecAttrGeneric: self.key,
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
             kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
         ]
         .withGroup(self.group)
@@ -197,6 +202,8 @@ private extension SecurelyStoredValue {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
             kSecAttrAccount: self.key,
+            kSecAttrGeneric: self.key,
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked,
             kSecValueData: data
         ]
         .withGroup(self.group)
