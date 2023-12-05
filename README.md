@@ -33,7 +33,7 @@ Boutique is a simple but powerful persistence library, a small set of property w
 
 ### Getting Started
 
-Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The @``StoredValue`` and @``AsyncStoredValue`` property wrappers work the same way, but instead of an array they work with singular Swift values. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
+Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The ``@StoredValue`` and ``@AsyncStoredValue`` property wrappers work the same way, but instead of an array they work with singular Swift values. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
 
 You may be familiar with the ``Store`` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about adding Actions or Reducers. With this ``Store`` implementation all your data is persisted for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
 
@@ -193,7 +193,7 @@ The `Store` and `@Stored` were created to store an array of data because most da
 
 Whether you need to save an important piece of information for the next time your app is launched, stored an auth token in the keychain, or you want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
 
-Often times people will choose to store individual items like that in `UserDefaults`. If you've used `@AppStorage` then @`StoredValue` will feel right at home, it has a very similar API with some additional features. A @`StoredValue` will end up being stored in `UserDefaults`, but it also exposes a `publisher` so you can easily subscribe to changes.
+Often times people will choose to store individual items like that in `UserDefaults`. If you've used `@AppStorage` then `@StoredValue` will feel right at home, it has a very similar API with some additional features. A `@StoredValue` will end up being stored in `UserDefaults`, but it also exposes a `publisher` so you can easily subscribe to changes.
 
 ```swift
 // Setup a `@StoredValue, @AsyncStoredValue has the same API.
