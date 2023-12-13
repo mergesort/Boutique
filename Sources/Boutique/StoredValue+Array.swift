@@ -1,4 +1,4 @@
-public extension StoredValue {
+public extension StoredValue where Item: RangeReplaceableCollection {
     /// A function to append a @``StoredValue`` represented by an `Array`
     /// without having to manually make an intermediate copy for every value update.
     ///
@@ -14,9 +14,16 @@ public extension StoredValue {
     /// try await self.$redPandaList.append("Pabu")
     /// ```
     @MainActor
-    func append<Value>(_ value: Value) where Item == [Value] {
+    func append(_ item: Item.Element) {
         var updatedArray = self.wrappedValue
-        updatedArray.append(value)
+        updatedArray.append(item)
+        self.set(updatedArray)
+    }
+
+    @MainActor
+    func togglePresence<Value: Equatable>(_ value: Value) where Item == [Value] {
+        var updatedArray = self.wrappedValue
+        updatedArray.togglePresence(value)
         self.set(updatedArray)
     }
 }
@@ -48,7 +55,7 @@ public extension SecurelyStoredValue {
     }
 }
 
-public extension AsyncStoredValue {
+public extension AsyncStoredValue where Item: RangeReplaceableCollection {
     /// A function to append a @``StoredValue`` represented by an `Array`
     /// without having to manually make an intermediate copy for every value update.
     ///
@@ -63,9 +70,31 @@ public extension AsyncStoredValue {
     /// ```
     /// try await self.$redPandaList.append("Pabu")
     /// ```
-    func append<Value>(_ value: Value) async throws where Item == [Value] {
+    func append(_ item: Item.Element) async throws {
         var updatedArray = self.wrappedValue
-        updatedArray.append(value)
+        updatedArray.append(item)
         try await self.set(updatedArray)
+    }
+
+    @MainActor
+    func togglePresence<Value: Equatable>(_ value: Value) async throws where Item == [Value] {
+        var updatedArray = self.wrappedValue
+        updatedArray.togglePresence(value)
+        try await self.set(updatedArray)
+    }
+}
+
+private extension Array where Element: Equatable {
+    /// Adds a tag to an array if the tag doesn't exist in the array, otherwise removes the tag from the array.
+    /// This is useful for actions like a user tapping a button, where the current existence
+    /// of the tag in the array may not be known.
+    ///
+    /// - Parameter tag: The tag to add or remove
+    mutating func togglePresence(_ item: Element) {
+        if self.contains(where: { $0 == item }) {
+            self.removeAll(where: { $0 == item })
+        } else {
+            self.append(item)
+        }
     }
 }

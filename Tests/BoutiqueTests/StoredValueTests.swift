@@ -110,6 +110,23 @@ final class StoredValueTests: XCTestCase {
         XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater, BoutiqueItem.belt])
     }
 
+    func testStoredArrayValueTogglePresence() async throws {
+        XCTAssertEqual(self.storedArrayValue, [])
+
+        await self.$storedArrayValue.togglePresence(.sweater)
+        XCTAssertEqual(self.storedArrayValue, [.sweater])
+
+        await self.$storedArrayValue.togglePresence(.sweater)
+        XCTAssertEqual(self.storedArrayValue, [])
+
+        await self.$storedArrayValue.togglePresence(.sweater)
+        await self.$storedArrayValue.togglePresence(.belt)
+        XCTAssertEqual(self.storedArrayValue, [.sweater, .belt])
+
+        await self.$storedArrayValue.togglePresence(.belt)
+        XCTAssertEqual(self.storedArrayValue, [.sweater])
+    }
+
     @MainActor
     func testStoredBinding() async throws {
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
