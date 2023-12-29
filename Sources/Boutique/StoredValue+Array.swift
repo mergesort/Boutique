@@ -21,6 +21,9 @@ public extension StoredValue where Item: RangeReplaceableCollection {
     }
 
     @MainActor
+    /// A function that takes a value and removes it from an array if that value exists in the array,
+    /// or adds it to the array if the value doesn't exist.
+    /// - Parameter value: The value to add or remove from an array.
     func togglePresence<Value: Equatable>(_ value: Value) where Item == [Value] {
         var updatedArray = self.wrappedValue
         updatedArray.togglePresence(value)
@@ -76,7 +79,11 @@ public extension AsyncStoredValue where Item: RangeReplaceableCollection {
         try await self.set(updatedArray)
     }
 
+
     @MainActor
+    /// A function that takes a value and removes it from an array if that value exists in the array,
+    /// or adds it to the array if the value doesn't exist.
+    /// - Parameter value: The value to add or remove from an array.
     func togglePresence<Value: Equatable>(_ value: Value) async throws where Item == [Value] {
         var updatedArray = self.wrappedValue
         updatedArray.togglePresence(value)
