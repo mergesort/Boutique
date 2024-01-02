@@ -86,7 +86,7 @@ store.$items.sink({ items in
 })
 ```
 
-Even more powerful is seeing how naturally @``Stored`` arrays integrate into SwiftUI. We'll take our `NotesController` and let it be the data source for a SwiftUI view, watching our UI update in real time across all of our views whenever the data changes. While this example is one view, this technique will work in all your views that share the same data source, no matter how matter how complex your views may be.
+Even more powerful is seeing how naturally @``Stored`` arrays integrate into SwiftUI. We'll take our `NotesController` and let it be the data source for a SwiftUI view, watching our UI update in real time across all of our views whenever the data changes. While this example is one view, this technique will work in all your views that share the same data source, no matter how complex your views may be.
 
 ```swift
 struct NotesListView: View {
