@@ -514,7 +514,8 @@ private extension Store {
                 $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
             }
         )}
-        let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+
+        let itemKeys = itemsToRemove.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
 
         if itemKeys.count == 1 {
             try await self.storageEngine.remove(key: itemKeys[0])
