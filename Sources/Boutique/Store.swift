@@ -509,24 +509,17 @@ private extension Store {
         // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
         guard itemsToRemove.count != 0 else { return }
 
-        // If we're using the `.removeAll` strategy then we want to remove all the data without iterating
-        // Else, we're using a strategy and need to iterate over all of the `itemsToInvalidate` and invalidate them
-        if items.count == itemsToRemove.count {
-            items = []
-            try await self.storageEngine.removeAllData()
-        } else {
-            items = items.filter { item in
-                !itemsToRemove.contains(where: {
-                    $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
-                }
-            )}
-            let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
-
-            if itemKeys.count == 1 {
-                try await self.storageEngine.remove(key: itemKeys[0])
-            } else {
-                try await self.storageEngine.remove(keys: itemKeys)
+        items = items.filter { item in
+            !itemsToRemove.contains(where: {
+                $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
             }
+        )}
+        let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+
+        if itemKeys.count == 1 {
+            try await self.storageEngine.remove(key: itemKeys[0])
+        } else {
+            try await self.storageEngine.remove(keys: itemKeys)
         }
     }
 }
