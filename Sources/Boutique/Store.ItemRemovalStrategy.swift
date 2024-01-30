@@ -1,6 +1,6 @@
 import Foundation
 
-public extension Store {
+extension Store {
     /// An invalidation strategy for a `Store` instance.
     ///
     /// An `ItemRemovalStrategy` provides control over how items are removed from the `Store`
