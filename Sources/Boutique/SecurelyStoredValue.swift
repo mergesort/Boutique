@@ -92,7 +92,12 @@ public struct SecurelyStoredValue<Item: Codable> {
             if self.wrappedValue == nil {
                 try self.insert(value)
             } else {
-                try self.update(value)
+                // This call to `remove` is a temporary workaround for broken functionality when trying to update a value.
+                // Since updating a value does not seem to work, I've rewritten `set` to first set a `nil` value
+                // then the desired value, which will effectively call `set` with a new value, which does work.
+                // This will be fixed in the future, and we will restore the call-site to say `self.update(value)`.
+                try self.remove()
+                try self.insert(value)
             }
         } else {
             try self.remove()
