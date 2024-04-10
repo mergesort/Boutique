@@ -14,7 +14,6 @@ public extension StoredValue {
     }
 }
 
-
 public extension SecurelyStoredValue {
     /// A convenient way to create a `Binding` from a `SecurelyStoredValue`.
     ///
