@@ -34,7 +34,9 @@ extension BoutiqueItem {
         merchantID: "4",
         value: "Belt"
     )
+}
 
+extension [BoutiqueItem] {
     static let allItems = [
         BoutiqueItem.coat,
         BoutiqueItem.sweater,

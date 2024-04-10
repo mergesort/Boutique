@@ -30,13 +30,13 @@ final class AsyncStoredValueTests: XCTestCase {
     }
 
     func testStorageEngineBackedStoredValue() async throws {
-        XCTAssertEqual(self.storedItem, BoutiqueItem.coat)
+        XCTAssertEqual(self.storedItem, .coat)
 
-        try await self.$storedItem.set(BoutiqueItem.belt)
-        XCTAssertEqual(self.storedItem, BoutiqueItem.belt)
+        try await self.$storedItem.set(.belt)
+        XCTAssertEqual(self.storedItem, .belt)
 
         try await self.$storedItem.reset()
-        XCTAssertEqual(self.storedItem, BoutiqueItem.coat)
+        XCTAssertEqual(self.storedItem, .coat)
     }
 
     func testBoolAsyncStoredValue() async throws {
@@ -81,11 +81,11 @@ final class AsyncStoredValueTests: XCTestCase {
     func testStoredArrayValueAppend() async throws {
         XCTAssertEqual(self.storedArrayValue, [])
 
-        try await self.$storedArrayValue.append(BoutiqueItem.sweater)
-        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater])
+        try await self.$storedArrayValue.append(.sweater)
+        XCTAssertEqual(self.storedArrayValue, [.sweater])
 
-        try await self.$storedArrayValue.append(BoutiqueItem.belt)
-        XCTAssertEqual(self.storedArrayValue, [BoutiqueItem.sweater, BoutiqueItem.belt])
+        try await self.$storedArrayValue.append(.belt)
+        XCTAssertEqual(self.storedArrayValue, [.sweater, .belt])
     }
 
     func testStoredArrayValueTogglePresence() async throws {
@@ -106,10 +106,10 @@ final class AsyncStoredValueTests: XCTestCase {
     }
 
     func testStoredBinding() async throws {
-        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.sweater).wrappedValue)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.sweater).wrappedValue)
 
-        try await self.$storedBinding.set(BoutiqueItem.belt)
-        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
+        try await self.$storedBinding.set(.belt)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.belt).wrappedValue)
     }
 
     func testStoredValuePublishedSubscription() async throws {
@@ -122,15 +122,15 @@ final class AsyncStoredValueTests: XCTestCase {
                 values.append(item)
 
                 if values.count == 4 {
-                    XCTAssertEqual(values, [BoutiqueItem.coat, .sweater, .purse, .belt])
+                    XCTAssertEqual(values, [.coat, .sweater, .purse, .belt])
                     expectation.fulfill()
                 }
             })
             .store(in: &cancellables)
 
-        try await self.$storedItem.set(BoutiqueItem.sweater)
-        try await self.$storedItem.set(BoutiqueItem.purse)
-        try await self.$storedItem.set(BoutiqueItem.belt)
+        try await self.$storedItem.set(.sweater)
+        try await self.$storedItem.set(.purse)
+        try await self.$storedItem.set(.belt)
 
         wait(for: [expectation], timeout: 1)
     }
