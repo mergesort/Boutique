@@ -136,11 +136,11 @@ final class SecurelyStoredValueTests: XCTestCase {
     func testStoredArrayValueAppend() async throws {
         XCTAssertEqual(self.storedArray, nil)
 
-        try await self.$storedArray.append(BoutiqueItem.sweater)
-        XCTAssertEqual(self.storedArray, [BoutiqueItem.sweater])
+        try await self.$storedArray.append(.sweater)
+        XCTAssertEqual(self.storedArray, [.sweater])
 
-        try await self.$storedArray.append(BoutiqueItem.belt)
-        XCTAssertEqual(self.storedArray, [BoutiqueItem.sweater, BoutiqueItem.belt])
+        try await self.$storedArray.append(.belt)
+        XCTAssertEqual(self.storedArray, [.sweater, .belt])
     }
 
     @MainActor
@@ -150,8 +150,8 @@ final class SecurelyStoredValueTests: XCTestCase {
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, nil)
 
-        try self.$storedBinding.set(BoutiqueItem.belt)
-        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(BoutiqueItem.belt).wrappedValue)
+        try self.$storedBinding.set(.belt)
+        XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.belt).wrappedValue)
     }
 
     func testPublishedValueSubscription() async throws {
@@ -166,16 +166,16 @@ final class SecurelyStoredValueTests: XCTestCase {
                 }
 
                 if values.count == 4 {
-                    XCTAssertEqual(values, [BoutiqueItem.coat, .purse, .sweater, .belt])
+                    XCTAssertEqual(values, [.coat, .purse, .sweater, .belt])
                     expectation.fulfill()
                 }
             })
             .store(in: &cancellables)
 
-        try await self.$storedItem.set(BoutiqueItem.coat)
-        try await self.$storedItem.set(BoutiqueItem.purse)
-        try await self.$storedItem.set(BoutiqueItem.sweater)
-        try await self.$storedItem.set(BoutiqueItem.belt)
+        try await self.$storedItem.set(.coat)
+        try await self.$storedItem.set(.purse)
+        try await self.$storedItem.set(.sweater)
+        try await self.$storedItem.set(.belt)
 
         await fulfillment(of: [expectation], timeout: 1)
     }

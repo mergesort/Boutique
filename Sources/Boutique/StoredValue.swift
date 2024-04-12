@@ -45,6 +45,8 @@ public struct StoredValue<Item: Codable> {
     private let userDefaults: UserDefaults
     private let itemSubject: CurrentValueSubject<Item, Never>
 
+    private var cachedValue: CachedValue<Item>
+
     public init(wrappedValue: Item, key: String, storage userDefaults: UserDefaults = UserDefaults.standard) {
         self.key = key
         self.defaultValue = wrappedValue
@@ -52,11 +54,15 @@ public struct StoredValue<Item: Codable> {
 
         let initialValue = Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: defaultValue)
         self.itemSubject = CurrentValueSubject(initialValue)
+
+        self.cachedValue = CachedValue(retrieveValue: {
+            Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: initialValue)
+        })
     }
 
     /// The currently stored value
     public var wrappedValue: Item {
-        Self.storedValue(forKey: self.key, userDefaults: self.userDefaults, defaultValue: self.defaultValue)
+        self.cachedValue.retrieveValue()
     }
 
     /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
@@ -94,6 +100,7 @@ public struct StoredValue<Item: Codable> {
         let boxedValue = BoxedValue(value: value)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
+            self.cachedValue.set(value)
             self.itemSubject.send(value)
         }
     }
@@ -123,6 +130,7 @@ public struct StoredValue<Item: Codable> {
         let boxedValue = BoxedValue(value: self.defaultValue)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
+            self.cachedValue.set(self.defaultValue)
             self.itemSubject.send(self.defaultValue)
         }
     }
