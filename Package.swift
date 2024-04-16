@@ -29,6 +29,9 @@ let package = Package(
             exclude: [
                 "../../Images",
                 "../../Performance Profiler",
+            ],
+            swiftSettings: [
+                .define("ENABLE_TESTABILITY", .when(configuration: .debug))
             ]
         ),
         .testTarget(
