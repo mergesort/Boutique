@@ -133,11 +133,30 @@ final class StoredTests: XCTestCase {
         XCTAssertTrue(items.contains(.sweater))
         XCTAssertFalse(items.contains(.belt))
 
+        try await $items.removeAll()
+
         try await $items
             .insert(.belt)
             .insert(.coat)
             .insert(.purse)
             .remove([.belt, .coat])
+            .insert([.sweater])
+            .run()
+
+        XCTAssertEqual(items.count, 2)
+        XCTAssertTrue(items.contains(.sweater))
+        XCTAssertTrue(items.contains(.purse))
+        XCTAssertFalse(items.contains(.coat))
+        XCTAssertFalse(items.contains(.belt))
+
+        try await $items.removeAll()
+
+        try await $items
+            .insert(.belt)
+            .insert(.coat)
+            .insert(.purse)
+            .remove(.belt)
+            .remove(.coat)
             .insert(.sweater)
             .run()
 
@@ -158,6 +177,33 @@ final class StoredTests: XCTestCase {
         XCTAssertTrue(items.contains(.purse))
         XCTAssertTrue(items.contains(.belt))
         XCTAssertTrue(items.contains(.coat))
+
+        try await $items.removeAll()
+
+        try await $items
+            .insert(.coat)
+            .insert([.purse, .belt])
+            .remove(.purse)
+            .run()
+
+        XCTAssertEqual(items.count, 2)
+        XCTAssertFalse(items.contains(.purse))
+        XCTAssertTrue(items.contains(.belt))
+        XCTAssertTrue(items.contains(.coat))
+
+        try await $items.removeAll()
+
+        try await $items
+            .insert([.coat])
+            .remove(.coat)
+            .insert([.purse, .belt])
+            .remove(.purse)
+            .run()
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertFalse(items.contains(.purse))
+        XCTAssertTrue(items.contains(.belt))
+        XCTAssertFalse(items.contains(.coat))
     }
 
     @MainActor
