@@ -15,11 +15,11 @@ final class StoreTests: XCTestCase {
                 storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
                 cacheIdentifier: \.merchantID)
         }
-        
+
         store = makeNonAsyncStore()
         try await store.removeAll()
     }
-    
+
     override func tearDown() {
         cancellables.removeAll()
     }
@@ -64,12 +64,12 @@ final class StoreTests: XCTestCase {
     @MainActor
     func testReadingPersistedItems() async throws {
         try await store.insert(.allItems)
-        
+
         // The new store has to fetch items from disk.
         let newStore = try await Store<BoutiqueItem>(
             storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
             cacheIdentifier: \.merchantID)
-        
+
         XCTAssertEqual(newStore.items[0], .coat)
         XCTAssertEqual(newStore.items[1], .sweater)
         XCTAssertEqual(newStore.items[2], .purse)
@@ -138,14 +138,17 @@ final class StoreTests: XCTestCase {
         try await store.removeAll()
 
         try await store
-            .insert([.belt, .coat])
-            .insert(.sweater)
-            .remove([.belt])
+            .insert(.belt)
+            .insert(.coat)
+            .insert(.purse)
+            .remove([.belt, .coat])
+            .insert([.sweater])
             .run()
 
         XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.coat))
         XCTAssertTrue(store.items.contains(.sweater))
+        XCTAssertTrue(store.items.contains(.purse))
+        XCTAssertFalse(store.items.contains(.coat))
         XCTAssertFalse(store.items.contains(.belt))
 
         try await store.removeAll()
@@ -154,7 +157,8 @@ final class StoreTests: XCTestCase {
             .insert(.belt)
             .insert(.coat)
             .insert(.purse)
-            .remove([.belt, .coat])
+            .remove(.belt)
+            .remove(.coat)
             .insert(.sweater)
             .run()
 
@@ -175,6 +179,58 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.items.contains(.purse))
         XCTAssertTrue(store.items.contains(.belt))
         XCTAssertTrue(store.items.contains(.coat))
+
+        try await store.removeAll()
+
+        try await store
+            .insert(.coat)
+            .insert([.purse, .belt])
+            .remove(.purse)
+            .run()
+
+        XCTAssertEqual(store.items.count, 2)
+        XCTAssertFalse(store.items.contains(.purse))
+        XCTAssertTrue(store.items.contains(.belt))
+        XCTAssertTrue(store.items.contains(.coat))
+
+        try await store.removeAll()
+
+        try await store
+            .insert([.coat])
+            .remove(.coat)
+            .insert([.purse, .belt])
+            .remove(.purse)
+            .run()
+
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertFalse(store.items.contains(.purse))
+        XCTAssertTrue(store.items.contains(.belt))
+        XCTAssertFalse(store.items.contains(.coat))
+
+        try await store.removeAll()
+
+        try await store
+            .insert([.coat])
+            .remove(.coat)
+            .insert([.purse, .belt])
+            .removeAll()
+            .run()
+
+        XCTAssertEqual(store.items.count, 0)
+        XCTAssertFalse(store.items.contains(.purse))
+        XCTAssertFalse(store.items.contains(.belt))
+        XCTAssertFalse(store.items.contains(.coat))
+
+        try await store
+            .insert([.coat])
+            .removeAll()
+            .insert([.purse, .belt])
+            .run()
+
+        XCTAssertEqual(store.items.count, 2)
+        XCTAssertTrue(store.items.contains(.purse))
+        XCTAssertTrue(store.items.contains(.belt))
+        XCTAssertFalse(store.items.contains(.coat))
     }
 
     @MainActor
@@ -254,3 +310,4 @@ final class StoreTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 }
+
