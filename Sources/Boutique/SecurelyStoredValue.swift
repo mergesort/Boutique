@@ -128,6 +128,8 @@ public struct SecurelyStoredValue<Item: Codable> {
     public func remove() throws {
         if self.wrappedValue != nil {
             try self.removeItem()
+        } else if self.wrappedValue == nil && Self.keychainValueExists(group: self.group, service: self.keychainService, account: self.key) {
+            try self.removeItem()
         }
     }
 
@@ -232,6 +234,22 @@ private extension SecurelyStoredValue {
         if status == errSecSuccess || status == errSecItemNotFound {
             self.itemSubject.send(nil)
         }
+    }
+
+    static func keychainValueExists(group: String?, service: String, account: String) -> Bool {
+        let keychainQuery = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true
+        ]
+        .withGroup(group)
+        .mapToStringDictionary()
+
+        var extractedData: AnyObject?
+        let status = SecItemCopyMatching(keychainQuery as CFDictionary, &extractedData)
+
+        return status != errSecItemNotFound
     }
 
     var keychainService: String {
