@@ -385,14 +385,16 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        var currentItems = await self.items
+
         if let strategy = existingItemsStrategy {
-            // Remove items from disk and memory based on the cache invalidation strategy
-            var removedItems: [Item] = [item]
-            try await self.removeItems(&removedItems, withStrategy: strategy)
+            var removedItems = [item]
+            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            // If we remove this one it will error
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
-        let currentItems = await self.items
         let identifier = item[keyPath: self.cacheIdentifier]
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
@@ -407,11 +409,16 @@ internal extension Store {
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        var currentItems = await self.items
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
             var removedItems = items
-            try await self.removeItems(&removedItems, withStrategy: strategy)
+            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            // This one is fine to remove... but why?
+            // Is it the way we construct the items in the ordered dictionary?
+            // If so should the two just use the same approach — perhaps sharing all the same code except for the last call to `persistItem` vs. `persistItems`?
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
         }
 
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
@@ -424,7 +431,6 @@ internal extension Store {
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
-        let currentItems = await self.items
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
 
@@ -477,7 +483,6 @@ internal extension Store {
 }
 
 private extension Store {
-
     func persistItem(_ item: Item) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
 
@@ -503,17 +508,11 @@ private extension Store {
         try await self.storageEngine.remove(keys: itemKeys)
     }
 
-    func removeItems(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
+    func removeItemsFromStorageEngine(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
         let itemsToRemove = strategy.removedItems(items)
 
         // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
         guard itemsToRemove.count != 0 else { return }
-
-        items = items.filter { item in
-            !itemsToRemove.contains(where: {
-                $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
-            }
-        )}
 
         let itemKeys = itemsToRemove.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
 
@@ -522,5 +521,15 @@ private extension Store {
         } else {
             try await self.storageEngine.remove(keys: itemKeys)
         }
+    }
+
+    func removeItemsFromMemory(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>, identifier: KeyPath<Item, String>) {
+        let itemsToRemove = strategy.removedItems(items)
+
+        items = items.filter { item in
+            !itemsToRemove.contains(where: {
+                $0[keyPath: identifier] == item[keyPath: identifier]
+            }
+        )}
     }
 }

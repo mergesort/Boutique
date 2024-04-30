@@ -7,7 +7,7 @@ final class StoredValueTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
     @StoredValue<BoutiqueItem>(key: "storedItem")
-    private var storedItem = BoutiqueItem.coat
+    private var storedItem = .coat
 
     @StoredValue<BoutiqueItem?>(key: "storedNilValue")
     private var storedNilValue = nil
@@ -90,11 +90,11 @@ final class StoredValueTests: XCTestCase {
     func testStoredDictionaryValueUpdate() async throws {
         XCTAssertEqual(self.storedDictionaryValue, [:])
 
-        await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater)
-        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
+        await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : .sweater])
 
         await self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
-        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
+        XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : .sweater])
 
         await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])

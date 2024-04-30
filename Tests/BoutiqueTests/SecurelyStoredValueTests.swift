@@ -123,11 +123,11 @@ final class SecurelyStoredValueTests: XCTestCase {
     func testStoredDictionary() async throws {
         XCTAssertEqual(self.storedDictionary, nil)
 
-        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: BoutiqueItem.sweater)
-        XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
+        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
+        XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : .sweater])
 
         try await self.$storedDictionary.update(key: BoutiqueItem.belt.merchantID, value: nil)
-        XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : BoutiqueItem.sweater])
+        XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : .sweater])
 
         try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionary, [:])

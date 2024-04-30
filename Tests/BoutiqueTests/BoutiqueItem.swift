@@ -37,18 +37,18 @@ extension BoutiqueItem {
 }
 
 extension [BoutiqueItem] {
-    static let allItems = [
-        BoutiqueItem.coat,
-        BoutiqueItem.sweater,
-        BoutiqueItem.purse,
-        BoutiqueItem.belt,
-        BoutiqueItem.duplicateBelt
+    static let allItems: [BoutiqueItem] = [
+        .coat,
+        .sweater,
+        .purse,
+        .belt,
+        .duplicateBelt
     ]
 
-    static let uniqueItems = [
-        BoutiqueItem.coat,
-        BoutiqueItem.sweater,
-        BoutiqueItem.purse,
-        BoutiqueItem.belt,
+    static let uniqueItems: [BoutiqueItem] = [
+        .coat,
+        .sweater,
+        .purse,
+        .belt,
     ]
 }
