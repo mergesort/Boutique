@@ -43,8 +43,7 @@ import Foundation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-public final class Store<Item: Codable>: ObservableObject {
-
+public final class Store<Item: Codable & Sendable>: ObservableObject {
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -127,6 +126,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
     /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
@@ -147,6 +147,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are inserting into the ``Store``.
     /// - Returns: An ``Operation`` that can be used to insert an item as part of a chain.
@@ -162,6 +163,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are adding to the ``Store``.
     @available(
@@ -179,6 +181,7 @@ public final class Store<Item: Codable>: ObservableObject {
     /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
     /// of items, removing complexity when it comes to managing items, indices, and more,
     /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+    ///
     /// - Parameters:
     ///   - item: The item you are inserting into the ``Store``.
     public func insert(_ item: Item) async throws {
@@ -189,6 +192,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer adding multiple items using this method instead of calling ``add(_:)-1ausm``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to add to the store.
     /// - Returns: An ``Operation`` that can be used to add items as part of a chain.
@@ -207,6 +211,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-7z2oe``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to insert into the store.
     /// - Returns: An ``Operation`` that can be used to insert items as part of a chain.
@@ -220,6 +225,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer adding multiple items using this method instead of calling ``insert(_:)-7z2oe``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to add to the store.
     @available(
@@ -235,6 +241,7 @@ public final class Store<Item: Codable>: ObservableObject {
     ///
     /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-3j9hw``
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+    ///
     /// - Parameters:
     ///   - items: The items to insert into the store.
     public func insert(_ items: [Item]) async throws {
@@ -242,6 +249,7 @@ public final class Store<Item: Codable>: ObservableObject {
     }
 
     /// Removes an item from the ``Store``.
+    ///
     /// - Parameter item: The item you are removing from the ``Store``.
     /// - Returns: An ``Operation`` that can be used to remove an item as part of a chain.
     @_disfavoredOverload
@@ -303,9 +311,8 @@ public final class Store<Item: Codable>: ObservableObject {
     /// A `Task` that will kick off loading items into the ``Store``.
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
-            let decoder = JSONDecoder()
             self.items = try await self.storageEngine.readAllData()
-                .map({ try decoder.decode(Item.self, from: $0) })
+                .map({ try JSONCoders.decoder.decode(Item.self, from: $0) })
         } catch {
             self.items = []
             throw error
@@ -381,8 +388,10 @@ internal extension Store {
         var currentItems = await self.items
 
         if let strategy = existingItemsStrategy {
-            // Remove items from disk and memory based on the cache invalidation strategy
-            try await self.removeItems(withStrategy: strategy, items: &currentItems)
+            var removedItems = [item]
+            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            // If we remove this one it will error
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
@@ -404,7 +413,12 @@ internal extension Store {
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
-            try await self.removeItems(withStrategy: strategy, items: &currentItems)
+            var removedItems = items
+            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            // This one is fine to remove... but why?
+            // Is it the way we construct the items in the ordered dictionary?
+            // If so should the two just use the same approach — perhaps sharing all the same code except for the last call to `persistItem` vs. `persistItems`?
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
         }
 
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
@@ -469,19 +483,17 @@ internal extension Store {
 }
 
 private extension Store {
-
     func persistItem(_ item: Item) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
-        let encoder = JSONEncoder()
 
-        try await self.storageEngine.write(try encoder.encode(item), key: cacheKey)
+        try await self.storageEngine.write(try JSONCoders.encoder.encode(item), key: cacheKey)
     }
 
     func persistItems(_ items: [Item]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
-        let encoder = JSONEncoder()
+
         let dataAndKeys = try zip(itemKeys, items)
-            .map({ (key: $0, data: try encoder.encode($1)) })
+            .map({ (key: $0, data: try JSONCoders.encoder.encode($1)) })
 
         try await self.storageEngine.write(dataAndKeys)
     }
@@ -496,31 +508,28 @@ private extension Store {
         try await self.storageEngine.remove(keys: itemKeys)
     }
 
-    func removeItems(withStrategy strategy: ItemRemovalStrategy<Item>, items: inout [Item]) async throws {
+    func removeItemsFromStorageEngine(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
         let itemsToRemove = strategy.removedItems(items)
 
         // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
         guard itemsToRemove.count != 0 else { return }
 
-        // If we're using the `.removeAll` strategy then we want to remove all the data without iterating
-        // Else, we're using a strategy and need to iterate over all of the `itemsToInvalidate` and invalidate them
-        if items.count == itemsToRemove.count {
-            items = []
-            try await self.storageEngine.removeAllData()
-        } else {
-            items = items.filter { item in
-                !itemsToRemove.contains(where: {
-                    $0[keyPath: cacheIdentifier] == item[keyPath: cacheIdentifier]
-                }
-            )}
-            let itemKeys = items.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+        let itemKeys = itemsToRemove.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
 
-            if itemKeys.count == 1 {
-                try await self.storageEngine.remove(key: itemKeys[0])
-            } else {
-                try await self.storageEngine.remove(keys: itemKeys)
-            }
+        if itemKeys.count == 1 {
+            try await self.storageEngine.remove(key: itemKeys[0])
+        } else {
+            try await self.storageEngine.remove(keys: itemKeys)
         }
     }
 
+    func removeItemsFromMemory(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>, identifier: KeyPath<Item, String>) {
+        let itemsToRemove = strategy.removedItems(items)
+
+        items = items.filter { item in
+            !itemsToRemove.contains(where: {
+                $0[keyPath: identifier] == item[keyPath: identifier]
+            }
+        )}
+    }
 }

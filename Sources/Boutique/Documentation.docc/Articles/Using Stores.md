@@ -118,7 +118,7 @@ The synchronous initializer is a sensible default, but if your app's needs dicta
 
 Building an app using the ``Store`` can be really powerful because it leans into SwiftUI's state-driven architecture, while providing you with offline-first capabilities, realtime updates across your app, with almost no additional code required.
 
-We've introduced the ``Store``, but the real power lies when you start to use Boutique's property wrappers, @``Stored``, @``StoredValue``, and @``AsyncStoredValue``. These property wrappers help deliver on the promise of working with regular Swift values and arrays yet having data persisted automatically, without ever having to think about the concept of a database.
+We've introduced the ``Store``, but the real power lies when you start to use Boutique's property wrappers, @``Stored``, @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue``. These property wrappers help deliver on the promise of working with regular Swift values and arrays yet having data persisted automatically, without ever having to think about the concept of a database.
 
 The next step is to explore how they work, with a small example SwiftUI app. 
 

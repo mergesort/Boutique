@@ -11,7 +11,7 @@ import SwiftUI
 /// This is useful for similar use cases as `UserDefaults`, where it's common to store only a single item
 /// such as the app's `lastOpenedDate`, an object of the user's preferences, configurations, and more.
 ///
-/// Results are delivered synchronously so values are available on app launch, using `UserDefaults` as the
+/// Values are delivered synchronously and are available on app launch, using `UserDefaults` as the
 /// backing store to accomplish this. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
 ///
 /// You must initialize a @``StoredValue`` with a default value like you would any other Swift property.
@@ -39,12 +39,13 @@ import SwiftUI
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
 @propertyWrapper
 public struct StoredValue<Item: Codable> {
-
     private let cancellableBox = CancellableBox()
     private let defaultValue: Item
     private let key: String
     private let userDefaults: UserDefaults
     private let itemSubject: CurrentValueSubject<Item, Never>
+
+    private var cachedValue: CachedValue<Item>
 
     public init(wrappedValue: Item, key: String, storage userDefaults: UserDefaults = UserDefaults.standard) {
         self.key = key
@@ -53,14 +54,18 @@ public struct StoredValue<Item: Codable> {
 
         let initialValue = Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: defaultValue)
         self.itemSubject = CurrentValueSubject(initialValue)
+
+        self.cachedValue = CachedValue(retrieveValue: {
+            Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: initialValue)
+        })
     }
 
     /// The currently stored value
     public var wrappedValue: Item {
-        Self.storedValue(forKey: self.key, userDefaults: self.userDefaults, defaultValue: self.defaultValue)
+        self.cachedValue.retrieveValue()
     }
 
-    /// A `StoredValue` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
+    /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
     public var projectedValue: StoredValue<Item> { self }
 
     /// A Combine publisher that allows you to observe all changes to the @``StoredValue``.
@@ -80,19 +85,22 @@ public struct StoredValue<Item: Codable> {
     /// you need to call `$storedValue.set(newValue)`, with a dollar sign ($) in front of `storedValue`.
     ///
     /// When using a property wrapper the ``wrappedValue`` is an `Item`, but the `projectedValue`
-    /// is a `StoredValue<Item>`. That means when you access `storedValue` you're interacting
-    /// with the item itself, of type `Item`. But it's the `projectedValue` that is
-    /// the `StoredValue<Item>` type, and has the ``set(_:) function.
+    /// is a `StoredValue<Item>`. That means you are accessing the `storedValue` you're interacting
+    /// with, a value type `Item`. But it is the `projectedValue` that is the `StoredValue<Item>`,
+    /// that property and has the ``set(_:) function.
     ///
     /// This follows similar conventions to the `@Published` property wrapper.
-    /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
-    /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
+    /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
+    /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    ///
     /// - Parameter value: The value to set @``StoredValue`` to.
+    @MainActor
     public func set(_ value: Item) {
         let boxedValue = BoxedValue(value: value)
-        if let data = try? JSONEncoder().encode(boxedValue) {
+        if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
+            self.cachedValue.set(value)
             self.itemSubject.send(value)
         }
     }
@@ -117,10 +125,12 @@ public struct StoredValue<Item: Codable> {
     /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
+    @MainActor
     public func reset() {
         let boxedValue = BoxedValue(value: self.defaultValue)
-        if let data = try? JSONEncoder().encode(boxedValue) {
+        if let data = try? JSONCoders.encoder.encode(boxedValue) {
             self.userDefaults.set(data, forKey: self.key)
+            self.cachedValue.set(self.defaultValue)
             self.itemSubject.send(self.defaultValue)
         }
     }
@@ -152,7 +162,7 @@ public struct StoredValue<Item: Codable> {
 private extension StoredValue {
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
         if let storedValue = userDefaults.object(forKey: key) as? Data,
-           let boxedValue = try? JSONDecoder().decode(BoxedValue<Item>.self, from: storedValue) {
+           let boxedValue = try? JSONCoders.decoder.decode(BoxedValue<Item>.self, from: storedValue) {
             return boxedValue.value
         } else {
             return defaultValue
@@ -161,10 +171,6 @@ private extension StoredValue {
 }
 
 private extension StoredValue {
-    private struct BoxedValue<T: Codable>: Codable {
-        var value: T
-    }
-
     final class CancellableBox {
         var cancellable: AnyCancellable?
     }

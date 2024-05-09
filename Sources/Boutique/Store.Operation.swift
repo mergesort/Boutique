@@ -21,6 +21,7 @@ public extension Store {
         /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
         /// of items, removing complexity when it comes to managing items, indices, and more,
         /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+        ///
         /// - Parameters:
         ///   - item: The item you are adding to the ``Store``.
         @available(
@@ -38,6 +39,7 @@ public extension Store {
         /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
         /// of items, removing complexity when it comes to managing items, indices, and more,
         /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
+        ///
         /// - Parameters:
         ///   - item: The item you are inserting into the ``Store``.
         public func insert(_ item: Item) async throws -> Operation {
@@ -66,6 +68,7 @@ public extension Store {
         ///
         /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-1nu61``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+        ///
         /// - Parameters:
         ///   - items: The items to add to the store.
         @available(
@@ -81,6 +84,7 @@ public extension Store {
         ///
         /// Prefer inserting multiple items using this method instead of calling ``insert(_:)-1nu61``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
+        ///
         /// - Parameters:
         ///   - items: The items to insert into the store.
         public func insert(_ items: [Item]) async throws -> Operation {
