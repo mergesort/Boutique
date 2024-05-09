@@ -1,12 +1,12 @@
 {
   "pins" : [
     {
-      "identity" : "bodega",
+      "identity" : "bodega-issue-30",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mergesort/Bodega.git",
+      "location" : "https://github.com/Kittyhawkio/Bodega-issue-30",
       "state" : {
-        "revision" : "3e7c1c58ad9a46aa8551cebfe87770003cdaaaca",
-        "version" : "2.0.2"
+        "branch" : "hermiteer-issue-30",
+        "revision" : "5364fbac445e2a606c2e356584bab3a1a9a7d0a5"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/stephencelis/SQLite.swift.git",
       "state" : {
-        "revision" : "4d543d811ee644fa4cc4bfa0be996b4dd6ba0f54",
-        "version" : "0.13.3"
+        "revision" : "a95fc6df17d108bd99210db5e8a9bac90fe984b8",
+        "version" : "0.15.3"
       }
     },
     {
