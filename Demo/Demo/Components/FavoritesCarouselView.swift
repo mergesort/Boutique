@@ -1,5 +1,6 @@
 import Boutique
 import SwiftUI
+import Perception
 
 // Below you'll see code that looks like this.
 // CarouselView(
@@ -52,43 +53,45 @@ struct FavoritesCarouselView: View {
 
     @EnvironmentObject private var appState: AppState
 
-    var body: some View {
-        VStack {
-            // Demonstrating how an EmptyStateView can work with Boutique by leveraging itemsHaveLoaded
-            if self.itemsHaveLoaded {
-                self.favoritesHeaderView
+  var body: some View {
+    WithPerceptionTracking {
+      VStack {
+        // Demonstrating how an EmptyStateView can work with Boutique by leveraging itemsHaveLoaded
+        if self.itemsHaveLoaded {
+          self.favoritesHeaderView
 
-                if self.images.isEmpty {
-                    self.favoritesEmptyStateView
-                } else {
-                    self.favoriteImagesCarouselView
-                        .transition(.move(edge: .trailing))
-                        .animation(self.animation, value: self.images)
-                        .task({
-                            // Too lazy to figure out how to not trigger the janky
-                            // initial animation because it's mostly irrelevant to this demo.
-                            try! await Task.sleep(nanoseconds: 100_000_000)
-                            self.animation = .easeInOut(duration: 0.35)
-                        })
-                }
-            } else {
-                EmptyView()
-            }
+          if self.images.isEmpty {
+            self.favoritesEmptyStateView
+          } else {
+            self.favoriteImagesCarouselView
+              .transition(.move(edge: .trailing))
+              .animation(self.animation, value: self.images)
+              .task({
+                // Too lazy to figure out how to not trigger the janky
+                // initial animation because it's mostly irrelevant to this demo.
+                try! await Task.sleep(nanoseconds: 100_000_000)
+                self.animation = .easeInOut(duration: 0.35)
+              })
+          }
+        } else {
+          EmptyView()
         }
-        .onReceive(self.imagesController.$images.$items, perform: {
-            self.images = $0.sorted(by: { $0.createdAt > $1.createdAt})
-        })
-        .frame(height: 200.0)
-        .background(Color.palette.background)
-        .task({
-            do {
-                try await self.imagesController.$images.itemsHaveLoaded()
-                self.itemsHaveLoaded = true
-            } catch {
-                print("Failed to load images", error)
-            }
-        })
+      }
+      .onChange(of: self.imagesController.images, perform: {
+        self.images = $0.sorted(by: { $0.createdAt > $1.createdAt})
+      })
+      .frame(height: 200.0)
+      .background(Color.palette.background)
+      .task({
+        do {
+          try await self.imagesController.$images.itemsHaveLoaded()
+          self.itemsHaveLoaded = true
+        } catch {
+          print("Failed to load images", error)
+        }
+      })
     }
+  }
 }
 
 private extension FavoritesCarouselView {

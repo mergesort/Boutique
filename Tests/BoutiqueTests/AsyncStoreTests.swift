@@ -283,23 +283,23 @@ final class AsyncStoreTests: XCTestCase {
         _ = operation
     }
 
-    @MainActor
-    func testPublishedItemsSubscription() async throws {
-        let uniqueItems: [BoutiqueItem] = .uniqueItems
-        let expectation = XCTestExpectation(description: "uniqueItems is published and read")
-
-        asyncStore.$items
-            .dropFirst()
-            .sink(receiveValue: { items in
-                XCTAssertEqual(items, uniqueItems)
-                expectation.fulfill()
-            })
-            .store(in: &cancellables)
-
-        XCTAssertTrue(asyncStore.items.isEmpty)
-
-        // Sets items under the hood
-        try await asyncStore.insert(uniqueItems)
-        wait(for: [expectation], timeout: 1)
-    }
+//    @MainActor
+//    func testPublishedItemsSubscription() async throws {
+//        let uniqueItems: [BoutiqueItem] = .uniqueItems
+//        let expectation = XCTestExpectation(description: "uniqueItems is published and read")
+//
+//        asyncStore.$items
+//            .dropFirst()
+//            .sink(receiveValue: { items in
+//                XCTAssertEqual(items, uniqueItems)
+//                expectation.fulfill()
+//            })
+//            .store(in: &cancellables)
+//
+//        XCTAssertTrue(asyncStore.items.isEmpty)
+//
+//        // Sets items under the hood
+//        try await asyncStore.insert(uniqueItems)
+//        wait(for: [expectation], timeout: 1)
+//    }
 }

@@ -1,4 +1,5 @@
 @_exported import Bodega
+import Perception
 import OrderedCollections
 import Foundation
 
@@ -43,7 +44,8 @@ import Foundation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-public final class Store<Item: Codable & Sendable>: ObservableObject {
+@Perceptible
+public final class Store<Item: Codable & Sendable> {
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -52,7 +54,7 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     /// The user can read the state of ``items`` at any time
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
-    @MainActor @Published public private(set) var items: [Item] = []
+    @MainActor public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
@@ -309,6 +311,7 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     }
 
     /// A `Task` that will kick off loading items into the ``Store``.
+    @PerceptionIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
             self.items = try await self.storageEngine.readAllData()
