@@ -15,7 +15,7 @@ let package = Package(
             targets: ["Boutique"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/mergesort/Bodega.git", exact: Version(2, 1, 0)),
+        .package(url: "https://github.com/mergesort/Bodega.git", exact: Version(2, 1, 3)),
         .package(url: "https://github.com/apple/swift-collections", from: Version(1, 0, 3)),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: Version(1, 0, 0)),
     ],
