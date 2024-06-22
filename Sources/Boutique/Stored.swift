@@ -29,17 +29,17 @@ public struct Stored<Item: Codable> {
         let wrapper = instance[keyPath: storageKeyPath]
 
         if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
-                .objectWillChange
-                .sink(receiveValue: { [instance] in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-
-                    objectWillChangePublisher?.send()
-                })
+//            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
+//                .objectWillChange
+//                .sink(receiveValue: { [instance] in
+//                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
+//                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
+//                    }
+//
+//                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
+//
+//                    objectWillChangePublisher?.send()
+//                })
         }
 
         return wrapper.wrappedValue

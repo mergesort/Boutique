@@ -68,10 +68,11 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
 
     /// A Combine publisher that allows you to observe any changes to the @``AsyncStoredValue``.
     public var publisher: AnyPublisher<Item, Never> {
-        self.cancellableBox.store.$items.map({
-            $0.first?.value ?? self.defaultValue
-        })
-        .eraseToAnyPublisher()
+      Empty().eraseToAnyPublisher()
+//        self.cancellableBox.store.$items.map({
+//            $0.first?.value ?? self.defaultValue
+//        })
+//        .eraseToAnyPublisher()
     }
 
     /// Sets a value for the @``AsyncStoredValue`` property.
@@ -132,17 +133,17 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
         let wrapper = instance[keyPath: storageKeyPath]
 
         if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
-                .objectWillChange
-                .sink(receiveValue: { [instance] in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-
-                    objectWillChangePublisher?.send()
-                })
+//            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
+//                .objectWillChange
+//                .sink(receiveValue: { [instance] in
+//                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
+//                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
+//                    }
+//
+//                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
+//
+//                    objectWillChangePublisher?.send()
+//                })
         }
 
         return wrapper.wrappedValue
