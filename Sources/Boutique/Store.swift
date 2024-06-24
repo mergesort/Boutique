@@ -120,27 +120,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
         try await loadStoreTask.value
     }
 
-    /// Adds an item to the store.
-    ///
-    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
-    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
-    /// of items, removing complexity when it comes to managing items, indices, and more,
-    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
-    ///
-    /// - Parameters:
-    ///   - item: The item you are adding to the ``Store``.
-    /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
-    @_disfavoredOverload
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ item: Item) async throws -> Operation {
-        let operation = Operation(store: self)
-        return try await operation.insert(item)
-    }
-
     /// Inserts an item into the store.
     ///
     /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
@@ -157,24 +136,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
         return try await operation.insert(item)
     }
 
-    /// Adds an item to the ``Store``.
-    ///
-    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
-    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
-    /// of items, removing complexity when it comes to managing items, indices, and more,
-    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
-    ///
-    /// - Parameters:
-    ///   - item: The item you are adding to the ``Store``.
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ item: Item) async throws {
-        try await self.performInsert(item)
-    }
-
     /// Inserts an item into the ``Store``.
     ///
     /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
@@ -186,25 +147,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     ///   - item: The item you are inserting into the ``Store``.
     public func insert(_ item: Item) async throws {
         try await self.performInsert(item)
-    }
-
-    /// Adds an array of items to the ``Store``.
-    ///
-    /// Prefer adding multiple items using this method instead of calling ``add(_:)-1ausm``
-    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-    ///
-    /// - Parameters:
-    ///   - items: The items to add to the store.
-    /// - Returns: An ``Operation`` that can be used to add items as part of a chain.
-    @_disfavoredOverload
-    @available(
-        *, deprecated,
-        renamed: "insert",
-        message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ items: [Item]) async throws -> Operation {
-        let operation = Operation(store: self)
-        return try await operation.insert(items)
     }
 
     /// Inserts an array of items into the ``Store``.
@@ -219,22 +161,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     public func insert(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
         return try await operation.insert(items)
-    }
-
-    /// Adds an array of items to the ``Store``.
-    ///
-    /// Prefer adding multiple items using this method instead of calling ``insert(_:)-7z2oe``
-    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-    ///
-    /// - Parameters:
-    ///   - items: The items to add to the store.
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ items: [Item]) async throws {
-        try await self.performInsert(items)
     }
 
     /// Inserts an array of items into the ``Store``.
