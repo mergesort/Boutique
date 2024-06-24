@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import SwiftUI
 
@@ -37,10 +36,10 @@ import SwiftUI
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
+@Observable
 @propertyWrapper
-public struct SecurelyStoredValue<Item: Codable> {
-    private let cancellableBox = CancellableBox()
-    private let itemSubject = CurrentValueSubject<Item?, Never>(nil)
+public final class SecurelyStoredValue<Item: Codable> {
+    private let valueSubject = AsyncValueSubject<Item?>(nil)
     private let key: String
     private let service: String?
     private let group: String?
@@ -49,6 +48,9 @@ public struct SecurelyStoredValue<Item: Codable> {
         self.key = key
         self.service = service?.value
         self.group = group?.value
+
+        let initialValue = Self.storedValue(group: group?.value, service: self.keychainService, account: key)
+        self.valueSubject.send(initialValue)
     }
 
     /// The currently stored value
@@ -59,9 +61,8 @@ public struct SecurelyStoredValue<Item: Codable> {
     /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
     public var projectedValue: SecurelyStoredValue<Item> { self }
 
-    /// A Combine publisher that allows you to observe all changes to the @``SecurelyStoredValue``.
-    public var publisher: AnyPublisher<Item?, Never> {
-        self.itemSubject.eraseToAnyPublisher()
+    public var values: AsyncStream<Item?> {
+        self.valueSubject.values
     }
 
     /// Sets a value for the @``SecurelyStoredValue`` property.
@@ -132,29 +133,6 @@ public struct SecurelyStoredValue<Item: Codable> {
             try self.removeItem()
         }
     }
-
-    public static subscript<Instance>(
-        _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item?>,
-        storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item? {
-        let wrapper = instance[keyPath: storageKeyPath]
-
-        if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.itemSubject
-                .receive(on: RunLoop.main)
-                .sink(receiveValue: { [instance] _ in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-                    objectWillChangePublisher?.send()
-                })
-        }
-
-        return wrapper.wrappedValue
-    }
 }
 
 private extension SecurelyStoredValue {
@@ -190,7 +168,7 @@ private extension SecurelyStoredValue {
         let status = SecItemAdd(keychainQuery as CFDictionary, nil)
 
         if status == errSecSuccess || status == errSecDuplicateItem {
-            self.itemSubject.send(value)
+            self.valueSubject.send(value)
         } else {
             throw KeychainError(status: status)
         }
@@ -209,7 +187,7 @@ private extension SecurelyStoredValue {
         let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
 
         if status == errSecSuccess {
-            self.itemSubject.send(value)
+            self.valueSubject.send(value)
         } else {
             throw KeychainError(status: status)
         }
@@ -232,7 +210,7 @@ private extension SecurelyStoredValue {
         let status = SecItemDelete(keychainQuery as CFDictionary)
 
         if status == errSecSuccess || status == errSecItemNotFound {
-            self.itemSubject.send(nil)
+            self.valueSubject.send(nil)
         }
     }
 
@@ -279,11 +257,5 @@ private extension Dictionary where Key == CFString, Value == Any {
         }
 
         return dictionary
-    }
-}
-
-private extension SecurelyStoredValue {
-    final class CancellableBox {
-        var cancellable: AnyCancellable?
     }
 }

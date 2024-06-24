@@ -34,8 +34,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B75946822C29D0D100959EA1 /* Boutique */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = Boutique; path = ..; sourceTree = "<group>"; };
 		B7DE210C287352DD005C4058 /* Performance Profiler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Performance Profiler.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		B7DE21C028736FAC005C4058 /* Boutique */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = Boutique; path = ..; sourceTree = "<group>"; };
 		B7DE21C928737779005C4058 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B7DE21CA28737779005C4058 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B7DE21D7287378A3005C4058 /* Telegrama-Raw.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Telegrama-Raw.otf"; sourceTree = "<group>"; };
@@ -78,7 +78,7 @@
 		B7DE20FF287352DB005C4058 = {
 			isa = PBXGroup;
 			children = (
-				B7DE21C028736FAC005C4058 /* Boutique */,
+				B75946822C29D0D100959EA1 /* Boutique */,
 				B7DE21DC2873A1B9005C4058 /* Sources */,
 				B7DE21C828737779005C4058 /* Resources */,
 				B7DE210D287352DD005C4058 /* Products */,
@@ -431,7 +431,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -465,7 +465,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

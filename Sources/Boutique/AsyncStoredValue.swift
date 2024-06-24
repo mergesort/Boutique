@@ -1,4 +1,4 @@
-import Combine
+import Observation
 
 /// The @``AsyncStoredValue`` property wrapper to automagically persist a single `Item` in a `StorageEngine`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -37,10 +37,12 @@ import Combine
 ///
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
 @MainActor
+@Observable
 @propertyWrapper
-public struct AsyncStoredValue<Item: Codable & Equatable> {
-    private let cancellableBox: CancellableBox
+public final class AsyncStoredValue<Item: Codable & Equatable> {
     private let defaultValue: Item
+    private let valueSubject: AsyncValueSubject<Item>
+    private let store: Store<UniqueItem>
 
     /// Initializes an @``AsyncStoredValue``.
     ///
@@ -52,26 +54,22 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     ///   - wrappedValue: An value set when initializing an @``AsyncStoredValue``
     ///   - storage: A `StorageEngine` that defines where the value will be stored.
     public init(wrappedValue: Item, storage: StorageEngine) {
-        let innerStore = Store<UniqueItem>(storage: storage, cacheIdentifier: \.id)
-        self.cancellableBox = CancellableBox(innerStore)
+        self.store = Store<UniqueItem>(storage: storage, cacheIdentifier: \.id)
 
         self.defaultValue = wrappedValue
+        self.valueSubject = AsyncValueSubject(self.defaultValue)
     }
 
     /// The currently stored value
     public var wrappedValue: Item {
-        self.cancellableBox.store.items.first?.value ?? self.defaultValue
+        self.store.items.first?.value ?? self.defaultValue
     }
 
     /// An @``AsyncStoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
     public var projectedValue: AsyncStoredValue<Item> { self }
 
-    /// A Combine publisher that allows you to observe any changes to the @``AsyncStoredValue``.
-    public var publisher: AnyPublisher<Item, Never> {
-        self.cancellableBox.store.$items.map({
-            $0.first?.value ?? self.defaultValue
-        })
-        .eraseToAnyPublisher()
+    public var values: AsyncStream<Item> {
+        self.valueSubject.values
     }
 
     /// Sets a value for the @``AsyncStoredValue`` property.
@@ -97,7 +95,8 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     ///
     /// - Parameter value: The value to set @``AsyncStoredValue`` to.
     public func set(_ value: Item) async throws {
-        try await self.cancellableBox.store.insert(UniqueItem(value: value))
+        try await self.store.insert(UniqueItem(value: value))
+        self.valueSubject.send(value)
     }
 
     /// Resets the @``AsyncStoredValue`` to the default value.
@@ -121,31 +120,8 @@ public struct AsyncStoredValue<Item: Codable & Equatable> {
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
     public func reset() async throws {
-        try await self.cancellableBox.store.removeAll()
-    }
-
-    public static subscript<Instance>(
-        _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item>,
-        storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item {
-        let wrapper = instance[keyPath: storageKeyPath]
-
-        if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.cancellableBox.store
-                .objectWillChange
-                .sink(receiveValue: { [instance] in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-
-                    objectWillChangePublisher?.send()
-                })
-        }
-
-        return wrapper.wrappedValue
+        try await self.store.removeAll()
+        self.valueSubject.send(self.defaultValue)
     }
 }
 
@@ -155,14 +131,5 @@ private extension AsyncStoredValue {
     struct UniqueItem: Codable, Equatable {
         var id: String { "unique-value" }
         var value: Item
-    }
-
-    final class CancellableBox {
-        let store: Store<UniqueItem>
-        var cancellable: AnyCancellable?
-
-        init(_ store: Store<UniqueItem>) {
-            self.store = store
-        }
     }
 }

@@ -289,22 +289,23 @@ final class StoredTests: XCTestCase {
     }
 
     @MainActor
-    func testPublishedItemsSubscription() async throws {
+    func testObservableSubscriptionInsertingItems() async throws {
         let uniqueItems = [BoutiqueItem].uniqueItems
         let expectation = XCTestExpectation(description: "uniqueItems is published and read")
 
-        $items.$items
-            .dropFirst()
-            .sink(receiveValue: { items in
-                XCTAssertEqual(items, uniqueItems)
+        withObservationTracking({
+            _ = self.items
+        }, onChange: {
+            Task { @MainActor in
+                XCTAssertEqual(self.items, uniqueItems)
                 expectation.fulfill()
-            })
-            .store(in: &cancellables)
+            }
+        })
 
         XCTAssertTrue(items.isEmpty)
 
         // Sets items under the hood
         try await $items.insert(uniqueItems)
-        wait(for: [expectation], timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1.0)
     }
 }

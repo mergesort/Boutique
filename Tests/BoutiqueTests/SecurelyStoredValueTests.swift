@@ -154,29 +154,36 @@ final class SecurelyStoredValueTests: XCTestCase {
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.belt).wrappedValue)
     }
 
-    func testPublishedValueSubscription() async throws {
-        let expectation = XCTestExpectation(description: "@SecurelyStoredValue publishes values correctly")
-
+    @MainActor
+    func testStoredValueAsyncStream() async throws {
         var values: [BoutiqueItem] = []
 
-        self.$storedItem.publisher
-            .sink(receiveValue: { item in
-                if let item {
-                    values.append(item)
+        let expectation = expectation(description: "Received all values")
+
+        let task = Task {
+            for await value in self.$storedItem.values {
+                if let value {
+                    values.append(value)
                 }
 
                 if values.count == 4 {
-                    XCTAssertEqual(values, [.coat, .purse, .sweater, .belt])
                     expectation.fulfill()
+                    break
                 }
-            })
-            .store(in: &cancellables)
+            }
+        }
 
-        try await self.$storedItem.set(.coat)
-        try await self.$storedItem.set(.purse)
-        try await self.$storedItem.set(.sweater)
-        try await self.$storedItem.set(.belt)
+        // Ensure we get the initial value
+        try await Task.sleep(for: .seconds(0.1))
 
-        await fulfillment(of: [expectation], timeout: 1)
+        try self.$storedItem.set(.sweater)
+        try self.$storedItem.set(.purse)
+        try self.$storedItem.set(.belt)
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+
+        task.cancel()
+
+        XCTAssertEqual(values, [.coat, .sweater, .purse, .belt])
     }
 }
