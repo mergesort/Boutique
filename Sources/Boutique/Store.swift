@@ -388,7 +388,7 @@ internal extension Store {
         var currentItems = await self.items
 
         if let strategy = existingItemsStrategy {
-            var removedItems = [item]
+            var removedItems = currentItems
             try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
             // If we remove this one it will error
             self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
@@ -413,7 +413,7 @@ internal extension Store {
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
-            var removedItems = items
+            var removedItems = currentItems
             try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
             // This one is fine to remove... but why?
             // Is it the way we construct the items in the ordered dictionary?
