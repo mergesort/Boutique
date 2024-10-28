@@ -6,6 +6,7 @@ public extension Store {
     /// them be split over two operations, and making two separate dispatches to the `@MainActor`.
     /// (Dispatching to the main actor multiple times can lead to users seeing odd visual experiences
     /// in SwiftUI apps, which is why Boutique goes to great lengths to help avoid that.)
+    @MainActor
     final class Operation {
         private let store: Store
         private var operationsHaveRun = false

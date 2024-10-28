@@ -13,7 +13,6 @@ public extension StoredValue {
     /// ```
     /// try await self.$redPandaList.update(key: "best", value: "Pabu")
     /// ```
-    @MainActor
     func update<Key: Hashable, Value>(key: Key, value: Value?) where Item == [Key: Value] {
         var updatedDictionary = self.wrappedValue
         updatedDictionary[key] = value
@@ -39,7 +38,6 @@ public extension SecurelyStoredValue {
     /// To better match expected uses calling update on a currently nil SecurelyStoredValue
     /// will return a single element dictionary of the passed in key/value, 
     /// rather than returning nil or throwing an error.
-    @MainActor
     func update<Key: Hashable, Value>(key: Key, value: Value?) throws where Item == [Key: Value] {
         var updatedDictionary = self.wrappedValue ?? [:]
         updatedDictionary[key] = value

@@ -2,6 +2,7 @@ import Foundation
 import Observation
 
 @Observable
+@MainActor
 @propertyWrapper
 public final class StoredValue<Item: Codable> {
     private let defaultValue: Item
@@ -34,7 +35,6 @@ public final class StoredValue<Item: Codable> {
         self.valueSubject.values
     }
 
-    @MainActor
     public func set(_ value: Item) {
         let boxedValue = BoxedValue(value: value)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {
@@ -44,7 +44,6 @@ public final class StoredValue<Item: Codable> {
         }
     }
 
-    @MainActor
     public func reset() {
         let boxedValue = BoxedValue(value: self.defaultValue)
         if let data = try? JSONCoders.encoder.encode(boxedValue) {

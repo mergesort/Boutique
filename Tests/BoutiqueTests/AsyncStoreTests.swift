@@ -2,6 +2,7 @@
 import Combine
 import XCTest
 
+@MainActor
 final class AsyncStoreTests: XCTestCase {
     private var asyncStore: Store<BoutiqueItem>!
     private var cancellables: Set<AnyCancellable> = []
@@ -17,7 +18,6 @@ final class AsyncStoreTests: XCTestCase {
         cancellables.removeAll()
     }
 
-    @MainActor
     func testInsertingItem() async throws {
         try await asyncStore.insert(.coat)
         XCTAssertTrue(asyncStore.items.contains(.coat))
@@ -27,7 +27,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertEqual(asyncStore.items.count, 2)
     }
 
-    @MainActor
     func testInsertingItems() async throws {
         try await asyncStore.insert([.coat, .sweater, .sweater, .purse])
         XCTAssertTrue(asyncStore.items.contains(.coat))
@@ -35,14 +34,12 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertTrue(asyncStore.items.contains(.purse))
     }
 
-    @MainActor
     func testInsertingDuplicateItems() async throws {
         XCTAssertTrue(asyncStore.items.isEmpty)
         try await asyncStore.insert(.allItems)
         XCTAssertEqual(asyncStore.items.count, 4)
     }
 
-    @MainActor
     func testReadingItems() async throws {
         try await asyncStore.insert(.allItems)
 
@@ -54,7 +51,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertEqual(asyncStore.items.count, 4)
     }
 
-    @MainActor
     func testReadingPersistedItems() async throws {
         try await asyncStore.insert(.allItems)
 
@@ -71,7 +67,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertEqual(newStore.items.count, 4)
     }
 
-    @MainActor
     func testRemovingItems() async throws {
         try await asyncStore.insert(.allItems)
         try await asyncStore.remove(.coat)
@@ -86,7 +81,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertFalse(asyncStore.items.contains(.purse))
     }
 
-    @MainActor
     func testRemoveAll() async throws {
         try await asyncStore.insert(.coat)
         XCTAssertEqual(asyncStore.items.count, 1)
@@ -98,7 +92,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertTrue(asyncStore.items.isEmpty)
     }
 
-    @MainActor
     func testChainingInsertOperations() async throws {
         try await asyncStore.insert(.uniqueItems)
 
@@ -226,7 +219,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertFalse(asyncStore.items.contains(.coat))
     }
 
-    @MainActor
     func testChainingRemoveOperations() async throws {
         try await asyncStore
             .insert(.uniqueItems)
@@ -267,7 +259,6 @@ final class AsyncStoreTests: XCTestCase {
         XCTAssertTrue(asyncStore.items.contains(.belt))
     }
 
-    @MainActor
     func testChainingOperationsDontExecuteUnlessRun() async throws {
         let operation = try await asyncStore
             .insert(.coat)
@@ -283,7 +274,6 @@ final class AsyncStoreTests: XCTestCase {
         _ = operation
     }
 
-    @MainActor
     func testObservableSubscriptionInsertingItems() async throws {
         let uniqueItems = [BoutiqueItem].uniqueItems
         let expectation = XCTestExpectation(description: "uniqueItems is published and read")

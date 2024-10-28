@@ -10,7 +10,6 @@ public extension StoredValue where Item == Bool {
     /// ```
     /// self.appState.$proFeaturesEnabled.toggle()
     /// ```
-    @MainActor
     func toggle() {
         self.set(!self.wrappedValue)
     }
@@ -28,7 +27,6 @@ public extension SecurelyStoredValue where Item == Bool {
     /// ```
     /// self.appState.$isLoggedIn.toggle()
     /// ```
-    @MainActor
     func toggle() throws {
         if let wrappedValue {
             try self.set(!wrappedValue)

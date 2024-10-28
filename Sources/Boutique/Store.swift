@@ -46,6 +46,7 @@ import Observation
 /// or even a type which can be converted into a `String` such as `\.url.path`.
 
 @Observable
+@MainActor
 public final class Store<Item: Codable & Sendable> {
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
@@ -55,7 +56,7 @@ public final class Store<Item: Codable & Sendable> {
     /// The user can read the state of ``items`` at any time
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
-    @MainActor private(set) var items: [Item] = []
+    private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
@@ -108,7 +109,6 @@ public final class Store<Item: Codable & Sendable> {
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
-    @MainActor
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
@@ -263,15 +263,14 @@ public extension Store {
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
     /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    @MainActor
     static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
         let store = Store(
             storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
             cacheIdentifier: cacheIdentifier
         )
 
-        Task.detached { @MainActor in
-            store.items = items
-        }
+        store.items = items
 
         return store
     }
@@ -315,7 +314,7 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = await self.items
+        var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
             var removedItems = [item]
@@ -339,7 +338,7 @@ internal extension Store {
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = await self.items
+        var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy

@@ -30,14 +30,12 @@ final class SecurelyStoredValueTests: XCTestCase {
     @SecurelyStoredValue<String>(key: "secureGroupString", group: "com.boutique.tests")
     private var storedGroupValue
 
-    @MainActor
     override func setUp() async throws {
         if self.storedExistingValue == nil {
             try self.$storedExistingValue.set("Existence")
         }
     }
 
-    @MainActor
     override func tearDown() async throws {
         try self.$storedPassword.remove()
         try self.$storedBool.remove()
@@ -56,14 +54,13 @@ final class SecurelyStoredValueTests: XCTestCase {
     func testStoredValue() async throws {
         XCTAssertEqual(self.storedPassword, nil)
 
-        try await self.$storedPassword.set("p@ssw0rd")
+        try self.$storedPassword.set("p@ssw0rd")
         XCTAssertEqual(self.storedPassword, "p@ssw0rd")
 
-        try await self.$storedPassword.remove()
+        try self.$storedPassword.remove()
         XCTAssertEqual(self.storedPassword, nil)
     }
 
-    @MainActor
     func testStoredValueOnMainActor() throws {
         XCTAssertEqual(self.storedPassword, nil)
 
@@ -77,73 +74,72 @@ final class SecurelyStoredValueTests: XCTestCase {
     func testStoredCustomType() async throws {
         XCTAssertEqual(self.storedItem, nil)
 
-        try await self.$storedItem.set(.sweater)
+        try self.$storedItem.set(.sweater)
         XCTAssertEqual(self.storedItem, .sweater)
 
-        try await self.$storedItem.set(.belt)
+        try self.$storedItem.set(.belt)
         XCTAssertEqual(self.storedItem, .belt)
 
-        try await self.$storedItem.remove()
+        try self.$storedItem.remove()
         XCTAssertEqual(self.storedItem, nil)
     }
 
     func testStoredArray() async throws {
         XCTAssertEqual(self.storedArray, nil)
 
-        try await self.$storedArray.set([.belt, .sweater])
+        try self.$storedArray.set([.belt, .sweater])
         XCTAssertEqual(self.storedArray, [.belt, .sweater])
 
-        try await self.$storedArray.remove()
+        try self.$storedArray.remove()
         XCTAssertEqual(self.storedArray, nil)
     }
 
     func testStoredGroupValue() async throws {
         XCTAssertEqual(self.storedGroupValue, nil)
 
-        try await self.$storedGroupValue.set("p@ssw0rd")
+        try self.$storedGroupValue.set("p@ssw0rd")
         XCTAssertEqual(self.storedGroupValue, "p@ssw0rd")
 
-        try await self.$storedGroupValue.remove()
+        try self.$storedGroupValue.remove()
         XCTAssertEqual(self.storedGroupValue, nil)
     }
 
     func testStoredBoolean() async throws {
         XCTAssertEqual(self.storedBool, nil)
 
-        try await self.$storedBool.set(true)
+        try self.$storedBool.set(true)
         XCTAssertEqual(self.storedBool, true)
 
-        try await self.$storedBool.set(false)
+        try self.$storedBool.set(false)
         XCTAssertEqual(self.storedBool, false)
 
-        try await self.$storedBool.toggle()
+        try self.$storedBool.toggle()
         XCTAssertEqual(self.storedBool, true)
     }
 
     func testStoredDictionary() async throws {
         XCTAssertEqual(self.storedDictionary, nil)
 
-        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
+        try self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
         XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : .sweater])
 
-        try await self.$storedDictionary.update(key: BoutiqueItem.belt.merchantID, value: nil)
+        try self.$storedDictionary.update(key: BoutiqueItem.belt.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionary, [BoutiqueItem.sweater.merchantID : .sweater])
 
-        try await self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: nil)
+        try self.$storedDictionary.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionary, [:])
     }
 
     func testStoredArrayValueAppend() async throws {
         XCTAssertEqual(self.storedArray, nil)
 
-        try await self.$storedArray.append(.sweater)
+        try self.$storedArray.append(.sweater)
         XCTAssertEqual(self.storedArray, [.sweater])
 
-        try await self.$storedArray.append(.belt)
+        try self.$storedArray.append(.belt)
         XCTAssertEqual(self.storedArray, [.sweater, .belt])
     }
 
-    @MainActor
     func testStoredBinding() async throws {
         XCTAssertEqual(self.storedBinding, nil)
         
@@ -154,7 +150,6 @@ final class SecurelyStoredValueTests: XCTestCase {
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.belt).wrappedValue)
     }
 
-    @MainActor
     func testStoredValueAsyncStream() async throws {
         var values: [BoutiqueItem] = []
 

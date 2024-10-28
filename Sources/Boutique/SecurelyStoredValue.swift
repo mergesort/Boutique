@@ -37,6 +37,7 @@ import SwiftUI
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
 @Observable
+@MainActor
 @propertyWrapper
 public final class SecurelyStoredValue<Item: Codable> {
     private let valueSubject = AsyncValueSubject<Item?>(nil)

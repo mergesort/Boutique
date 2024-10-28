@@ -24,7 +24,6 @@ final class StoredValueTests: XCTestCase {
     @StoredValue(key: "storedBinding")
     private var storedBinding = BoutiqueItem.sweater
 
-    @MainActor
     override func setUp() {
         self.$storedItem.reset()
         self.$storedBoolValue.reset()
@@ -37,13 +36,13 @@ final class StoredValueTests: XCTestCase {
     func testStoredValueOperations() async throws {
         XCTAssertEqual(self.storedItem, .coat)
 
-        await self.$storedItem.set(.belt)
+        self.$storedItem.set(.belt)
         XCTAssertEqual(self.storedItem, .belt)
 
-        await self.$storedItem.reset()
+        self.$storedItem.reset()
         XCTAssertEqual(self.storedItem, .coat)
 
-        await self.$storedItem.set(.sweater)
+        self.$storedItem.set(.sweater)
         XCTAssertEqual(self.storedItem, .sweater)
     }
 
@@ -64,70 +63,69 @@ final class StoredValueTests: XCTestCase {
     func testStoredNilValue() async throws {
         XCTAssertEqual(self.storedNilValue, nil)
 
-        await self.$storedNilValue.set(.belt)
+        self.$storedNilValue.set(.belt)
         XCTAssertEqual(self.storedNilValue, .belt)
 
-        await self.$storedNilValue.reset()
+        self.$storedNilValue.reset()
         XCTAssertEqual(self.storedNilValue, nil)
 
-        await self.$storedNilValue.set(.sweater)
+        self.$storedNilValue.set(.sweater)
         XCTAssertEqual(self.storedNilValue, .sweater)
     }
 
     func testStoredBoolValueToggle() async throws {
         XCTAssertEqual(self.storedBoolValue, false)
 
-        await self.$storedBoolValue.toggle()
+        self.$storedBoolValue.toggle()
         XCTAssertEqual(self.storedBoolValue, true)
 
-        await self.$storedBoolValue.set(false)
+        self.$storedBoolValue.set(false)
         XCTAssertEqual(self.storedBoolValue, false)
 
-        await self.$storedBoolValue.toggle()
+        self.$storedBoolValue.toggle()
         XCTAssertEqual(self.storedBoolValue, true)
     }
 
     func testStoredDictionaryValueUpdate() async throws {
         XCTAssertEqual(self.storedDictionaryValue, [:])
 
-        await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
+        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: .sweater)
         XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : .sweater])
 
-        await self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
+        self.$storedDictionaryValue.update(key: BoutiqueItem.belt.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [BoutiqueItem.sweater.merchantID : .sweater])
 
-        await self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
+        self.$storedDictionaryValue.update(key: BoutiqueItem.sweater.merchantID, value: nil)
         XCTAssertEqual(self.storedDictionaryValue, [:])
     }
 
     func testStoredArrayValueAppend() async throws {
         XCTAssertEqual(self.storedArrayValue, [])
 
-        await self.$storedArrayValue.append(.sweater)
+        self.$storedArrayValue.append(.sweater)
         XCTAssertEqual(self.storedArrayValue, [.sweater])
 
-        await self.$storedArrayValue.append(.belt)
+        self.$storedArrayValue.append(.belt)
         XCTAssertEqual(self.storedArrayValue, [.sweater, .belt])
     }
 
     func testStoredArrayValueTogglePresence() async throws {
         XCTAssertEqual(self.storedArrayValue, [])
 
-        await self.$storedArrayValue.togglePresence(.sweater)
+        self.$storedArrayValue.togglePresence(.sweater)
         XCTAssertEqual(self.storedArrayValue, [.sweater])
 
-        await self.$storedArrayValue.togglePresence(.sweater)
+        self.$storedArrayValue.togglePresence(.sweater)
         XCTAssertEqual(self.storedArrayValue, [])
 
-        await self.$storedArrayValue.togglePresence(.sweater)
-        await self.$storedArrayValue.togglePresence(.belt)
+        self.$storedArrayValue.togglePresence(.sweater)
+        self.$storedArrayValue.togglePresence(.belt)
         XCTAssertEqual(self.storedArrayValue, [.sweater, .belt])
 
-        await self.$storedArrayValue.togglePresence(.belt)
+        self.$storedArrayValue.togglePresence(.belt)
         XCTAssertEqual(self.storedArrayValue, [.sweater])
     }
 
-    @MainActor
     func testStoredBinding() async throws {
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.sweater).wrappedValue)
@@ -137,7 +135,6 @@ final class StoredValueTests: XCTestCase {
         XCTAssertEqual(self.$storedBinding.binding.wrappedValue, Binding.constant(.belt).wrappedValue)
     }
 
-    @MainActor
     func testStoredValueAsyncStream() async throws {
         var values: [BoutiqueItem] = []
 

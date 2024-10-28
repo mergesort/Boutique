@@ -1,6 +1,7 @@
 import Observation
 
 /// The @``Stored`` property wrapper to automagically initialize a ``Store``.
+@MainActor
 @propertyWrapper
 public struct Stored<Item: Codable> {
     private let store: Store<Item>
@@ -11,7 +12,6 @@ public struct Stored<Item: Codable> {
         self.store = store
     }
 
-    @MainActor
     /// The currently stored items
     public var wrappedValue: [Item] {
         self.store.items

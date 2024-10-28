@@ -21,7 +21,6 @@ final class StoredTests: XCTestCase {
         cancellables.removeAll()
     }
 
-    @MainActor
     func testInsertingItem() async throws {
         try await $items.insert(.coat)
         XCTAssertTrue(items.contains(.coat))
@@ -31,7 +30,6 @@ final class StoredTests: XCTestCase {
         XCTAssertEqual(items.count, 2)
     }
 
-    @MainActor
     func testInsertingItems() async throws {
         try await $items.insert([.coat, .sweater, .sweater, .purse])
         XCTAssertTrue(items.contains(.coat))
@@ -39,14 +37,12 @@ final class StoredTests: XCTestCase {
         XCTAssertTrue(items.contains(.purse))
     }
 
-    @MainActor
     func testInsertingDuplicateItems() async throws {
         XCTAssertTrue(items.isEmpty)
         try await $items.insert(.allItems)
         XCTAssertEqual(items.count, 4)
     }
 
-    @MainActor
     func testReadingItems() async throws {
         try await $items.insert(.allItems)
 
@@ -58,7 +54,6 @@ final class StoredTests: XCTestCase {
         XCTAssertEqual(items.count, 4)
     }
 
-    @MainActor
     func testReadingPersistedItems() async throws {
         try await $items.insert(.allItems)
 
@@ -76,7 +71,6 @@ final class StoredTests: XCTestCase {
         XCTAssertEqual(newStore.items[3], .belt)
     }
 
-    @MainActor
     func testRemovingItems() async throws {
         try await $items.insert(.allItems)
         try await $items.remove(.coat)
@@ -91,7 +85,6 @@ final class StoredTests: XCTestCase {
         XCTAssertFalse(items.contains(.purse))
     }
 
-    @MainActor
     func testRemoveAll() async throws {
         try await $items.insert(.coat)
         XCTAssertEqual(items.count, 1)
@@ -103,7 +96,6 @@ final class StoredTests: XCTestCase {
         XCTAssertTrue(items.isEmpty)
     }
 
-    @MainActor
     func testChainingInsertOperations() async throws {
         try await $items.insert(.uniqueItems)
 
@@ -231,7 +223,6 @@ final class StoredTests: XCTestCase {
         XCTAssertFalse(items.contains(.coat))
     }
 
-    @MainActor
     func testChainingRemoveOperations() async throws {
         try await $items
             .insert(.uniqueItems)
@@ -272,7 +263,6 @@ final class StoredTests: XCTestCase {
         XCTAssertTrue(items.contains(.belt))
     }
 
-    @MainActor
     func testChainingOperationsDontExecuteUnlessRun() async throws {
         let operation = try await $items
             .insert(.coat)
@@ -288,7 +278,6 @@ final class StoredTests: XCTestCase {
         _ = operation
     }
 
-    @MainActor
     func testObservableSubscriptionInsertingItems() async throws {
         let uniqueItems = [BoutiqueItem].uniqueItems
         let expectation = XCTestExpectation(description: "uniqueItems is published and read")

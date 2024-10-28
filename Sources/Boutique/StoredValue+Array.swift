@@ -13,14 +13,12 @@ public extension StoredValue where Item: RangeReplaceableCollection {
     /// ```
     /// try await self.$redPandaList.append("Pabu")
     /// ```
-    @MainActor
     func append(_ item: Item.Element) {
         var updatedArray = self.wrappedValue
         updatedArray.append(item)
         self.set(updatedArray)
     }
 
-    @MainActor
     /// A function that takes a value and removes it from an array if that value exists in the array,
     /// or adds it to the array if the value doesn't exist.
     /// - Parameter value: The value to add or remove from an array.
@@ -50,7 +48,6 @@ public extension SecurelyStoredValue {
     /// To better match expected uses calling append on a currently nil SecurelyStoredValue
     /// will return a single element array of the passed in value, 
     /// rather than returning nil or throwing an error.
-    @MainActor
     func append<Value>(_ value: Value) throws where Item == [Value] {
         var updatedArray = self.wrappedValue ?? []
         updatedArray.append(value)
