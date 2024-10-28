@@ -1,6 +1,6 @@
 import Foundation
 
-internal final class AsyncValueSubject<T> {
+internal final class AsyncValueSubject<T: Sendable> {
     private var value: T
     private var continuations: [AsyncStream<T>.Continuation] = []
 
