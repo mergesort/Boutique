@@ -20,12 +20,12 @@ public extension SecurelyStoredValue where Item == Bool {
     ///
     /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
     /// ```
-    /// self.appState.$isLoggedIn.set(!self.appState.proFeaturesEnabled)
+    /// try self.appState.$isLoggedIn.set(!self.appState.proFeaturesEnabled)
     /// ```
     ///
     /// Instead having a much simpler simpler option.
     /// ```
-    /// self.appState.$isLoggedIn.toggle()
+    /// try self.appState.$isLoggedIn.toggle()
     /// ```
     func toggle() throws {
         if let wrappedValue {

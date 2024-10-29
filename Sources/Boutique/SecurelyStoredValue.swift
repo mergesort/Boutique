@@ -1,5 +1,5 @@
 import Foundation
-import SwiftUI
+import Observation
 
 /// The @``SecurelyStoredValue`` property wrapper automagically persists a single `Item` in the system `Keychain`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -39,7 +39,9 @@ import SwiftUI
 @Observable
 @MainActor
 @propertyWrapper
-public final class SecurelyStoredValue<Item: Codable> {
+public final class SecurelyStoredValue<Item: Codable & Sendable> {
+    private let observationRegistrar = ObservationRegistrar()
+
     private let valueSubject = AsyncValueSubject<Item?>(nil)
     private let key: String
     private let service: String?
@@ -56,7 +58,7 @@ public final class SecurelyStoredValue<Item: Codable> {
 
     /// The currently stored value
     public var wrappedValue: Item? {
-        Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
+        self.retrieveItem()
     }
 
     /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
@@ -157,6 +159,8 @@ private extension SecurelyStoredValue {
     }
 
     func insert(_ value: Item) throws {
+        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
@@ -170,12 +174,15 @@ private extension SecurelyStoredValue {
 
         if status == errSecSuccess || status == errSecDuplicateItem {
             self.valueSubject.send(value)
+            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
         } else {
             throw KeychainError(status: status)
         }
     }
 
     func update(_ value: Item) throws {
+        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
@@ -189,12 +196,15 @@ private extension SecurelyStoredValue {
 
         if status == errSecSuccess {
             self.valueSubject.send(value)
+            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
         } else {
             throw KeychainError(status: status)
         }
     }
 
     func removeItem() throws {
+        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+
         var keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.keychainService,
@@ -212,6 +222,7 @@ private extension SecurelyStoredValue {
 
         if status == errSecSuccess || status == errSecItemNotFound {
             self.valueSubject.send(nil)
+            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
         }
     }
 
@@ -229,6 +240,12 @@ private extension SecurelyStoredValue {
         let status = SecItemCopyMatching(keychainQuery as CFDictionary, &extractedData)
 
         return status != errSecItemNotFound
+    }
+
+    func retrieveItem() -> Item? {
+        observationRegistrar.access(self, keyPath: \.wrappedValue)
+
+        return Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
     }
 
     var keychainService: String {

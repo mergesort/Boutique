@@ -4,7 +4,9 @@ import Observation
 @Observable
 @MainActor
 @propertyWrapper
-public final class StoredValue<Item: Codable> {
+public final class StoredValue<Item: Codable & Sendable> {
+    private let observationRegistrar = ObservationRegistrar()
+
     private let defaultValue: Item
     private let key: String
     private let userDefaults: UserDefaults
@@ -25,8 +27,17 @@ public final class StoredValue<Item: Codable> {
         })
     }
 
+    public convenience init(key: String, default defaultValue: Item, storage userDefaults: UserDefaults = UserDefaults.standard) {
+        self.init(wrappedValue: defaultValue, key: key, storage: userDefaults)
+    }
+
     public var wrappedValue: Item {
-        self.cachedValue.retrieveValue()
+        get {
+            self.retrieveItem()
+        }
+        set {
+            self.persistItem(newValue)
+        }
     }
 
     public var projectedValue: StoredValue<Item> { self }
@@ -35,28 +46,38 @@ public final class StoredValue<Item: Codable> {
         self.valueSubject.values
     }
 
-    public func set(_ value: Item) {
-        let boxedValue = BoxedValue(value: value)
-        if let data = try? JSONCoders.encoder.encode(boxedValue) {
-            self.userDefaults.set(data, forKey: self.key)
-            self.cachedValue.set(value)
-            self.valueSubject.send(value)
-        }
+    public func set(_ item: Item) {
+        self.persistItem(item)
     }
 
     public func reset() {
-        let boxedValue = BoxedValue(value: self.defaultValue)
-        if let data = try? JSONCoders.encoder.encode(boxedValue) {
-            self.userDefaults.set(data, forKey: self.key)
-            self.cachedValue.set(self.defaultValue)
-            self.valueSubject.send(self.defaultValue)
-        }
+        self.persistItem(self.defaultValue)
     }
 }
 
 private extension StoredValue {
+    func retrieveItem() -> Item {
+        observationRegistrar.access(self, keyPath: \.wrappedValue)
+
+        return self.cachedValue.retrieveValue()
+    }
+
+    func persistItem(_ item: Item) {
+        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+
+        // Persist the new value
+        let boxedValue = BoxedValue(value: item)
+        if let data = try? JSONCoders.encoder.encode(boxedValue) {
+            self.userDefaults.set(data, forKey: self.key)
+            self.cachedValue.set(item)
+            self.valueSubject.send(item)
+
+            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
+        }
+    }
+
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
-        if let storedValue = userDefaults.object(forKey: key) as? Data,
+        if let storedValue = userDefaults.data(forKey: key),
            let boxedValue = try? JSONCoders.decoder.decode(BoxedValue<Item>.self, from: storedValue) {
             return boxedValue.value
         } else {
