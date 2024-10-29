@@ -6,12 +6,12 @@ import Observation
 @propertyWrapper
 public final class StoredValue<Item: Codable & Sendable> {
     private let observationRegistrar = ObservationRegistrar()
+    private let valueSubject: AsyncValueSubject<Item>
+    private let cachedValue: CachedValue<Item>
 
     private let defaultValue: Item
     private let key: String
     private let userDefaults: UserDefaults
-    private let valueSubject: AsyncValueSubject<Item>
-    private let cachedValue: CachedValue<Item>
 
     public init(wrappedValue: Item, key: String, storage userDefaults: UserDefaults = UserDefaults.standard) {
         self.key = key
@@ -63,16 +63,14 @@ private extension StoredValue {
     }
 
     func persistItem(_ item: Item) {
-        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
-
-        // Persist the new value
-        let boxedValue = BoxedValue(value: item)
-        if let data = try? JSONCoders.encoder.encode(boxedValue) {
-            self.userDefaults.set(data, forKey: self.key)
-            self.cachedValue.set(item)
-            self.valueSubject.send(item)
-
-            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
+        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            // Persist the new value
+            let boxedValue = BoxedValue(value: item)
+            if let data = try? JSONCoders.encoder.encode(boxedValue) {
+                self.userDefaults.set(data, forKey: self.key)
+                self.cachedValue.set(item)
+                self.valueSubject.send(item)
+            }
         }
     }
 

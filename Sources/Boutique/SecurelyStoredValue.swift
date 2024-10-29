@@ -41,8 +41,8 @@ import Observation
 @propertyWrapper
 public final class SecurelyStoredValue<Item: Codable & Sendable> {
     private let observationRegistrar = ObservationRegistrar()
-
     private let valueSubject = AsyncValueSubject<Item?>(nil)
+
     private let key: String
     private let service: String?
     private let group: String?
@@ -100,11 +100,13 @@ public final class SecurelyStoredValue<Item: Codable & Sendable> {
                 // Since updating a value does not seem to work, I've rewritten `set` to first set a `nil` value
                 // then the desired value, which will effectively call `set` with a new value, which does work.
                 // This will be fixed in the future, and we will restore the call-site to say `self.update(value)`.
-                try self.remove()
+                // try self.remove()
+                self.removeItem(shouldPublishChanges: false)
                 try self.insert(value)
             }
         } else {
-            try self.remove()
+            // try self.remove()
+            self.removeItem(shouldPublishChanges: false)
         }
     }
 
@@ -131,9 +133,11 @@ public final class SecurelyStoredValue<Item: Codable & Sendable> {
     @MainActor
     public func remove() throws {
         if self.wrappedValue != nil {
-            try self.removeItem()
+            // try self.removeItem()
+            self.removeItem(shouldPublishChanges: true)
         } else if self.wrappedValue == nil && Self.keychainValueExists(group: self.group, service: self.keychainService, account: self.key) {
-            try self.removeItem()
+            // try self.removeItem()
+            self.removeItem(shouldPublishChanges: true)
         }
     }
 }
@@ -159,72 +163,104 @@ private extension SecurelyStoredValue {
     }
 
     func insert(_ value: Item) throws {
-        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            let keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key,
+                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
-        let keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: self.key,
-            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+            let status = SecItemAdd(keychainQuery as CFDictionary, nil)
 
-        let status = SecItemAdd(keychainQuery as CFDictionary, nil)
-
-        if status == errSecSuccess || status == errSecDuplicateItem {
-            self.valueSubject.send(value)
-            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
-        } else {
-            throw KeychainError(status: status)
+            if status == errSecSuccess || status == errSecDuplicateItem {
+                self.valueSubject.send(value)
+            } else {
+                throw KeychainError(status: status)
+            }
         }
     }
 
     func update(_ value: Item) throws {
-        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
+        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            let keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key,
+                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
-        let keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: self.key,
-            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+            let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
 
-        let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
-
-        if status == errSecSuccess {
-            self.valueSubject.send(value)
-            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
-        } else {
-            throw KeychainError(status: status)
+            if status == errSecSuccess {
+                self.valueSubject.send(value)
+            } else {
+                throw KeychainError(status: status)
+            }
         }
     }
 
-    func removeItem() throws {
-        observationRegistrar.willSet(self, keyPath: \.wrappedValue)
-
-        var keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: key
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+    func removeItem(shouldPublishChanges: Bool) {
+        let removeItem = {
+            var keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
 #if os(macOS)
-        // This line must exist on OS X, but must not exist on iOS.
-        // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
-        keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+            // This line must exist on OS X, but must not exist on iOS.
+            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
+            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
 #endif
-        let status = SecItemDelete(keychainQuery as CFDictionary)
+            let status = SecItemDelete(keychainQuery as CFDictionary)
 
-        if status == errSecSuccess || status == errSecItemNotFound {
-            self.valueSubject.send(nil)
-            observationRegistrar.didSet(self, keyPath: \.wrappedValue)
+            if status == errSecSuccess || status == errSecItemNotFound {
+                if shouldPublishChanges {
+                    self.valueSubject.send(nil)
+                }
+            }
+        }
+
+        if shouldPublishChanges {
+            observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+                removeItem()
+            }
+        } else {
+            removeItem()
         }
     }
+
+// Restore this once we've fixed up the update bugs
+
+//    func removeItem() {
+//        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+//            var keychainQuery = [
+//                kSecClass: kSecClassGenericPassword,
+//                kSecAttrService: self.keychainService,
+//                kSecAttrAccount: key
+//            ]
+//                .withGroup(self.group)
+//                .mapToStringDictionary()
+//
+//#if os(macOS)
+//            // This line must exist on OS X, but must not exist on iOS.
+//            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
+//            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+//#endif
+//            let status = SecItemDelete(keychainQuery as CFDictionary)
+//
+//            if status == errSecSuccess || status == errSecItemNotFound {
+//                self.valueSubject.send(nil)
+//            }
+//        }
+//    }
 
     static func keychainValueExists(group: String?, service: String, account: String) -> Bool {
         let keychainQuery = [
