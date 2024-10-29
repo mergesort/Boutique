@@ -29,6 +29,36 @@ public extension StoredValue where Item: RangeReplaceableCollection {
     }
 }
 
+public extension StoredValue where Item: RangeReplaceableCollection, Item.Element: Equatable {
+    /// A function to replace a value in a @``StoredValue`` represented by an `Array`
+    /// without having to manually make an intermediate copy for every value update.
+    ///
+    /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
+    /// ```
+    /// guard let index = self.redPandaList.firstIndex(where: { $0.name == "Himalaya" }) else return
+    /// var updatedRedPandaList = self.redPandaList
+    /// updatedRedPandaList[index] = RedPanda(name: "Pabu")
+    /// self.$redPandaList.set(updatedRedPandaList)
+    /// ```
+    ///
+    /// Instead this function provides a much simpler alternative.
+    /// ```
+    /// self.$redPandaList.replace(RedPanda(name: "Himalaya"), RedPanda(name: "Pabu"))
+    /// ```
+    @MainActor
+    @discardableResult
+    func replace(_ item: Item.Element, with updatedItem: Item.Element) -> Bool {
+        guard let index = self.wrappedValue.firstIndex(where: { $0 == item }) else { return false }
+
+        var updatedArray = self.wrappedValue
+        updatedArray.remove(at: index)
+        updatedArray.insert(updatedItem, at: index)
+        self.set(updatedArray)
+
+        return true
+    }
+}
+
 public extension SecurelyStoredValue {
     /// A function to append a @``SecurelyStoredValue`` represented by an `Array`
     /// without having to manually make an intermediate copy for every value update.
@@ -52,6 +82,33 @@ public extension SecurelyStoredValue {
         var updatedArray = self.wrappedValue ?? []
         updatedArray.append(value)
         try self.set(updatedArray)
+    }
+
+    /// A function to replace a value in a @``StoredValue`` represented by an `Array`
+    /// without having to manually make an intermediate copy for every value update.
+    ///
+    /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
+    /// ```
+    /// guard let index = self.redPandaList.firstIndex(where: { $0.name == "Himalaya" }) else return
+    /// var updatedRedPandaList = self.redPandaList
+    /// updatedRedPandaList[index] = RedPanda(name: "Pabu")
+    /// self.$redPandaList.set(updatedRedPandaList)
+    /// ```
+    ///
+    /// Instead this function provides a much simpler alternative.
+    /// ```
+    /// try self.$redPandaList.replace(RedPanda(name: "Himalaya"), RedPanda(name: "Pabu"))
+    /// ```
+    func replace<Value: Equatable>(_ item: Item.Element, with updatedItem: Item.Element) throws -> Bool where Item == [Value] {
+        guard let array = self.wrappedValue else { return false }
+        guard let index = array.firstIndex(where: { $0 == item }) else { return false }
+
+        var updatedArray = array
+        updatedArray.remove(at: index)
+        updatedArray.insert(updatedItem, at: index)
+        try self.set(updatedArray)
+
+        return true
     }
 }
 
