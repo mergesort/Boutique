@@ -2,12 +2,12 @@ import SwiftUI
 
 @main
 struct BoutiqueDemoApp: App {
-    @StateObject private var appState = AppState()
+    @State private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(appState)
+                .environment(appState)
                 .onAppear(perform: {
                     // Saving the last time the app was opened to demonstrate how @StoredValue
                     // persists values. The next time you open the app it should print
