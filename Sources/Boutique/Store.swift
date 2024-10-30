@@ -48,6 +48,8 @@ import Observation
 @Observable
 @MainActor
 public final class Store<Item: Codable & Sendable> {
+    private let valueSubject: AsyncValueSubject<[Item]>
+
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -97,6 +99,7 @@ public final class Store<Item: Codable & Sendable> {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
+        self.valueSubject = AsyncValueSubject([])
 
         // Begin loading items in the background.
         _ = self.loadStoreTask
@@ -112,6 +115,8 @@ public final class Store<Item: Codable & Sendable> {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
+        self.valueSubject = AsyncValueSubject([])
+
         try await self.itemsHaveLoaded()
     }
 
@@ -237,6 +242,10 @@ public final class Store<Item: Codable & Sendable> {
         try await self.performRemoveAll()
     }
 
+    public var values: AsyncStream<[Item]> {
+        self.valueSubject.values
+    }
+
     /// A `Task` that will kick off loading items into the ``Store``.
     @ObservationIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
@@ -247,6 +256,8 @@ public final class Store<Item: Codable & Sendable> {
             self.items = []
             throw error
         }
+
+        self.valueSubject.send(self.items)
     }
 }
 
@@ -334,6 +345,7 @@ internal extension Store {
 
         await MainActor.run { [currentValuesDictionary] in
             self.items = Array(currentValuesDictionary.values)
+            self.valueSubject.send(self.items)
         }
     }
 
@@ -374,6 +386,7 @@ internal extension Store {
 
         await MainActor.run { [currentValuesDictionary] in
             self.items = Array(currentValuesDictionary.values)
+            self.valueSubject.send(self.items)
         }
     }
 
@@ -382,6 +395,8 @@ internal extension Store {
 
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
         let itemKeys = Set([cacheKeyString])
+
+        self.valueSubject.send([item])
 
         await MainActor.run {
             self.items.removeAll(where: { item in
@@ -394,6 +409,7 @@ internal extension Store {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         try await self.removePersistedItems(items: items)
+        self.valueSubject.send(items)
 
         await MainActor.run {
             self.items.removeAll(where: { item in
@@ -407,6 +423,7 @@ internal extension Store {
 
         await MainActor.run {
             self.items = []
+            self.valueSubject.send([])
         }
     }
 }
