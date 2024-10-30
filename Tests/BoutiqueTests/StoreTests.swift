@@ -2,7 +2,7 @@
 import Testing
 
 @MainActor
-@Suite("Store Tests")
+@Suite("Store Tests", .serialized)
 struct StoreTests {
     private var store: Store<BoutiqueItem>!
 
@@ -286,61 +286,61 @@ struct StoreTests {
         _ = operation
     }
 
-//    @Test("observable subscription inserting items")
-//    func testObservableSubscriptionInsertingItems() async throws {
-//        let uniqueItems = [BoutiqueItem].uniqueItems
-//        let expectation = #await(description: "uniqueItems is published and read")
-//
-//        withObservationTracking({
-//            _ = self.store.items
-//        }, onChange: {
-//            Task { @MainActor in
-//                #expect(self.store.items == uniqueItems)
-//                expectation.fulfill()
-//            }
-//        })
-//
-//        #expect(self.store.items.isEmpty)
-//
-//        // Sets items under the hood
-//        try await self.store.insert(uniqueItems)
-//        await expectation.fulfill()
-//    }
+    @Test("Test the ability to observe an AsyncStream of Store.values by inserting one value at a time", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingSingleItems() async throws {
+        let populateValuesTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
 
-//    @Test("observable subscription")
-//    func testObservableSubscription() async throws {
-//        let uniqueItems = [BoutiqueItem].uniqueItems
-//
-//        #expect(store.items.isEmpty)
-//
-//        try await store.insert(.coat)
-//        try await store.insert(.sweater)
-//        try await store.insert(.purse)
-//        try await store.insert(.belt)
-//
-//        await assertEventuallyEqual(store.items, uniqueItems)
-//    }
+            for await values in store.values {
+                accumulatedValues = values
+
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(store.items.isEmpty)
+
+        Task {
+            let uniqueItems = [BoutiqueItem].uniqueItems
+
+            try await store.insert(uniqueItems[0])
+            try await store.insert(uniqueItems[1])
+            try await store.insert(uniqueItems[2])
+            try await store.insert(uniqueItems[3])
+        }
+
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
+    }
+
+    @Test("Test the ability to observe an AsyncStream of Store.values by inserting an array of values", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingMultipleItems() async throws {
+        let populateValuesTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
+            for await values in store.values {
+                accumulatedValues.append(contentsOf: values)
+
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(store.items.isEmpty)
+
+        Task {
+            try await store.insert(.uniqueItems)
+        }
+
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
+    }
 }
-
-//extension StoreTests {
-//    func assertEventuallyEqual<T: Equatable>(
-//        _ expression1: @autoclosure () -> T,
-//        _ expression2: @autoclosure () -> T,
-//        timeout: TimeInterval = 5,
-//        _ message: @autoclosure () -> String = "",
-//        file: StaticString = #filePath,
-//        line: UInt = #line
-//    ) async {
-//        let exp = #await(description: "\(#function):\(file):\(line)")
-//        withObservationTracking(
-//            {
-//            _ = expression1()
-//            },
-//            onChange: {
-//                exp.fulfill()
-//            }
-//        )
-//        await exp.fulfill()
-//        #expect(expression1() == expression2(), message())
-//    }
-//}

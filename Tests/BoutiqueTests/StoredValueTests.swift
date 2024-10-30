@@ -127,45 +127,28 @@ struct StoredValueTests {
         #expect(self.$storedBinding.binding.wrappedValue == Binding.constant(.belt).wrappedValue)
     }
 
-    @Test("Test the ability to observe an AsyncStream of StoredValue.values")
-    func testStoredValueValuesAsyncStream() async throws {
-        var values: [BoutiqueItem] = []
-        var didComplete = false
-        
-        let task = Task {
+    @Test("Test the ability to observe an AsyncStream of StoredValue.values", .timeLimit(.minutes(1)))
+    func testStoredValuesAsyncStream() async throws {
+        let populateValuesTask = Task {
+            var values: [BoutiqueItem] = []
             for await value in self.$storedItem.values {
                 values.append(value)
                 if values.count == 4 {
                     #expect(values == [.coat, .sweater, .purse, .belt])
-                    didComplete = true
-                    return
+                    return true
                 }
             }
+
+            return false
         }
 
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await self.$storedItem.set(.sweater)
-            }
-            
-            group.addTask {
-                await self.$storedItem.set(.purse)
-            }
-            
-            group.addTask {
-                await self.$storedItem.set(.belt)
-            }
-            
-            try await group.waitForAll()
+        Task {
+            self.$storedItem.set(.sweater)
+            self.$storedItem.set(.purse)
+            self.$storedItem.set(.belt)
         }
 
-        task.cancel()
-
-        try? await Task.sleep(for: .seconds(1.0))
-
-        // Only check the requirement if we didn't complete successfully
-        if !didComplete {
-            try #require(values.count == 4)
-        }
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
     }
 }

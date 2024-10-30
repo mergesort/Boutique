@@ -25,7 +25,7 @@ struct SecurelyStoredValueTests {
 
     @SecurelyStoredValue<String>(key: "Boutique.SecurelyStoredValue.Test")
     private var storedExistingValue
-    
+
     @SecurelyStoredValue<String>(key: "secureGroupString", group: "com.boutique.tests")
     private var storedGroupValue
 
@@ -33,7 +33,7 @@ struct SecurelyStoredValueTests {
         if self.storedExistingValue == nil {
             try self.$storedExistingValue.set("Existence")
         }
-        
+
         try self.$storedPassword.remove()
         try self.$storedBool.remove()
         try self.$storedItem.remove()
@@ -138,7 +138,7 @@ struct SecurelyStoredValueTests {
     @Test("Test StoredValue.binding")
     func testStoredBinding() async throws {
         #expect(self.storedBinding == nil)
-        
+
         // Using wrappedValue for our tests to work around the fact that Binding doesn't conform to Equatable
         #expect(self.$storedBinding.binding.wrappedValue == nil)
 
@@ -146,25 +146,30 @@ struct SecurelyStoredValueTests {
         #expect(self.$storedBinding.binding.wrappedValue == Binding.constant(.belt).wrappedValue)
     }
 
-    @Test("Test the ability to observe an AsyncStream of StoredValue.values")
-    func testStoredValueValuesAsyncStream() async throws {
-        var values: [BoutiqueItem?] = []
-
-        let task = Task {
+    @Test("Test the ability to observe an AsyncStream of StoredValue.values", .timeLimit(.minutes(1)))
+    func testStoredValuesAsyncStream() async throws {
+        let populateValuesTask = Task {
+            var values: [BoutiqueItem?] = []
             for await value in self.$storedItem.values {
                 values.append(value)
-                if values.count == 3 {
-                    #expect(values == [.sweater, .purse, .belt])
+                print(values)
+                if values.count == 4 {
+                    #expect(values == [nil, .sweater, .purse, .belt])
+                    return true
                 }
             }
+
+            return false
         }
 
-        try self.$storedItem.set(.sweater)
-        try self.$storedItem.set(.purse)
-        try self.$storedItem.set(.belt)
+        Task {
+            try self.$storedItem.set(.sweater)
+            try self.$storedItem.set(.purse)
+            try self.$storedItem.set(.belt)
+        }
 
-        try await Task.sleep(for: .seconds(1.0))
-
-        let _ = task.cancel()
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
     }
+
 }

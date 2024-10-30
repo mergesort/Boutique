@@ -2,7 +2,7 @@
 import Testing
 
 @MainActor
-@Suite("Async Store Tests")
+@Suite("Async Store Tests", .serialized)
 struct AsyncStoreTests {
     private var asyncStore: Store<BoutiqueItem>!
 
@@ -279,24 +279,62 @@ struct AsyncStoreTests {
         _ = operation
     }
 
-//    @Test("observable subscription inserting items")
-//    func testObservableSubscriptionInsertingItems() async throws {
-//        let uniqueItems = [BoutiqueItem].uniqueItems
-//        let expectation = #await(description: "uniqueItems is published and read")
-//
-//        withObservationTracking({
-//            _ = self.asyncStore.items
-//        }, onChange: {
-//            Task { @MainActor in
-//                #expect(self.asyncStore.items == uniqueItems)
-//                expectation.fulfill()
-//            }
-//        })
-//
-//        #expect(self.asyncStore.items.isEmpty)
-//
-//        // Sets items under the hood
-//        try await self.asyncStore.insert(uniqueItems)
-//        await expectation.fulfill(timeout: 1.0)
-//    }
+    @Test("Test the ability to observe an AsyncStream of Store.values by inserting one value at a time", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingSingleItems() async throws {
+        let populateValuesTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
+
+            for await values in asyncStore.values {
+                accumulatedValues = values
+
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(asyncStore.items.isEmpty)
+
+        Task {
+            let uniqueItems = [BoutiqueItem].uniqueItems
+
+            try await asyncStore.insert(uniqueItems[0])
+            try await asyncStore.insert(uniqueItems[1])
+            try await asyncStore.insert(uniqueItems[2])
+            try await asyncStore.insert(uniqueItems[3])
+        }
+
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
+    }
+
+    @Test("Test the ability to observe an AsyncStream of Store.values by inserting an array of values", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingMultipleItems() async throws {
+        let populateValuesTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
+            for await values in asyncStore.values {
+                accumulatedValues.append(contentsOf: values)
+
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(asyncStore.items.isEmpty)
+
+        Task {
+            try await asyncStore.insert(.uniqueItems)
+        }
+
+        let populateValuesTaskCompleted = await populateValuesTask.value
+        try #require(populateValuesTaskCompleted)
+    }
+
 }
