@@ -1,12 +1,12 @@
 @testable import Boutique
-import Combine
-import XCTest
+import Testing
 
-final class StoreTests: XCTestCase {
+@MainActor
+@Suite("Store Tests", .serialized)
+struct StoreTests {
     private var store: Store<BoutiqueItem>!
-    private var cancellables: Set<AnyCancellable> = []
 
-    override func setUp() async throws {
+    init() async throws {
         // Returns a `Store` using the non-async init. This is a workaround for Swift prioritizing the
         // `async` version of the overload while in an `async` context, such as the `setUp()` here.
         // There's a separate `AsyncStoreTests` file with matching tests using the async init.
@@ -20,48 +20,44 @@ final class StoreTests: XCTestCase {
         try await store.removeAll()
     }
 
-    override func tearDown() {
-        cancellables.removeAll()
-    }
-
-    @MainActor
+    @Test("Test inserting a single item")
     func testInsertingItem() async throws {
         try await store.insert(.coat)
-        XCTAssertTrue(store.items.contains(.coat))
+        #expect(store.items.contains(.coat))
 
         try await store.insert(.belt)
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertEqual(store.items.count, 2)
+        #expect(store.items.contains(.belt))
+        #expect(store.items.count == 2)
     }
 
-    @MainActor
-    func testInsertingItems() async throws {
+    @Test("Test inserting multiple items")
+    func testInsertingMultipleItems() async throws {
         try await store.insert([.coat, .sweater, .sweater, .purse])
-        XCTAssertTrue(store.items.contains(.coat))
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.purse))
+        #expect(store.items.contains(.coat))
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.purse))
     }
 
-    @MainActor
+    @Test("Test inserting duplicate items")
     func testInsertingDuplicateItems() async throws {
-        XCTAssertTrue(store.items.isEmpty)
+        #expect(store.items.isEmpty)
         try await store.insert(.allItems)
-        XCTAssertEqual(store.items.count, 4)
+        #expect(store.items.count == 4)
     }
 
-    @MainActor
+    @Test("Test reading items")
     func testReadingItems() async throws {
         try await store.insert(.allItems)
 
-        XCTAssertEqual(store.items[0], .coat)
-        XCTAssertEqual(store.items[1], .sweater)
-        XCTAssertEqual(store.items[2], .purse)
-        XCTAssertEqual(store.items[3], .belt)
+        #expect(store.items[0] == .coat)
+        #expect(store.items[1] == .sweater)
+        #expect(store.items[2] == .purse)
+        #expect(store.items[3] == .belt)
 
-        XCTAssertEqual(store.items.count, 4)
+        #expect(store.items.count == 4)
     }
 
-    @MainActor
+    @Test("Test reading items persisted in a Store")
     func testReadingPersistedItems() async throws {
         try await store.insert(.allItems)
 
@@ -70,42 +66,42 @@ final class StoreTests: XCTestCase {
             storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
             cacheIdentifier: \.merchantID)
 
-        XCTAssertEqual(newStore.items[0], .coat)
-        XCTAssertEqual(newStore.items[1], .sweater)
-        XCTAssertEqual(newStore.items[2], .purse)
-        XCTAssertEqual(newStore.items[3], .belt)
+        #expect(newStore.items[0] == .coat)
+        #expect(newStore.items[1] == .sweater)
+        #expect(newStore.items[2] == .purse)
+        #expect(newStore.items[3] == .belt)
 
-        XCTAssertEqual(newStore.items.count, 4)
+        #expect(newStore.items.count == 4)
     }
 
-    @MainActor
-    func testRemovingItems() async throws {
+    @Test("Test removing items")
+    func testRemovingSingleItems() async throws {
         try await store.insert(.allItems)
         try await store.remove(.coat)
 
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(!store.items.contains(.coat))
 
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.purse))
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.purse))
 
         try await store.remove([.sweater, .purse])
-        XCTAssertFalse(store.items.contains(.sweater))
-        XCTAssertFalse(store.items.contains(.purse))
+        #expect(!store.items.contains(.sweater))
+        #expect(!store.items.contains(.purse))
     }
 
-    @MainActor
+    @Test("Test removing all items")
     func testRemoveAll() async throws {
         try await store.insert(.coat)
-        XCTAssertEqual(store.items.count, 1)
+        #expect(store.items.count == 1)
         try await store.removeAll()
 
         try await store.insert(.uniqueItems)
-        XCTAssertEqual(store.items.count, 4)
+        #expect(store.items.count == 4)
         try await store.removeAll()
-        XCTAssertTrue(store.items.isEmpty)
+        #expect(store.items.isEmpty)
     }
 
-    @MainActor
+    @Test("Test chaining insert operations")
     func testChainingInsertOperations() async throws {
         try await store.insert(.uniqueItems)
 
@@ -115,11 +111,11 @@ final class StoreTests: XCTestCase {
             .insert(.belt)
             .run()
 
-        XCTAssertEqual(store.items.count, 3)
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.purse))
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(store.items.count == 3)
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.purse))
+        #expect(store.items.contains(.belt))
+        #expect(!store.items.contains(.coat))
 
         try await store.removeAll()
 
@@ -130,10 +126,10 @@ final class StoreTests: XCTestCase {
             .insert(.sweater)
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.coat))
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertFalse(store.items.contains(.belt))
+        #expect(store.items.count == 2)
+        #expect(store.items.contains(.coat))
+        #expect(store.items.contains(.sweater))
+        #expect(!store.items.contains(.belt))
 
         try await store.removeAll()
 
@@ -145,11 +141,11 @@ final class StoreTests: XCTestCase {
             .insert([.sweater])
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.purse))
-        XCTAssertFalse(store.items.contains(.coat))
-        XCTAssertFalse(store.items.contains(.belt))
+        #expect(store.items.count == 2)
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.purse))
+        #expect(!store.items.contains(.coat))
+        #expect(!store.items.contains(.belt))
 
         try await store.removeAll()
 
@@ -162,11 +158,11 @@ final class StoreTests: XCTestCase {
             .insert(.sweater)
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.purse))
-        XCTAssertFalse(store.items.contains(.coat))
-        XCTAssertFalse(store.items.contains(.belt))
+        #expect(store.items.count == 2)
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.purse))
+        #expect(!store.items.contains(.coat))
+        #expect(!store.items.contains(.belt))
 
         try await store.removeAll()
 
@@ -175,10 +171,10 @@ final class StoreTests: XCTestCase {
             .insert([.purse, .belt])
             .run()
 
-        XCTAssertEqual(store.items.count, 3)
-        XCTAssertTrue(store.items.contains(.purse))
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertTrue(store.items.contains(.coat))
+        #expect(store.items.count == 3)
+        #expect(store.items.contains(.purse))
+        #expect(store.items.contains(.belt))
+        #expect(store.items.contains(.coat))
 
         try await store.removeAll()
 
@@ -188,10 +184,10 @@ final class StoreTests: XCTestCase {
             .remove(.purse)
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertFalse(store.items.contains(.purse))
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertTrue(store.items.contains(.coat))
+        #expect(store.items.count == 2)
+        #expect(!store.items.contains(.purse))
+        #expect(store.items.contains(.belt))
+        #expect(store.items.contains(.coat))
 
         try await store.removeAll()
 
@@ -202,10 +198,10 @@ final class StoreTests: XCTestCase {
             .remove(.purse)
             .run()
 
-        XCTAssertEqual(store.items.count, 1)
-        XCTAssertFalse(store.items.contains(.purse))
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(store.items.count == 1)
+        #expect(!store.items.contains(.purse))
+        #expect(store.items.contains(.belt))
+        #expect(!store.items.contains(.coat))
 
         try await store.removeAll()
 
@@ -216,10 +212,10 @@ final class StoreTests: XCTestCase {
             .removeAll()
             .run()
 
-        XCTAssertEqual(store.items.count, 0)
-        XCTAssertFalse(store.items.contains(.purse))
-        XCTAssertFalse(store.items.contains(.belt))
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(store.items.count == 0)
+        #expect(!store.items.contains(.purse))
+        #expect(!store.items.contains(.belt))
+        #expect(!store.items.contains(.coat))
 
         try await store
             .insert([.coat])
@@ -227,13 +223,13 @@ final class StoreTests: XCTestCase {
             .insert([.purse, .belt])
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.purse))
-        XCTAssertTrue(store.items.contains(.belt))
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(store.items.count == 2)
+        #expect(store.items.contains(.purse))
+        #expect(store.items.contains(.belt))
+        #expect(!store.items.contains(.coat))
     }
 
-    @MainActor
+    @Test("Test chaining remove operations")
     func testChainingRemoveOperations() async throws {
         try await store
             .insert(.uniqueItems)
@@ -241,28 +237,28 @@ final class StoreTests: XCTestCase {
             .remove(.purse)
             .run()
 
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertTrue(store.items.contains(.sweater))
-        XCTAssertTrue(store.items.contains(.coat))
+        #expect(store.items.count == 2)
+        #expect(store.items.contains(.sweater))
+        #expect(store.items.contains(.coat))
 
         try await store.insert(.uniqueItems)
-        XCTAssertEqual(store.items.count, 4)
+        #expect(store.items.count == 4)
 
         try await store
             .remove([.sweater, .coat])
             .remove(.belt)
             .run()
 
-        XCTAssertEqual(store.items.count, 1)
-        XCTAssertTrue(store.items.contains(.purse))
+        #expect(store.items.count == 1)
+        #expect(store.items.contains(.purse))
 
         try await store
             .removeAll()
             .insert(.belt)
             .run()
 
-        XCTAssertEqual(store.items.count, 1)
-        XCTAssertTrue(store.items.contains(.belt))
+        #expect(store.items.count == 1)
+        #expect(store.items.contains(.belt))
 
         try await store
             .removeAll()
@@ -270,44 +266,85 @@ final class StoreTests: XCTestCase {
             .insert(.belt)
             .run()
 
-        XCTAssertEqual(store.items.count, 1)
-        XCTAssertTrue(store.items.contains(.belt))
+        #expect(store.items.count == 1)
+        #expect(store.items.contains(.belt))
     }
 
-    @MainActor
-    func testChainingOperationsDontExecuteUnlessRun() async throws {
+    @Test("Test that chained operations don't execute unless explicitly run")
+    func testChainedOperationsDontExecuteUnlessRun() async throws {
         let operation = try await store
             .insert(.coat)
             .insert([.purse, .belt])
 
-        XCTAssertEqual(store.items.count, 0)
-        XCTAssertFalse(store.items.contains(.purse))
-        XCTAssertFalse(store.items.contains(.belt))
-        XCTAssertFalse(store.items.contains(.coat))
+        #expect(store.items.count == 0)
+        #expect(!store.items.contains(.purse))
+        #expect(!store.items.contains(.belt))
+        #expect(!store.items.contains(.coat))
 
         // Adding this line to get rid of the error about
         // `operation` being unused, given that's the point of the test.
         _ = operation
     }
 
-    @MainActor
-    func testPublishedItemsSubscription() async throws {
-        let uniqueItems: [BoutiqueItem] = .uniqueItems
-        let expectation = XCTestExpectation(description: "uniqueItems is published and read")
+    @Test("Test the ability to observe an AsyncStream of Store.events by inserting one value at a time", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingSingleItems() async throws {
+        let populateStoreTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
 
-        store.$items
-            .dropFirst()
-            .sink(receiveValue: { items in
-                XCTAssertEqual(items, uniqueItems)
-                expectation.fulfill()
-            })
-            .store(in: &cancellables)
+            for await event in store.events {
+                try store.validateStoreEvent(event: event)
 
-        XCTAssertTrue(store.items.isEmpty)
+                accumulatedValues += event.items
 
-        // Sets items under the hood
-        try await store.insert(uniqueItems)
-        wait(for: [expectation], timeout: 1)
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(store.items.isEmpty)
+
+        Task {
+            let uniqueItems = [BoutiqueItem].uniqueItems
+
+            try await store.insert(uniqueItems[0])
+            try await store.insert(uniqueItems[1])
+            try await store.insert(uniqueItems[2])
+            try await store.insert(uniqueItems[3])
+        }
+
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
+    }
+
+    @Test("Test the ability to observe an AsyncStream of Store.events by inserting an array of values", .timeLimit(.minutes(1)))
+    func testAsyncStreamByInsertingMultipleItems() async throws {
+        let populateStoreTask = Task {
+            var accumulatedValues: [BoutiqueItem] = []
+            for await event in store.events {
+                try store.validateStoreEvent(event: event)
+
+                accumulatedValues.append(contentsOf: event.items)
+
+                if accumulatedValues.count == 4 {
+                    #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        #expect(store.items.isEmpty)
+
+        Task {
+            try await store.insert(.uniqueItems)
+        }
+
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
     }
 }
-

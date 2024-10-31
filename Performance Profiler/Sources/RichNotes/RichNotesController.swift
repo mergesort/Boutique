@@ -1,8 +1,10 @@
 import Boutique
 import SwiftUI
 
-final class RichNotesController: ObservableObject {
-    @Stored var notes: [RichNote]
+@Observable
+final class RichNotesController {
+    @ObservationIgnored
+    @Stored(in: .notesStore) var notes: [RichNote]
 
     init(store: Store<RichNote>) {
         self._notes = Stored(in: store)
@@ -30,10 +32,10 @@ final class RichNotesController: ObservableObject {
     }
 
     func removeItems(count: Int) async throws {
-        let removalCount = min(await self.notes.count, count)
+        let removalCount = min(self.notes.count, count)
 
         do {
-            let firstElements = await Array(self.notes[0..<removalCount])
+            let firstElements = Array(self.notes[0..<removalCount])
             try await self.$notes.remove(firstElements)
         } catch {
             print(error)

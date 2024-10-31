@@ -1,12 +1,17 @@
 @_exported import Bodega
 import OrderedCollections
 import Foundation
+import Observation
 
 /// A fancy persistence layer.
 ///
 /// A ``Store`` for your app which provides you a dual-layered data architecture with a very simple API.
-/// The ``Store`` exposes a `@Published` property for your data, which allows you to read it's data synchronously
-/// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
+///
+/// The ``Store`` exposes an array of items, which you can reference simply by calling `store.items`.
+///
+/// Because ``Store`` implements the `@Observable` protocol, you can also observe and respond to changes reactively, for example in an `.onChange` handler.
+///
+/// The ``Store`` also exposes an `AsyncStream` through the `values` property, which allows you to observe changes to the items in your ``Store`` with a `for await` loop.
 ///
 /// Under the hood the ``Store`` is doing the work of saving all changes to a persistence layer
 /// when you insert or remove items, which allows you to build an offline-first app
@@ -15,7 +20,7 @@ import Foundation
 /// **How The Store Works**
 ///
 /// A ``Store`` is a higher level abstraction than Bodega's `ObjectStorage`, containing and leveraging
-/// an in-memory store, the ``items`` array, and a `StorageEngine` for it's persistence layer.
+/// an in-memory store, the `items` array, and a `StorageEngine` for it's persistence layer.
 ///
 /// The `StorageEngine` you initialize a ``Store`` with (such as `DiskStorageEngine` or `SQLiteStorageEngine`)
 /// will be where items are stored permanently. If you do not provide a `StorageEngine` parameter
@@ -43,7 +48,11 @@ import Foundation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-public final class Store<Item: Codable & Sendable>: ObservableObject {
+@MainActor
+@Observable
+public final class Store<Item: StorableItem> {
+    private let valueSubject: AsyncValueSubject<StoreEvent<Item>>
+
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
 
@@ -52,7 +61,7 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     /// The user can read the state of ``items`` at any time
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
-    @MainActor @Published public private(set) var items: [Item] = []
+    public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
@@ -93,6 +102,7 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
+        self.valueSubject = AsyncValueSubject(.initial)
 
         // Begin loading items in the background.
         _ = self.loadStoreTask
@@ -105,11 +115,12 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     ///   - storage: A `StorageEngine` to initialize a ``Store`` instance with.
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
-    @MainActor
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        try await itemsHaveLoaded()
+        self.valueSubject = AsyncValueSubject(.initial)
+
+        try await self.itemsHaveLoaded()
     }
 
     /// Awaits for ``items`` to be loaded.
@@ -118,27 +129,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     /// This functions provides a way to `await` its completion before accessing the ``items``.
     public func itemsHaveLoaded() async throws {
         try await loadStoreTask.value
-    }
-
-    /// Adds an item to the store.
-    ///
-    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
-    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
-    /// of items, removing complexity when it comes to managing items, indices, and more,
-    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
-    ///
-    /// - Parameters:
-    ///   - item: The item you are adding to the ``Store``.
-    /// - Returns: An ``Operation`` that can be used to add an item as part of a chain.
-    @_disfavoredOverload
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ item: Item) async throws -> Operation {
-        let operation = Operation(store: self)
-        return try await operation.insert(item)
     }
 
     /// Inserts an item into the store.
@@ -157,24 +147,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
         return try await operation.insert(item)
     }
 
-    /// Adds an item to the ``Store``.
-    ///
-    /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
-    /// the item being inserted will replace the item in the ``Store``. You can think of the ``Store`` as a bag
-    /// of items, removing complexity when it comes to managing items, indices, and more,
-    /// but it also means you need to choose well thought out and uniquely identifying `cacheIdentifier`s.
-    ///
-    /// - Parameters:
-    ///   - item: The item you are adding to the ``Store``.
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ item: Item) async throws {
-        try await self.performInsert(item)
-    }
-
     /// Inserts an item into the ``Store``.
     ///
     /// When an item is inserted with the same `cacheIdentifier` as an item that already exists in the ``Store``
@@ -186,25 +158,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     ///   - item: The item you are inserting into the ``Store``.
     public func insert(_ item: Item) async throws {
         try await self.performInsert(item)
-    }
-
-    /// Adds an array of items to the ``Store``.
-    ///
-    /// Prefer adding multiple items using this method instead of calling ``add(_:)-1ausm``
-    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-    ///
-    /// - Parameters:
-    ///   - items: The items to add to the store.
-    /// - Returns: An ``Operation`` that can be used to add items as part of a chain.
-    @_disfavoredOverload
-    @available(
-        *, deprecated,
-        renamed: "insert",
-        message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ items: [Item]) async throws -> Operation {
-        let operation = Operation(store: self)
-        return try await operation.insert(items)
     }
 
     /// Inserts an array of items into the ``Store``.
@@ -219,22 +172,6 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
     public func insert(_ items: [Item]) async throws -> Operation {
         let operation = Operation(store: self)
         return try await operation.insert(items)
-    }
-
-    /// Adds an array of items to the ``Store``.
-    ///
-    /// Prefer adding multiple items using this method instead of calling ``insert(_:)-7z2oe``
-    /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-    ///
-    /// - Parameters:
-    ///   - items: The items to add to the store.
-    @available(
-        *, deprecated,
-         renamed: "insert",
-         message: "This method is functionally equivalent to `insert` and will be removed in a future release. After using Boutique in practice for a while I decided that insert was a more semantically correct name for this operation on a Store, if you'd like to learn more you can see the discussion here. https://github.com/mergesort/Boutique/discussions/36"
-    )
-    public func add(_ items: [Item]) async throws {
-        try await self.performInsert(items)
     }
 
     /// Inserts an array of items into the ``Store``.
@@ -308,7 +245,16 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
         try await self.performRemoveAll()
     }
 
+    /// An `AsyncStream` that emits all changes for the `items` in a ``Store``, .
+    ///
+    /// This stream will emit an `initial` value when subscribed to, and will further emit
+    /// any changes to the value with their assocaited operation when ``insert(_:)-3j9hw`` or ``remove(_:)-51ya6``, or ``removeAll()-1xc24`` are called.
+    public var events: AsyncStream<StoreEvent<Item>> {
+        self.valueSubject.values
+    }
+
     /// A `Task` that will kick off loading items into the ``Store``.
+    @ObservationIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
             self.items = try await self.storageEngine.readAllData()
@@ -317,6 +263,8 @@ public final class Store<Item: Codable & Sendable>: ObservableObject {
             self.items = []
             throw error
         }
+
+        self.valueSubject.send(.loaded(self.items))
     }
 }
 
@@ -333,19 +281,18 @@ public extension Store {
     ///   - cacheIdentifier: A `KeyPath` from the `Item` pointing to a `String`, which the ``Store``
     ///   will use to create a unique identifier for the item when it's saved.
     /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
+    @MainActor
     static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
         let store = Store(
             storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
             cacheIdentifier: cacheIdentifier
         )
 
-        Task.detached { @MainActor in
-            store.items = items
-        }
+        store.items = items
 
         return store
     }
-    
+
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
     ///
     /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
@@ -362,7 +309,7 @@ public extension Store {
     static func previewStore(items: [Item]) -> Store<Item> where Item: Identifiable, Item.ID == String {
         previewStore(items: items, cacheIdentifier: \.id)
     }
-    
+
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
     ///
     /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
@@ -385,7 +332,7 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = await self.items
+        var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
             var removedItems = [item]
@@ -403,13 +350,13 @@ internal extension Store {
         // We persist only the newly added items, rather than rewriting all of the items
         try await self.persistItem(item)
 
-        await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
-        }
+        self.items = Array(currentValuesDictionary.values)
+
+        self.valueSubject.send(.insert([item]))
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = await self.items
+        var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
@@ -441,11 +388,12 @@ internal extension Store {
         }
 
         // We persist only the newly added items, rather than rewriting all of the items
-        try await self.persistItems(Array(insertedItemsDictionary.values))
+        let insertedItems = Array(insertedItemsDictionary.values)
+        try await self.persistItems(insertedItems)
 
-        await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
-        }
+        self.items = Array(currentValuesDictionary.values)
+
+        self.valueSubject.send(.insert(insertedItems))
     }
 
     func performRemove(_ item: Item) async throws {
@@ -454,11 +402,11 @@ internal extension Store {
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
         let itemKeys = Set([cacheKeyString])
 
-        await MainActor.run {
-            self.items.removeAll(where: { item in
-                itemKeys.contains(item[keyPath: self.cacheIdentifier])
-            })
-        }
+        self.items.removeAll(where: { item in
+            itemKeys.contains(item[keyPath: self.cacheIdentifier])
+        })
+
+        self.valueSubject.send(.remove([item]))
     }
 
     func performRemove(_ items: [Item]) async throws {
@@ -466,19 +414,21 @@ internal extension Store {
 
         try await self.removePersistedItems(items: items)
 
-        await MainActor.run {
-            self.items.removeAll(where: { item in
-                itemKeys.contains(item[keyPath: self.cacheIdentifier])
-            })
-        }
+        self.items.removeAll(where: { item in
+            itemKeys.contains(item[keyPath: self.cacheIdentifier])
+        })
+
+        self.valueSubject.send(.remove(items))
     }
 
     func performRemoveAll() async throws {
+        let currentItems = self.items
+
         try await self.storageEngine.removeAllData()
 
-        await MainActor.run {
-            self.items = []
-        }
+        self.items = []
+
+        self.valueSubject.send(.remove(currentItems))
     }
 }
 

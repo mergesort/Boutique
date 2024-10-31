@@ -3,15 +3,12 @@ import SwiftUI
 
 /// A view that fetches a red panda image from the server and allows a user to favorite the red panda.
 struct RedPandaCardView: View {
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var focusController: ScrollFocusController<String>
 
-    @StateObject private var imagesController = ImagesController()
-
+    @State private var imagesController = ImagesController()
     @State private var currentImage: RemoteImage?
-
     @State private var requestInFlight = false
-
-    @EnvironmentObject private var appState: AppState
 
     @State private var progress: CGFloat = 0.0
 
@@ -122,6 +119,15 @@ private extension RedPandaCardView {
 
         self.currentImage = nil // Assigning nil shows the progress spinner
         self.currentImage = try await self.imagesController.fetchImage()
+
+        guard let url = self.currentImage?.url else { return }
+
+        if self.appState.fetchedRedPandas.contains(url) {
+            print("Fetched an already seen red panda from URL", url)
+        } else {
+            self.appState.$fetchedRedPandas.append(url)
+            print("Fetched a new red panda from URL", url)
+        }
     }
 
     var currentImageIsSaved: Bool {

@@ -1,6 +1,5 @@
-import Combine
 import Foundation
-import SwiftUI
+import Observation
 
 /// The @``SecurelyStoredValue`` property wrapper automagically persists a single `Item` in the system `Keychain`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -8,12 +7,12 @@ import SwiftUI
 /// You should use @``SecurelyStoredValue`` rather than @``StoredValue`` when you need to store
 /// sensitive values such as passwords or auth tokens, since a @``StoredValue`` will be persisted in `UserDefaults`.
 ///
-/// This is fulfills the same needs as many other Keychain wrappers, but in a Boutique-like manner.
+/// This fulfills the same needs as many other Keychain wrappers, but in a Boutique-like manner.
 ///
 /// Values are delivered synchronously and are available on app launch, using the system `Keychain`
-/// as the backing store. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
+/// as the backing store.
 ///
-/// Unlike @``StoredValue`` properties @``SecurelyStoredValue`` properties cannot be provided a default value.
+/// Unlike @``StoredValue`` properties, @``SecurelyStoredValue`` properties cannot be provided a default value.
 /// ```
 /// @SecurelyStoredValue<RedPanda>(key: "redPanda")
 /// private var redPanda
@@ -37,31 +36,46 @@ import SwiftUI
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
+@MainActor
+@Observable
 @propertyWrapper
-public struct SecurelyStoredValue<Item: Codable> {
-    private let cancellableBox = CancellableBox()
-    private let itemSubject = CurrentValueSubject<Item?, Never>(nil)
+public final class SecurelyStoredValue<Item: StorableItem> {
+    private let observationRegistrar = ObservationRegistrar()
+    private let valueSubject = AsyncValueSubject<Item?>(nil)
+
     private let key: String
     private let service: String?
     private let group: String?
 
+    /// Initializes a new @``SecurelyStoredValue``.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use when storing the value in the keychain.
+    ///   - service: The service to use when storing the value in the keychain.
+    ///   - group: The group to use when storing the value in the keychain.
     public init(key: String, service: KeychainService? = nil, group: KeychainGroup? = nil) {
         self.key = key
         self.service = service?.value
         self.group = group?.value
+
+        let initialValue = Self.storedValue(group: group?.value, service: self.keychainService, account: key)
+        self.valueSubject.send(initialValue)
     }
 
     /// The currently stored value
     public var wrappedValue: Item? {
-        Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
+        self.retrieveItem()
     }
 
-    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
+    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside an `AsyncStream` of ``values``.
     public var projectedValue: SecurelyStoredValue<Item> { self }
 
-    /// A Combine publisher that allows you to observe all changes to the @``SecurelyStoredValue``.
-    public var publisher: AnyPublisher<Item?, Never> {
-        self.itemSubject.eraseToAnyPublisher()
+    /// An `AsyncStream` that emits all value changes of a @``SecurelyStoredValue``.
+    ///
+    /// This stream will emit the initial value when subscribed to, and will further emit
+    /// any changes to the value when ``set(_:)`` or ``remove()`` are called.
+    public var values: AsyncStream<Item?> {
+        self.valueSubject.values
     }
 
     /// Sets a value for the @``SecurelyStoredValue`` property.
@@ -86,7 +100,6 @@ public struct SecurelyStoredValue<Item: Codable> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     ///
     /// - Parameter value: The value to set @``SecurelyStoredValue`` to.
-    @MainActor
     public func set(_ value: Item?) throws {
         if let value {
             if self.wrappedValue == nil {
@@ -96,11 +109,13 @@ public struct SecurelyStoredValue<Item: Codable> {
                 // Since updating a value does not seem to work, I've rewritten `set` to first set a `nil` value
                 // then the desired value, which will effectively call `set` with a new value, which does work.
                 // This will be fixed in the future, and we will restore the call-site to say `self.update(value)`.
-                try self.remove()
+                // try self.remove()
+                self.removeItem(shouldPublishChanges: false)
                 try self.insert(value)
             }
         } else {
-            try self.remove()
+            // try self.remove()
+            self.removeItem(shouldPublishChanges: false)
         }
     }
 
@@ -127,33 +142,12 @@ public struct SecurelyStoredValue<Item: Codable> {
     @MainActor
     public func remove() throws {
         if self.wrappedValue != nil {
-            try self.removeItem()
+            // try self.removeItem()
+            self.removeItem(shouldPublishChanges: true)
         } else if self.wrappedValue == nil && Self.keychainValueExists(group: self.group, service: self.keychainService, account: self.key) {
-            try self.removeItem()
+            // try self.removeItem()
+            self.removeItem(shouldPublishChanges: true)
         }
-    }
-
-    public static subscript<Instance>(
-        _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item?>,
-        storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item? {
-        let wrapper = instance[keyPath: storageKeyPath]
-
-        if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.itemSubject
-                .receive(on: RunLoop.main)
-                .sink(receiveValue: { [instance] _ in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-                    objectWillChangePublisher?.send()
-                })
-        }
-
-        return wrapper.wrappedValue
     }
 }
 
@@ -178,63 +172,104 @@ private extension SecurelyStoredValue {
     }
 
     func insert(_ value: Item) throws {
-        let keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: self.key,
-            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            let keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key,
+                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
-        let status = SecItemAdd(keychainQuery as CFDictionary, nil)
+            let status = SecItemAdd(keychainQuery as CFDictionary, nil)
 
-        if status == errSecSuccess || status == errSecDuplicateItem {
-            self.itemSubject.send(value)
-        } else {
-            throw KeychainError(status: status)
+            if status == errSecSuccess || status == errSecDuplicateItem {
+                self.valueSubject.send(value)
+            } else {
+                throw KeychainError(status: status)
+            }
         }
     }
 
     func update(_ value: Item) throws {
-        let keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: self.key,
-            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            let keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key,
+                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
-        let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
+            let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
 
-        if status == errSecSuccess {
-            self.itemSubject.send(value)
-        } else {
-            throw KeychainError(status: status)
+            if status == errSecSuccess {
+                self.valueSubject.send(value)
+            } else {
+                throw KeychainError(status: status)
+            }
         }
     }
 
-    func removeItem() throws {
-        var keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: self.keychainService,
-            kSecAttrAccount: key
-        ]
-        .withGroup(self.group)
-        .mapToStringDictionary()
+    func removeItem(shouldPublishChanges: Bool) {
+        let removeItem = {
+            var keychainQuery = [
+                kSecClass: kSecClassGenericPassword,
+                kSecAttrService: self.keychainService,
+                kSecAttrAccount: self.key
+            ]
+            .withGroup(self.group)
+            .mapToStringDictionary()
 
 #if os(macOS)
-        // This line must exist on OS X, but must not exist on iOS.
-        // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
-        keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+            // This line must exist on OS X, but must not exist on iOS.
+            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
+            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
 #endif
-        let status = SecItemDelete(keychainQuery as CFDictionary)
+            let status = SecItemDelete(keychainQuery as CFDictionary)
 
-        if status == errSecSuccess || status == errSecItemNotFound {
-            self.itemSubject.send(nil)
+            if status == errSecSuccess || status == errSecItemNotFound {
+                if shouldPublishChanges {
+                    self.valueSubject.send(nil)
+                }
+            }
+        }
+
+        if shouldPublishChanges {
+            observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+                removeItem()
+            }
+        } else {
+            removeItem()
         }
     }
+
+// Restore this once we've fixed up the update bugs
+
+//    func removeItem() {
+//        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+//            var keychainQuery = [
+//                kSecClass: kSecClassGenericPassword,
+//                kSecAttrService: self.keychainService,
+//                kSecAttrAccount: key
+//            ]
+//                .withGroup(self.group)
+//                .mapToStringDictionary()
+//
+//#if os(macOS)
+//            // This line must exist on OS X, but must not exist on iOS.
+//            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
+//            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+//#endif
+//            let status = SecItemDelete(keychainQuery as CFDictionary)
+//
+//            if status == errSecSuccess || status == errSecItemNotFound {
+//                self.valueSubject.send(nil)
+//            }
+//        }
+//    }
 
     static func keychainValueExists(group: String?, service: String, account: String) -> Bool {
         let keychainQuery = [
@@ -250,6 +285,12 @@ private extension SecurelyStoredValue {
         let status = SecItemCopyMatching(keychainQuery as CFDictionary, &extractedData)
 
         return status != errSecItemNotFound
+    }
+
+    func retrieveItem() -> Item? {
+        observationRegistrar.access(self, keyPath: \.wrappedValue)
+
+        return Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
     }
 
     var keychainService: String {
@@ -279,11 +320,5 @@ private extension Dictionary where Key == CFString, Value == Any {
         }
 
         return dictionary
-    }
-}
-
-private extension SecurelyStoredValue {
-    final class CancellableBox {
-        var cancellable: AnyCancellable?
     }
 }

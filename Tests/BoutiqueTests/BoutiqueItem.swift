@@ -1,6 +1,6 @@
 import Foundation
 
-struct BoutiqueItem: Codable, Equatable, Identifiable {
+struct BoutiqueItem: Codable, Sendable, Equatable, Identifiable {
     var id: String {
         self.merchantID
     }
