@@ -36,7 +36,7 @@ private extension ContentView {
         for await event in self.imagesController.$images.events {
             switch event.operation {
 
-            case .initial:
+            case .initialized:
                 print("[Store Event: initial] Our Images Store has initialized")
 
             case .loaded:

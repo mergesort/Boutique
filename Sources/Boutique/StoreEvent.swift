@@ -4,13 +4,13 @@ public struct StoreEvent<Item: StorableItem>: StorableItem {
     public let items: [Item]
 
     public enum Operation: StorableItem {
-        case initial, loaded, insert, remove
+        case initialized, loaded, insert, remove
     }
 }
 
 internal extension StoreEvent {
     static var initial: StoreEvent<Item> {
-        StoreEvent(operation: .initial, items: [])
+        StoreEvent(operation: .initialized, items: [])
     }
 
     static func loaded(_ items: [Item]) -> StoreEvent<Item> {
