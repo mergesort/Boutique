@@ -33,20 +33,20 @@ struct ContentView: View {
 
 private extension ContentView {
     func monitorImageStoreEvents() async {
-        for await value in self.imagesController.$images.events {
-            switch value.operation {
+        for await event in self.imagesController.$images.events {
+            switch event.operation {
 
             case .initial:
                 print("[Store Event: initial] Our Images Store has initialized")
 
             case .loaded:
-                print("[Store Event: loaded] Our Images Store has loaded with images", value.items.map(\.url))
+                print("[Store Event: loaded] Our Images Store has loaded with images", event.items.map(\.url))
 
             case .insert:
-                print("[Store Event: insert] Our Images Store inserted images", value.items.map(\.url))
+                print("[Store Event: insert] Our Images Store inserted images", event.items.map(\.url))
 
             case .remove:
-                print("[Store Event: remove] Our Images Store removed images", value.items.map(\.url))
+                print("[Store Event: remove] Our Images Store removed images", event.items.map(\.url))
             }
         }
     }
