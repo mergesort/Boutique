@@ -123,10 +123,10 @@ private extension RedPandaCardView {
         guard let url = self.currentImage?.url else { return }
 
         if self.appState.fetchedRedPandas.contains(url) {
+            print("Fetched an already seen red panda from URL", url)
+        } else {
             self.appState.$fetchedRedPandas.append(url)
             print("Fetched a new red panda from URL", url)
-        } else {
-            print("Fetched an already seen red panda from URL", url)
         }
     }
 
