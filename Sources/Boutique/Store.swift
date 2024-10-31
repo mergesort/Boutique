@@ -61,7 +61,7 @@ public final class Store<Item: StorableItem> {
     /// The user can read the state of ``items`` at any time
     /// or subscribe to it however they wish, but you desire making modifications to ``items``
     /// you must use ``insert(_:)-7z2oe``, ``remove(_:)-3nzlq``, or ``removeAll()-9zfmy``.
-    private(set) var items: [Item] = []
+    public private(set) var items: [Item] = []
 
     /// Initializes a new ``Store`` for persisting items to a memory cache
     /// and a storage engine, to act as a source of truth.
