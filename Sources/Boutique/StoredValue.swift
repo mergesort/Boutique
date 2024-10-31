@@ -1,8 +1,8 @@
 import Foundation
 import Observation
 
-@Observable
 @MainActor
+@Observable
 @propertyWrapper
 public final class StoredValue<Item: StorableItem> {
     private let observationRegistrar = ObservationRegistrar()

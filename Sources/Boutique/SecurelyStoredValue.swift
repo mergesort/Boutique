@@ -36,8 +36,8 @@ import Observation
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
-@Observable
 @MainActor
+@Observable
 @propertyWrapper
 public final class SecurelyStoredValue<Item: StorableItem> {
     private let observationRegistrar = ObservationRegistrar()

@@ -48,8 +48,8 @@ import Observation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-@Observable
 @MainActor
+@Observable
 public final class Store<Item: StorableItem> {
     private let valueSubject: AsyncValueSubject<StoreEvent<Item>>
 
