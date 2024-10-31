@@ -100,7 +100,6 @@ public final class SecurelyStoredValue<Item: StorableItem> {
     /// Within Boutique the @Stored property wrapper works very similarly.
     ///
     /// - Parameter value: The value to set @``SecurelyStoredValue`` to.
-    @MainActor
     public func set(_ value: Item?) throws {
         if let value {
             if self.wrappedValue == nil {

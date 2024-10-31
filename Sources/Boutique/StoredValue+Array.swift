@@ -45,7 +45,6 @@ public extension StoredValue where Item: RangeReplaceableCollection, Item.Elemen
     /// ```
     /// self.$redPandaList.replace(RedPanda(name: "Himalaya"), RedPanda(name: "Pabu"))
     /// ```
-    @MainActor
     @discardableResult
     func replace(_ item: Item.Element, with updatedItem: Item.Element) -> Bool {
         guard let index = self.wrappedValue.firstIndex(where: { $0 == item }) else { return false }
