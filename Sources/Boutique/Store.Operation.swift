@@ -90,7 +90,7 @@ public extension Store {
         ///
         /// Prefer removing multiple items using this method instead of calling ``remove(_:)-8ufsb``
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
-        /// - Parameter item: The items you are removing from the `Store`.
+        /// - Parameter items: The items you are removing from the `Store`.
         public func remove(_ items: [Item]) async throws -> Operation {
             self.operations.append(ExecutableAction(action: .removeItems(items), executable: {
                 try await $0.performRemove(items)

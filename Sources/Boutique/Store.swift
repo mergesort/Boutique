@@ -6,8 +6,12 @@ import Observation
 /// A fancy persistence layer.
 ///
 /// A ``Store`` for your app which provides you a dual-layered data architecture with a very simple API.
-/// The ``Store`` exposes a `@Published` property for your data, which allows you to read it's data synchronously
-/// using `store.items`, or subscribe to `store.$items` reactively for real-time changes and updates.
+///
+/// The ``Store`` exposes an array of items, which you can reference simply by calling `store.items`.
+///
+/// Because ``Store`` implements the `@Observable` protocol, you can also observe and respond to changes reactively, for example in an `.onChange` handler.
+///
+/// The ``Store`` also exposes an `AsyncStream` through the `values` property, which allows you to observe changes to the items in your ``Store`` with a `for await` loop.
 ///
 /// Under the hood the ``Store`` is doing the work of saving all changes to a persistence layer
 /// when you insert or remove items, which allows you to build an offline-first app
@@ -16,7 +20,7 @@ import Observation
 /// **How The Store Works**
 ///
 /// A ``Store`` is a higher level abstraction than Bodega's `ObjectStorage`, containing and leveraging
-/// an in-memory store, the ``items`` array, and a `StorageEngine` for it's persistence layer.
+/// an in-memory store, the `items` array, and a `StorageEngine` for it's persistence layer.
 ///
 /// The `StorageEngine` you initialize a ``Store`` with (such as `DiskStorageEngine` or `SQLiteStorageEngine`)
 /// will be where items are stored permanently. If you do not provide a `StorageEngine` parameter
@@ -44,7 +48,6 @@ import Observation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
-
 @Observable
 @MainActor
 public final class Store<Item: Codable & Sendable> {
@@ -242,7 +245,11 @@ public final class Store<Item: Codable & Sendable> {
         try await self.performRemoveAll()
     }
 
-    public var values: AsyncStream<[Item]> {
+    /// An `AsyncStream` that emits all changes for the `items` in a ``Store``, .
+    ///
+    /// This stream will emit an `initial` value when subscribed to, and will further emit
+    /// any changes to the value with their assocaited operation when ``insert(_:)-3j9hw`` or ``remove(_:)-51ya6``, or ``removeAll()-1xc24`` are called.
+    public var events: AsyncStream<StoreEvent<Item>> {
         self.valueSubject.values
     }
 
@@ -285,7 +292,7 @@ public extension Store {
 
         return store
     }
-    
+
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
     ///
     /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render
@@ -302,7 +309,7 @@ public extension Store {
     static func previewStore(items: [Item]) -> Store<Item> where Item: Identifiable, Item.ID == String {
         previewStore(items: items, cacheIdentifier: \.id)
     }
-    
+
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
     ///
     /// This version of a ``Store`` allows you to pass in the ``items`` you would like to render

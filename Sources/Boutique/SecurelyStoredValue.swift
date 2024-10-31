@@ -7,12 +7,12 @@ import Observation
 /// You should use @``SecurelyStoredValue`` rather than @``StoredValue`` when you need to store
 /// sensitive values such as passwords or auth tokens, since a @``StoredValue`` will be persisted in `UserDefaults`.
 ///
-/// This is fulfills the same needs as many other Keychain wrappers, but in a Boutique-like manner.
+/// This fulfills the same needs as many other Keychain wrappers, but in a Boutique-like manner.
 ///
 /// Values are delivered synchronously and are available on app launch, using the system `Keychain`
-/// as the backing store. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
+/// as the backing store.
 ///
-/// Unlike @``StoredValue`` properties @``SecurelyStoredValue`` properties cannot be provided a default value.
+/// Unlike @``StoredValue`` properties, @``SecurelyStoredValue`` properties cannot be provided a default value.
 /// ```
 /// @SecurelyStoredValue<RedPanda>(key: "redPanda")
 /// private var redPanda
@@ -47,6 +47,12 @@ public final class SecurelyStoredValue<Item: Codable & Sendable> {
     private let service: String?
     private let group: String?
 
+    /// Initializes a new @``SecurelyStoredValue``.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use when storing the value in the keychain.
+    ///   - service: The service to use when storing the value in the keychain.
+    ///   - group: The group to use when storing the value in the keychain.
     public init(key: String, service: KeychainService? = nil, group: KeychainGroup? = nil) {
         self.key = key
         self.service = service?.value
@@ -61,9 +67,13 @@ public final class SecurelyStoredValue<Item: Codable & Sendable> {
         self.retrieveItem()
     }
 
-    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside a ``publisher``.
+    /// A ``SecurelyStoredValue`` which exposes ``set(_:)`` and ``remove()`` functions alongside an `AsyncStream` of ``values``.
     public var projectedValue: SecurelyStoredValue<Item> { self }
 
+    /// An `AsyncStream` that emits all value changes of a @``SecurelyStoredValue``.
+    ///
+    /// This stream will emit the initial value when subscribed to, and will further emit
+    /// any changes to the value when ``set(_:)`` or ``remove()`` are called.
     public var values: AsyncStream<Item?> {
         self.valueSubject.values
     }
