@@ -4,7 +4,7 @@ import Observation
 @Observable
 @MainActor
 @propertyWrapper
-public final class StoredValue<Item: Codable & Sendable> {
+public final class StoredValue<Item: StorableItem> {
     private let observationRegistrar = ObservationRegistrar()
     private let valueSubject: AsyncValueSubject<Item>
     private let cachedValue: CachedValue<Item>

@@ -39,7 +39,7 @@ import Observation
 @Observable
 @MainActor
 @propertyWrapper
-public final class SecurelyStoredValue<Item: Codable & Sendable> {
+public final class SecurelyStoredValue<Item: StorableItem> {
     private let observationRegistrar = ObservationRegistrar()
     private let valueSubject = AsyncValueSubject<Item?>(nil)
 

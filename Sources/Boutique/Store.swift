@@ -50,8 +50,8 @@ import Observation
 /// or even a type which can be converted into a `String` such as `\.url.path`.
 @Observable
 @MainActor
-public final class Store<Item: Codable & Sendable> {
     private let valueSubject: AsyncValueSubject<[Item]>
+public final class Store<Item: StorableItem> {
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>

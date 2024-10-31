@@ -3,7 +3,7 @@ import Observation
 /// The @``Stored`` property wrapper to automagically initialize a ``Store``.
 @MainActor
 @propertyWrapper
-public struct Stored<Item: Codable & Sendable> {
+public struct Stored<Item: StorableItem> {
     private let store: Store<Item>
 
     /// Initializes a @``Stored`` property that will be exposed as an `[Item]` and project a `Store<Item>`.
