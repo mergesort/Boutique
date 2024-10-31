@@ -279,13 +279,15 @@ struct AsyncStoreTests {
         _ = operation
     }
 
-    @Test("Test the ability to observe an AsyncStream of Store.values by inserting one value at a time", .timeLimit(.minutes(1)))
+    @Test("Test the ability to observe an AsyncStream of Store.events by inserting one value at a time", .timeLimit(.minutes(1)))
     func testAsyncStreamByInsertingSingleItems() async throws {
-        let populateValuesTask = Task {
+        let populateStoreTask = Task {
             var accumulatedValues: [BoutiqueItem] = []
 
-            for await values in asyncStore.values {
-                accumulatedValues = values
+            for await event in asyncStore.events {
+                try asyncStore.validateStoreEvent(event: event)
+
+                accumulatedValues += event.items
 
                 if accumulatedValues.count == 4 {
                     #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
@@ -307,16 +309,18 @@ struct AsyncStoreTests {
             try await asyncStore.insert(uniqueItems[3])
         }
 
-        let populateValuesTaskCompleted = await populateValuesTask.value
-        try #require(populateValuesTaskCompleted)
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
     }
 
     @Test("Test the ability to observe an AsyncStream of Store.values by inserting an array of values", .timeLimit(.minutes(1)))
     func testAsyncStreamByInsertingMultipleItems() async throws {
-        let populateValuesTask = Task {
+        let populateStoreTask = Task {
             var accumulatedValues: [BoutiqueItem] = []
-            for await values in asyncStore.values {
-                accumulatedValues.append(contentsOf: values)
+            for await event in asyncStore.events {
+                try asyncStore.validateStoreEvent(event: event)
+
+                accumulatedValues.append(contentsOf: event.items)
 
                 if accumulatedValues.count == 4 {
                     #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
@@ -333,8 +337,8 @@ struct AsyncStoreTests {
             try await asyncStore.insert(.uniqueItems)
         }
 
-        let populateValuesTaskCompleted = await populateValuesTask.value
-        try #require(populateValuesTaskCompleted)
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
     }
 
 }

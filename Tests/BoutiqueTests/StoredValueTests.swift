@@ -129,7 +129,7 @@ struct StoredValueTests {
 
     @Test("Test the ability to observe an AsyncStream of StoredValue.values", .timeLimit(.minutes(1)))
     func testStoredValuesAsyncStream() async throws {
-        let populateValuesTask = Task {
+        let populateStoredValueTask = Task {
             var values: [BoutiqueItem] = []
             for await value in self.$storedItem.values {
                 values.append(value)
@@ -148,7 +148,7 @@ struct StoredValueTests {
             self.$storedItem.set(.belt)
         }
 
-        let populateValuesTaskCompleted = await populateValuesTask.value
-        try #require(populateValuesTaskCompleted)
+        let populateStoredValueTaskCompleted = await populateStoredValueTask.value
+        try #require(populateStoredValueTaskCompleted)
     }
 }

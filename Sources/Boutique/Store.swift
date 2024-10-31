@@ -50,8 +50,8 @@ import Observation
 /// or even a type which can be converted into a `String` such as `\.url.path`.
 @Observable
 @MainActor
-    private let valueSubject: AsyncValueSubject<[Item]>
 public final class Store<Item: StorableItem> {
+    private let valueSubject: AsyncValueSubject<StoreEvent<Item>>
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
@@ -102,7 +102,7 @@ public final class Store<Item: StorableItem> {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        self.valueSubject = AsyncValueSubject([])
+        self.valueSubject = AsyncValueSubject(.initial)
 
         // Begin loading items in the background.
         _ = self.loadStoreTask
@@ -118,7 +118,7 @@ public final class Store<Item: StorableItem> {
     public init(storage: StorageEngine, cacheIdentifier: KeyPath<Item, String>) async throws {
         self.storageEngine = storage
         self.cacheIdentifier = cacheIdentifier
-        self.valueSubject = AsyncValueSubject([])
+        self.valueSubject = AsyncValueSubject(.initial)
 
         try await self.itemsHaveLoaded()
     }
@@ -264,7 +264,7 @@ public final class Store<Item: StorableItem> {
             throw error
         }
 
-        self.valueSubject.send(self.items)
+        self.valueSubject.send(.loaded(self.items))
     }
 }
 
@@ -350,10 +350,9 @@ internal extension Store {
         // We persist only the newly added items, rather than rewriting all of the items
         try await self.persistItem(item)
 
-        await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
-            self.valueSubject.send(self.items)
-        }
+        self.items = Array(currentValuesDictionary.values)
+
+        self.valueSubject.send(.insert([item]))
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
@@ -389,12 +388,12 @@ internal extension Store {
         }
 
         // We persist only the newly added items, rather than rewriting all of the items
-        try await self.persistItems(Array(insertedItemsDictionary.values))
+        let insertedItems = Array(insertedItemsDictionary.values)
+        try await self.persistItems(insertedItems)
 
-        await MainActor.run { [currentValuesDictionary] in
-            self.items = Array(currentValuesDictionary.values)
-            self.valueSubject.send(self.items)
-        }
+        self.items = Array(currentValuesDictionary.values)
+
+        self.valueSubject.send(.insert(insertedItems))
     }
 
     func performRemove(_ item: Item) async throws {
@@ -403,35 +402,33 @@ internal extension Store {
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
         let itemKeys = Set([cacheKeyString])
 
-        self.valueSubject.send([item])
+        self.items.removeAll(where: { item in
+            itemKeys.contains(item[keyPath: self.cacheIdentifier])
+        })
 
-        await MainActor.run {
-            self.items.removeAll(where: { item in
-                itemKeys.contains(item[keyPath: self.cacheIdentifier])
-            })
-        }
+        self.valueSubject.send(.remove([item]))
     }
 
     func performRemove(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         try await self.removePersistedItems(items: items)
-        self.valueSubject.send(items)
 
-        await MainActor.run {
-            self.items.removeAll(where: { item in
-                itemKeys.contains(item[keyPath: self.cacheIdentifier])
-            })
-        }
+        self.items.removeAll(where: { item in
+            itemKeys.contains(item[keyPath: self.cacheIdentifier])
+        })
+
+        self.valueSubject.send(.remove(items))
     }
 
     func performRemoveAll() async throws {
+        let currentItems = self.items
+
         try await self.storageEngine.removeAllData()
 
-        await MainActor.run {
-            self.items = []
-            self.valueSubject.send([])
-        }
+        self.items = []
+
+        self.valueSubject.send(.remove(currentItems))
     }
 }
 

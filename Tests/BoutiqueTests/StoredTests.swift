@@ -277,13 +277,15 @@ struct StoredTests {
         _ = operation
     }
 
-    @Test("Test the ability to observe an AsyncStream of Stored.values by inserting one value at a time", .timeLimit(.minutes(1)))
+    @Test("Test the ability to observe an AsyncStream of Stored.events by inserting one value at a time", .timeLimit(.minutes(1)))
     func testAsyncStreamByInsertingSingleItems() async throws {
-        let populateValuesTask = Task {
+        let populateStoreTask = Task {
             var accumulatedValues: [BoutiqueItem] = []
 
-            for await values in $items.values {
-                accumulatedValues = values
+            for await event in $items.events {
+                try $items.validateStoreEvent(event: event)
+
+                accumulatedValues += event.items
 
                 if accumulatedValues.count == 4 {
                     #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
@@ -294,7 +296,7 @@ struct StoredTests {
             return false
         }
 
-        #expect($items.isEmpty)
+        #expect(items.isEmpty)
 
         Task {
             let uniqueItems = [BoutiqueItem].uniqueItems
@@ -305,16 +307,19 @@ struct StoredTests {
             try await $items.insert(uniqueItems[3])
         }
 
-        let populateValuesTaskCompleted = await populateValuesTask.value
-        try #require(populateValuesTaskCompleted)
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
     }
 
     @Test("Test the ability to observe an AsyncStream of Stored.values by inserting an array of values", .timeLimit(.minutes(1)))
     func testAsyncStreamByInsertingMultipleItems() async throws {
-        let populateValuesTask = Task {
+        let populateStoreTask = Task {
             var accumulatedValues: [BoutiqueItem] = []
-            for await values in $items.values {
-                accumulatedValues.append(contentsOf: values)
+
+            for await event in $items.events {
+                try $items.validateStoreEvent(event: event)
+
+                accumulatedValues.append(contentsOf: event.items)
 
                 if accumulatedValues.count == 4 {
                     #expect(accumulatedValues == [.coat, .sweater, .purse, .belt])
@@ -325,14 +330,14 @@ struct StoredTests {
             return false
         }
 
-        #expect($items.isEmpty)
+        #expect(items.isEmpty)
 
         Task {
             try await $items.insert(.uniqueItems)
         }
 
-        let populateValuesTaskCompleted = await populateValuesTask.value
-        try #require(populateValuesTaskCompleted)
+        let populateStoreTaskCompleted = try await populateStoreTask.value
+        try #require(populateStoreTaskCompleted)
     }
 }
 
