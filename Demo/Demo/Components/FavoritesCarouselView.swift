@@ -79,14 +79,13 @@ struct FavoritesCarouselView: View {
         })
         .frame(height: 200.0)
         .background(Color.palette.background)
-        .task({
-            do {
-                try await self.imagesController.$images.itemsHaveLoaded()
-                self.itemsHaveLoaded = true
-            } catch {
+        .onStoreDidLoad(
+            self.imagesController.$images,
+            update: $itemsHaveLoaded,
+            onError: { error in
                 print("Failed to load images", error)
             }
-        })
+        )
     }
 }
 
