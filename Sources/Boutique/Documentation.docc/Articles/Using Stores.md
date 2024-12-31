@@ -114,6 +114,59 @@ func getItems() async -> [Item] {
 
 The synchronous initializer is a sensible default, but if your app's needs dictate displaying data only once you've loaded all of the necessary items the asynchronous initializers are there to help.
 
+## Observing Store Loading State
+
+You can manually observe the loading state of a ``Store`` as we do in `getItems()` above, but Boutique also provides a ``onStoreDidLoad`` function to observe the loading state of a ``Store`` in SwiftUI.
+
+```swift
+struct ContentView: View {
+    @Stored var items: [Item]
+    @State var itemsHaveLoaded = false
+
+    var body: some View {
+        VStack {
+            AlwaysVisibleBanner()
+
+            if self.itemsHaveLoaded {
+                if self.items.isEmpty {
+                    EmptyStateView()
+                } else {
+                    ItemsView(items: self.items)
+                }
+            } else {
+                LoadingStateView()
+            }
+        }
+        .onStoreDidLoad(
+            self.$items,
+            update: $itemsHaveLoaded,
+            onError: { error in
+                log.error("Failed to load items", error)
+            }
+        )
+    }
+}
+```
+
+This allows for a clean separation of Views to display across three different states:
+- When the Store has finished loading and has items
+- When the Store has finished loading and has no items
+- When the Store is loading (and implicitly has no items)
+
+You can also choose to use the closure-oriented variant of ``onStoreDidLoad`` to perform any additional logic when the ``Store`` has finished loading. Patterns like MVVM choose to isolate this logic ViewModel, and you can still choose to do that, but exposing this method on a View provides more flexibility to work with your preferred architecture. In the example below we will filter the items in a ``Store`` based on some criteria, to display only the relevant items in our View.
+
+```swift
+.onStoreDidLoad(
+    self.$items,
+    onLoad: {
+        self.items = self.filteredItems(self.items)
+    },
+    onError: { error in
+        log.error("Failed to load items", error)
+    }
+)
+```
+
 ## Further Exploration, @Stored And More
 
 Building an app using the ``Store`` can be really powerful because it leans into SwiftUI's state-driven architecture, while providing you with offline-first capabilities, realtime updates across your app, with almost no additional code required.
