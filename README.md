@@ -25,7 +25,7 @@ Boutique is a simple but powerful persistence library, a small set of property w
 * [Getting Started](#getting-started)
 * [Store](#store)
 * [The Magic Of @Stored](#the-magic-of-stored)
-* [@StoredValue & @SecurelyStoredValue](#storedvalue--securelystoredvalue)
+* [@StoredValue & @AsyncStoredValue](#storedvalue--asyncstoredvalue)
 * [Documentation](#documentation)
 * [Further Exploration](#further-exploration)
 
@@ -33,7 +33,7 @@ Boutique is a simple but powerful persistence library, a small set of property w
 
 ### Getting Started
 
-Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The ``@StoredValue`` and ``@SecurelyStoredValue`` property wrappers work the same way, but instead of an array they work with singular Swift values. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
+Boutique only has one concept you need to understand. When you save data to the ``Store`` your data will be persisted automatically for you and exposed as a regular Swift array. The ``@StoredValue`` and ``@AsyncStoredValue`` property wrappers work the same way, but instead of an array they work with singular Swift values. You'll never have to think about databases, everything in your app is a regular Swift array or value using your app's models, with straightforward code that looks like any other app.
 
 You may be familiar with the ``Store`` from [Redux](https://redux.js.org/) or [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), but unlike those frameworks you won't need to worry about adding Actions or Reducers. With this ``Store`` implementation all your data is persisted for you automatically, no additional code required. This allows you to build realtime updating apps with full offline support in an incredibly simple and straightforward manner.
 
@@ -185,18 +185,18 @@ final class ImagesController: ObservableObject {
 }
 ```
 
-### StoredValue & SecurelyStoredValue
+### StoredValue, SecurelyStoredValue, & AsyncStoredValue
 
-We'll go through a high level overview of the `@StoredValue` and `@SecurelyStoredValue` property wrappers below, but they're fully documented with context, use cases, and examples [here](https://mergesort.github.io/Boutique/documentation/boutique/the-@stored-family-of-property-wrappers/).
+We'll go through a high level overview of the `@StoredValue`, `@SecurelyStoredValue`, and `@AsyncStoredValue` property wrappers below, but they're fully documented with context, use cases, and examples [here](https://mergesort.github.io/Boutique/documentation/boutique/the-@stored-family-of-property-wrappers/).
 
-The `Store` and `@Stored` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where `@StoredValue` and `@SecurelyStoredValue` come in handy.
+The `Store` and `@Stored` were created to store an array of data because most data apps render comes in the form of an array. But occasionally we need to store an individual value, that's where `@StoredValue` `@SecurelyStoredValue`, and `@AsyncStoredValue` come in handy.
 
 Whether you need to save an important piece of information for the next time your app is launched, stored an auth token in the keychain, or you want to change how an app looks based on a user's settings, those app configurations are individual values that you'll want to persist.
 
 Often times people will choose to store individual items like that in `UserDefaults`. If you've used `@AppStorage` then `@StoredValue` will feel right at home, it has a very similar API with some additional features. A `@StoredValue` will end up being stored in `UserDefaults`, but it also exposes a `publisher` so you can easily subscribe to changes.
 
 ```swift
-// Setup a `@StoredValue has the same API.
+// Setup a `@StoredValue, @AsyncStoredValue has the same API.
 @StoredValue(key: "hasHapticsEnabled")
 var hasHapticsEnabled = false
 
@@ -230,6 +230,8 @@ $hasHapticsEnabled.toggle()
 ```
 
 The `@SecurelyStoredValue` property wrapper can do everything a `@StoredValue` does, but instead of storing values in `UserDefaults` a `@SecurelyStoredValue` will persist items in the system's Keychain. This is perfect for storing sensitive values such as passwords or auth tokens, which you would not want to store in `UserDefaults`.
+
+You may not want to use `UserDefaults` or the system Keychain to store a value, in which case you can use your own `StorageEngine`. To do so you should use the `@AsyncStoredValue` property wrapper, which allows you to store a single value in a `StorageEngine` you provide. This isn't commonly needed, but it provides additional flexibility while staying true to Boutique's `@StoredValue` API.
 
 ### Documentation
 

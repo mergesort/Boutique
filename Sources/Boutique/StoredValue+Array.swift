@@ -13,12 +13,14 @@ public extension StoredValue where Item: RangeReplaceableCollection {
     /// ```
     /// try await self.$redPandaList.append("Pabu")
     /// ```
+    @MainActor
     func append(_ item: Item.Element) {
         var updatedArray = self.wrappedValue
         updatedArray.append(item)
         self.set(updatedArray)
     }
 
+    @MainActor
     /// A function that takes a value and removes it from an array if that value exists in the array,
     /// or adds it to the array if the value doesn't exist.
     /// - Parameter value: The value to add or remove from an array.
@@ -26,35 +28,6 @@ public extension StoredValue where Item: RangeReplaceableCollection {
         var updatedArray = self.wrappedValue
         updatedArray.togglePresence(value)
         self.set(updatedArray)
-    }
-}
-
-public extension StoredValue where Item: RangeReplaceableCollection, Item.Element: Equatable {
-    /// A function to replace a value in a @``StoredValue`` represented by an `Array`
-    /// without having to manually make an intermediate copy for every value update.
-    ///
-    /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
-    /// ```
-    /// guard let index = self.redPandaList.firstIndex(where: { $0.name == "Himalaya" }) else return
-    /// var updatedRedPandaList = self.redPandaList
-    /// updatedRedPandaList[index] = RedPanda(name: "Pabu")
-    /// self.$redPandaList.set(updatedRedPandaList)
-    /// ```
-    ///
-    /// Instead this function provides a much simpler alternative.
-    /// ```
-    /// self.$redPandaList.replace(RedPanda(name: "Himalaya"), RedPanda(name: "Pabu"))
-    /// ```
-    @discardableResult
-    func replace(_ item: Item.Element, with updatedItem: Item.Element) -> Bool {
-        guard let index = self.wrappedValue.firstIndex(where: { $0 == item }) else { return false }
-
-        var updatedArray = self.wrappedValue
-        updatedArray.remove(at: index)
-        updatedArray.insert(updatedItem, at: index)
-        self.set(updatedArray)
-
-        return true
     }
 }
 
@@ -77,37 +50,44 @@ public extension SecurelyStoredValue {
     /// To better match expected uses calling append on a currently nil SecurelyStoredValue
     /// will return a single element array of the passed in value, 
     /// rather than returning nil or throwing an error.
+    @MainActor
     func append<Value>(_ value: Value) throws where Item == [Value] {
         var updatedArray = self.wrappedValue ?? []
         updatedArray.append(value)
         try self.set(updatedArray)
     }
+}
 
-    /// A function to replace a value in a @``StoredValue`` represented by an `Array`
+public extension AsyncStoredValue where Item: RangeReplaceableCollection {
+    /// A function to append a @``StoredValue`` represented by an `Array`
     /// without having to manually make an intermediate copy for every value update.
     ///
     /// This is meant to provide a simple ergonomic improvement, avoiding callsites like this.
     /// ```
-    /// guard let index = self.redPandaList.firstIndex(where: { $0.name == "Himalaya" }) else return
     /// var updatedRedPandaList = self.redPandaList
-    /// updatedRedPandaList[index] = RedPanda(name: "Pabu")
+    /// updatedRedPandaList.append("Pabu")
     /// self.$redPandaList.set(updatedRedPandaList)
     /// ```
     ///
     /// Instead this function provides a much simpler alternative.
     /// ```
-    /// try self.$redPandaList.replace(RedPanda(name: "Himalaya"), RedPanda(name: "Pabu"))
+    /// try await self.$redPandaList.append("Pabu")
     /// ```
-    func replace<Value: Equatable>(_ item: Item.Element, with updatedItem: Item.Element) throws -> Bool where Item == [Value] {
-        guard let array = self.wrappedValue else { return false }
-        guard let index = array.firstIndex(where: { $0 == item }) else { return false }
+    func append(_ item: Item.Element) async throws {
+        var updatedArray = self.wrappedValue
+        updatedArray.append(item)
+        try await self.set(updatedArray)
+    }
 
-        var updatedArray = array
-        updatedArray.remove(at: index)
-        updatedArray.insert(updatedItem, at: index)
-        try self.set(updatedArray)
 
-        return true
+    @MainActor
+    /// A function that takes a value and removes it from an array if that value exists in the array,
+    /// or adds it to the array if the value doesn't exist.
+    /// - Parameter value: The value to add or remove from an array.
+    func togglePresence<Value: Equatable>(_ value: Value) async throws where Item == [Value] {
+        var updatedArray = self.wrappedValue
+        updatedArray.togglePresence(value)
+        try await self.set(updatedArray)
     }
 }
 

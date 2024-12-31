@@ -2,41 +2,24 @@ import Foundation
 import SwiftUI
 
 struct RegularContentView: View {
+    @StateObject private var richNotesController = RichNotesController(store: .notesStore)
+
     @State private var notes: [RichNote] = []
     @State private var operation = RichNotesOperation(action: .add)
     @State private var storeLaunchDuration: TimeInterval = 0.0
-
-    private var richNotesController = RichNotesController(store: .notesStore)
 
     var body: some View {
         HStack {
             VStack(spacing: 0.0) {
                 RichNotesOperationsView(operation: self.$operation)
 
-                CountButtonContainerView(
-                    operation: self.$operation,
-                    addItemsAction: { itemCount in
-                        self.failableAsyncOperation({
-                            try await richNotesController.addItems(count: itemCount)
-                        })
-                    },
-                    removeItemsAction: { itemCount in
-                        self.failableAsyncOperation({
-                            try await richNotesController.removeItems(count: itemCount)
-                        })
-                    },
-                    removeAllAction: {
-                        self.failableAsyncOperation({
-                            try await self.richNotesController.removeAll()
-                        })
-                    }
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .animation(.easeInOut(duration: 0.15), value: self.operation.action)
+                CountButtonContainerView(operation: self.$operation)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .animation(.easeInOut(duration: 0.15), value: self.operation.action)
 
                 Spacer()
 
-                OperationProgressView(operation: self.operation)
+                OperationProgressView(operationInProgress: self.$operation.isInProgress)
             }
             .padding(16.0)
             .frame(width: 360.0)
@@ -79,21 +62,21 @@ struct RegularContentView: View {
             self.operation.action = .loading
             self.operation.isInProgress = true
         })
-        .onChange(of: self.richNotesController.notes, initial: true, {
-            self.notes = self.richNotesController.notes
+        .onReceive(richNotesController.$notes.$items, perform: {
+            if self.operation.action == .loading {
+                self.operation.action = .add
+                let initialMarkerTime = self.storeLaunchDuration
+                self.storeLaunchDuration = ProcessInfo.processInfo.systemUptime - initialMarkerTime
+                self.operation.isInProgress = false
+            }
+
+            self.notes = $0
         })
     }
 }
 
-private extension RegularContentView {
-    func failableAsyncOperation(_ action: @escaping () async throws -> Void) {
-        Task {
-            do {
-                try await action()
-            } catch {
-                print("Error running operation", error)
-                self.operation.isInProgress = false
-            }
-        }
+private extension CompactContentView {
+    static func formattedMemory(bytes: Int, unit: ByteCountFormatStyle.Units = .mb) -> String {
+        ByteCountFormatStyle(style: .memory, allowedUnits: unit).format(Int64(bytes))
     }
 }

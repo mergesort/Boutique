@@ -44,12 +44,13 @@ import SwiftUI
 
 /// A horizontally scrolling carousel that displays the red panda images a user has favorited.
 struct FavoritesCarouselView: View {
-    @Environment(AppState.self) private var appState
-    @Environment(ImagesController.self) private var imagesController
+    @EnvironmentObject private var imagesController: ImagesController
 
     @State private var animation: Animation? = nil
     @State private var images: [RemoteImage] = []
     @State private var itemsHaveLoaded = false
+
+    @EnvironmentObject private var appState: AppState
 
     var body: some View {
         VStack {
@@ -74,8 +75,8 @@ struct FavoritesCarouselView: View {
                 EmptyView()
             }
         }
-        .onChange(of: self.imagesController.images, initial: true, {
-            self.images = self.imagesController.images.sorted(by: { $0.createdAt > $1.createdAt})
+        .onReceive(self.imagesController.$images.$items, perform: {
+            self.images = $0.sorted(by: { $0.createdAt > $1.createdAt})
         })
         .frame(height: 200.0)
         .background(Color.palette.background)
@@ -116,18 +117,8 @@ private extension FavoritesCarouselView {
 
             Button(action: {
                 Task {
-                    try await imagesController.clearAllImages()
-                    self.appState.$fetchedRedPandas.reset()
+                    self.appState.$funkyRedPandaModeEnabled.toggle()
                 }
-            }, label: {
-                Image(systemName: "xmark.circle.fill")
-                    .opacity(self.images.isEmpty ? 0.0 : 1.0)
-                    .font(.title)
-                    .foregroundColor(.red)
-            })
-
-            Button(action: {
-                self.appState.funkyRedPandaModeEnabled.toggle()
             }, label: {
                 Image(systemName: "sun.max.circle.fill")
                     .opacity(self.images.isEmpty ? 0.0 : 1.0)
@@ -142,14 +133,15 @@ private extension FavoritesCarouselView {
             })
 
             Button(action: {
-                print("We've seen \(self.appState.fetchedRedPandas.count) red pandas")
-                print(self.appState.fetchedRedPandas)
+                Task {
+                    try await imagesController.clearAllImages()
+                }
             }, label: {
-                Text("\(self.appState.fetchedRedPandas.count)")
+                Image(systemName: "xmark.circle.fill")
+                    .opacity(self.images.isEmpty ? 0.0 : 1.0)
                     .font(.title)
-                    .monospacedDigit()
+                    .foregroundColor(.red)
             })
-
         }
         .padding(.top)
     }

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct CompactContentView: View {
-    @State private var richNotesController = RichNotesController(store: .notesStore)
+    @StateObject private var richNotesController = RichNotesController(store: .notesStore)
 
     @State private var notes: [RichNote] = []
     @State private var operation = RichNotesOperation(action: .add)
@@ -32,43 +32,18 @@ struct CompactContentView: View {
             )
             .padding(16.0)
 
-            OperationProgressView(operation: self.operation)
-
-            CountButtonContainerView(
-                operation: self.$operation,
-                addItemsAction: { itemCount in
-                    self.failableAsyncOperation({
-                        try await richNotesController.addItems(count: itemCount)
-                    })
-                },
-                removeItemsAction: { itemCount in
-                    self.failableAsyncOperation({
-                        try await richNotesController.removeItems(count: itemCount)
-                    })
-                },
-                removeAllAction: {
-                    self.failableAsyncOperation({
-                        try await self.richNotesController.removeAll()
-                    })
-                }
-            )
-            .padding(.horizontal, 32.0)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .animation(.easeInOut(duration: 0.15), value: self.operation.action)
-
-            Text("Selected Operation")
-                .fontWeight(.bold)
-                .textShadow()
-                .font(.telegramaRaw(style: .title1))
-                .frame(maxWidth: .infinity)
-                .frame(height: 64.0)
-                .foregroundColor(.white)
+            OperationProgressView(operationInProgress: self.$operation.isInProgress)
 
             HStack(alignment: .center, spacing: 16.0) {
                 RichNotesOperationsView(operation: self.$operation)
             }
             .padding(16.0)
             .padding(.horizontal, 16.0)
+
+            CountButtonContainerView(operation: self.$operation)
+                .padding(.horizontal, 32.0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .animation(.easeInOut(duration: 0.15), value: self.operation.action)
 
             Spacer()
         }
@@ -78,7 +53,7 @@ struct CompactContentView: View {
             self.operation.action = .loading
             self.operation.isInProgress = true
         })
-        .onChange(of: self.richNotesController.notes, initial: true, {
+        .onReceive(richNotesController.$notes.$items, perform: {
             if self.operation.action == .loading {
                 self.operation.action = .add
                 let initialMarkerTime = self.storeLaunchDuration
@@ -86,20 +61,7 @@ struct CompactContentView: View {
                 self.operation.isInProgress = false
             }
 
-            self.notes = self.richNotesController.notes
+            self.notes = $0
         })
-    }
-}
-
-private extension CompactContentView {
-    func failableAsyncOperation(_ action: @escaping () async throws -> Void) {
-        Task {
-            do {
-                try await action()
-            } catch {
-                print("Error running operation", error)
-                self.operation.isInProgress = false
-            }
-        }
     }
 }

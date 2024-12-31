@@ -15,10 +15,8 @@ import SwiftUI
 // @StateObject private var imagesController = ImagesController(store: Store.imagesStore)
 
 /// A controller that allows you to fetch images remotely, and save or delete them from a `Store`.
-@Observable
-final class ImagesController {
+final class ImagesController: ObservableObject {
     /// The `Store` that we'll be using to save images.
-    @ObservationIgnored
     @Stored(in: .imagesStore) var images
 
     /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.

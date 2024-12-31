@@ -1,11 +1,8 @@
 import SwiftUI
 
 struct CountButtonContainerView: View {
+    @StateObject private var richNotesController = RichNotesController(store: .notesStore)
     @Binding var operation: RichNotesOperation
-
-    let addItemsAction: (Int) -> Void
-    let removeItemsAction: (Int) -> Void
-    let removeAllAction: () -> Void
 
     @SizeClassDependentValue(regular: 16.0, compact: 8.0) private var stackSpacing
     @SizeClassDependentValue(regular: Edge.leading, compact: Edge.trailing) private var animatedEdge
@@ -31,7 +28,9 @@ struct CountButtonContainerView: View {
             })
 
             if self.operation.action == .remove {
-                Self.countButton("All OBJECTS", color: buttonColor, action: self.removeAllAction)
+                Self.countButton("All OBJECTS", color: buttonColor, action: {
+                    try await self.richNotesController.removeAll()
+                })
                 .transition(.move(edge: animatedEdge))
             }
         }
@@ -45,10 +44,15 @@ struct CountButtonContainerView: View {
         // to make the progress state change show up correctly when adding a large amount of items
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        if self.operation.action == .add {
-            self.addItemsAction(count)
-        } else {
-            self.removeItemsAction(count)
+        do {
+            if self.operation.action == .add {
+                try await richNotesController.addItems(count: count)
+            } else {
+                try await richNotesController.removeItems(count: count)
+            }
+        } catch {
+            print("Error running operation", error)
+            self.operation.isInProgress = false
         }
 
         self.operation.isInProgress = false

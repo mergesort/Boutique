@@ -61,12 +61,6 @@ public struct Image: Codable, Equatable {
     let height: Float
 }
 
-extension String {
-    struct LoremIpsum {}
-
-    static let loremIpsum = LoremIpsum()
-}
-
 extension String.LoremIpsum {
     var tenWords: String {
         return "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo"

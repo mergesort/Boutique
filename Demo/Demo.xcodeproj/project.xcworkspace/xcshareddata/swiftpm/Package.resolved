@@ -1,13 +1,12 @@
 {
-  "originHash" : "70ca90eb3fbfec4a3d93a1da9661356805637a48d9b94fd45ff8771cc4dd7582",
   "pins" : [
     {
       "identity" : "bodega",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mergesort/Bodega.git",
       "state" : {
-        "revision" : "bfd8871e9c2590d31b200e54c75428a71483afdf",
-        "version" : "2.1.3"
+        "revision" : "3e7c1c58ad9a46aa8551cebfe87770003cdaaaca",
+        "version" : "2.0.2"
       }
     },
     {
@@ -38,5 +37,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

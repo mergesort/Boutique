@@ -4,7 +4,7 @@ import Foundation
 /// to create a `JSONDecoder` and invoke a decode step every time we need to access a `StoredValue` externally.
 internal final class CachedValue<Item: Codable> {
     private var cachedValue: Item?
-    public let retrieveValue: () -> Item
+    public var retrieveValue: () -> Item
 
     init(retrieveValue: @escaping () -> Item) {
         self.retrieveValue = retrieveValue

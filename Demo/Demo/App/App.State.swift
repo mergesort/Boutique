@@ -1,17 +1,10 @@
 import Boutique
 import Foundation
 
-@Observable
-final class AppState {
-    @ObservationIgnored
+final class AppState: ObservableObject {
     @StoredValue(key: "funkyRedPandaModeEnabled")
     var funkyRedPandaModeEnabled = false
 
-    @ObservationIgnored
-    @StoredValue(key: "fetchedRedPandas")
-    var fetchedRedPandas: [URL] = []
-
-    @ObservationIgnored
     @StoredValue<Date?>(key: "lastAppLaunchTimestamp")
     var lastAppLaunchTimestamp = nil
 }
