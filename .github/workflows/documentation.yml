@@ -14,11 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Swift version
-        uses: swift-actions/setup-swift@v1
+        uses: swift-actions/setup-swift@v2.0.0
         with:
-          swift-version: "5.7"
+          swift-version: "5.10"
       - name: Generate documentation
-        uses: fwcd/swift-docc-action@v1
+        uses: fwcd/swift-docc-action@v1.0.2
         with:
           target: Boutique
           output: ./docs
