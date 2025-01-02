@@ -62,7 +62,7 @@ public struct StoredValue<Item: Codable> {
 
     /// The currently stored value
     public var wrappedValue: Item {
-        self.cachedValue.retrieveValue()
+        self.cachedValue.wrappedValue
     }
 
     /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
