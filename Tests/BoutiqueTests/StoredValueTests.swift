@@ -159,5 +159,24 @@ final class StoredValueTests: XCTestCase {
 
         await fulfillment(of: [expectation], timeout: 1)
     }
+
+    func testStoredValuePersistsAcrossInstances() async throws {
+        // First instance - set a value
+        await self.$storedItem.set(.sweater)
+        XCTAssertEqual(self.storedItem, .sweater)
+        
+        // Create a new instance with the same key
+        @StoredValue<BoutiqueItem>(key: "storedItem")
+        var newInstance = .coat  // Default value should be ignored since we have a stored value
+        
+        // Verify the new instance has the persisted value
+        XCTAssertEqual(newInstance, .sweater)
+        
+        // Change value in new instance
+        await $newInstance.set(.belt)
+        
+        // Verify original instance sees the change
+        XCTAssertEqual(self.storedItem, .belt)
+    }
 }
 
