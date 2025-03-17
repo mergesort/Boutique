@@ -181,21 +181,14 @@ final class SecurelyStoredValueTests: XCTestCase {
     }
 
     func testSecurelyStoredValuePersistsAcrossInstances() async throws {
-        // First instance - set a value
         try await self.$storedPassword.set("secret123")
         XCTAssertEqual(self.storedPassword, "secret123")
         
-        // Create a new instance with the same key
         @SecurelyStoredValue<String>(key: "securePassword")
-        var newInstance = "default"  // Default value should be ignored since we have a stored value
+        var newInstance = "default"
         
-        // Verify the new instance has the persisted value
         XCTAssertEqual(newInstance, "secret123")
-        
-        // Change value in new instance
         try await $newInstance.set("newSecret456")
-        
-        // Verify original instance sees the change
         XCTAssertEqual(self.storedPassword, "newSecret456")
     }
 }
