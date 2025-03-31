@@ -1,8 +1,9 @@
 import Foundation
 
-@MainActor
-internal final class AsyncValueSubject<Value: Sendable> {
+internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
     typealias BufferingPolicy = AsyncStream<Value>.Continuation.BufferingPolicy
+
+    private let lock = NSLock()
 
     var value: Value
     var bufferingPolicy: BufferingPolicy
@@ -15,19 +16,32 @@ internal final class AsyncValueSubject<Value: Sendable> {
         self.bufferingPolicy = bufferingPolicy
     }
 
-    func send(_ newValue: Value) {
-        self.value = newValue
+    // new mutex lock, but iOS 18
+    // nslock or dispatchqueue
 
-        for (_, continuation) in continuations {
+    func send(_ newValue: Value) {
+        // Acquire lock before updating state.
+        self.lock.lock()
+        self.value = newValue
+        // Copy continuations to avoid iterating while holding the lock.
+        let currentContinuations = self.continuations
+        self.lock.unlock()
+
+        for (_, continuation) in currentContinuations {
             continuation.yield(newValue)
         }
     }
 
     func `inout`(_ apply: @Sendable (inout Value) -> Void) {
+        self.lock.lock()
         apply(&value)
+        // Capture current state and continuations.
+        let currentValue = value
+        let currentContinuations = continuations
+        self.lock.unlock()
 
-        for (_, continuation) in self.continuations {
-            continuation.yield(value)
+        for (_, continuation) in currentContinuations {
+            continuation.yield(currentValue)
         }
     }
 
@@ -40,17 +54,22 @@ internal final class AsyncValueSubject<Value: Sendable> {
 
 private extension AsyncValueSubject {
     func insert(_ continuation: AsyncStream<Value>.Continuation) {
+        self.lock.lock()
         continuation.yield(value)
         let id = count + 1
         count = id
         continuations[id] = continuation
-        continuation.onTermination = { @Sendable [weak self] _ in
-            guard let self else { return }
-            Task { await self.remove(continuation: id) }
+        continuation.onTermination = { [weak self] _ in
+            guard let self = self else { return }
+
+            Task { self.remove(continuation: id) }
         }
+        self.lock.unlock()
     }
 
     func remove(continuation id: UInt) {
+        self.lock.lock()
         continuations.removeValue(forKey: id)
+        self.lock.unlock()
     }
 }
