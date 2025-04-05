@@ -179,4 +179,16 @@ final class SecurelyStoredValueTests: XCTestCase {
 
         await fulfillment(of: [expectation], timeout: 1)
     }
+
+    func testSecurelyStoredValuePersistsAcrossInstances() async throws {
+        try await self.$storedPassword.set("secret123")
+        XCTAssertEqual(self.storedPassword, "secret123")
+        
+        @SecurelyStoredValue<String>(key: "securePassword")
+        var newInstance = "default"
+        
+        XCTAssertEqual(newInstance, "secret123")
+        try await $newInstance.set("newSecret456")
+        XCTAssertEqual(self.storedPassword, "newSecret456")
+    }
 }
