@@ -16,18 +16,24 @@
 
 If you find Boutique valuable I would really appreciate it if you would consider helping [sponsor my open source work](https://github.com/sponsors/mergesort), so I can continue to work on projects like Boutique to help developers like yourself.
 
+Table of Contents
+- [Intro](#intro)
+- [Getting Started](#getting-started)
+- [Store](#store)
+- [The Magic Of @Stored](#the-magic-of-stored)
+- [@StoredValue & @SecurelyStoredValue](#storedvalue--securelystoredvalue)
+- [Documentation](#documentation)
+- [Further Exploration](#further-exploration)
+- [Feedback & Contribution](#feedback)
+
 ---
 
-Boutique is a simple but powerful persistence library, a small set of property wrappers and types that enable building incredibly simple state-driven apps for SwiftUI, UIKit, and AppKit. With its dual-layered memory + disk caching architecture Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code using an incredibly simple API. Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a demo app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
+### Intro
 
----
+Boutique is a simple but powerful persistence library, a small set of property wrappers and types that enable building incredibly simple state-driven apps for SwiftUI, UIKit, and AppKit. With its dual-layered memory + disk caching architecture, Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code — using an incredibly simple API.
 
-* [Getting Started](#getting-started)
-* [Store](#store)
-* [The Magic Of @Stored](#the-magic-of-stored)
-* [@StoredValue & @SecurelyStoredValue](#storedvalue--securelystoredvalue)
-* [Documentation](#documentation)
-* [Further Exploration](#further-exploration)
+- Boutique is used in hundreds of apps, and I thoroughly test every API in my app [Plinky](https://plinky.app). (Which I highly recommend [downloading](https://plinky.app/download) and maybe even subscribing to. 😉) 
+- Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a demo app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
 ---
 
@@ -250,13 +256,13 @@ Boutique is very useful on its own for building realtime offline-ready apps with
 
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/2022/06/22/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
-We've only scratched the surface of what Boutique can do here. Leveraging Bodega's `StorageEngine` you can build complex data pipelines that do everything from caching data to interfacing with your API server. Boutique and Bodega are more than libraries, they're a set of primitives for any data-driven application, so I suggest giving them a shot, playing with the [demo app](https://github.com/mergesort/Boutique/tree/main/Demo), and even building an app of your own!
+We've only scratched the surface of what Boutique can do here. By leveraging Bodega's `StorageEngine`, you can build complex data pipelines that do everything from caching data to interfacing with your API server. Boutique and Bodega are more than libraries, they're a set of primitives for any data-driven application, so I suggest giving them a shot, playing with the [demo app](https://github.com/mergesort/Boutique/tree/main/Demo), and even building an app of your own!
 
 ---
 
-### Feedback
+### Feedback & Contribution
 
-This project provides multiple forms of delivering feedback to maintainers.
+This project provides multiple ways to deliver feedback to maintainers.
 
 - If you have a question about Boutique, we ask that you first consult the [documentation](https://build.ms/boutique/docs) to see if your question has been answered there.
 
@@ -264,9 +270,9 @@ This project provides multiple forms of delivering feedback to maintainers.
     - The first app is a [Demo app](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to build a canonical Boutique app using the Model View Controller Store pattern. The app is heavily documented with inline explanations to help you build an intuition for how a Boutique app works and save you time by teaching you best practices along the way.
     - The second app is a [Performance Profiler](https://github.com/mergesort/Boutique/tree/main/Performance%20Profiler) also using Boutique's preferred architecture. If you're working on a custom `StorageEngine` this project will serve you well as a way to test the performance of the operations you need to build.
 
-- If you still have a question, enhancement, or a way to improve Boutique, this project leverages GitHub's [Discussions](https://github.com/mergesort/Boutique/discussions) feature.
+- If you still have questions, suggestions for enhancements, or ways to improve Boutique, this project leverages GitHub's [Discussions](https://github.com/mergesort/Boutique/discussions) feature.
 
-- If you find a bug and wish to report an [issue](https://github.com/mergesort/Boutique/issues) would be appreciated.
+- If you find a bug, please report it by creating an issue.
 
 ---
 

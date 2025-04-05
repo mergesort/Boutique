@@ -248,7 +248,27 @@ public final class Store<Item: StorableItem> {
     /// An `AsyncStream` that emits all changes for the `items` in a ``Store``, .
     ///
     /// This stream will emit an `initial` value when subscribed to, and will further emit
-    /// any changes to the value with their assocaited operation when ``insert(_:)-3j9hw`` or ``remove(_:)-51ya6``, or ``removeAll()-1xc24`` are called.
+    /// any changes to the value with their associated operation when ``insert(_:)-3j9hw`` or ``remove(_:)-51ya6``, or ``removeAll()-1xc24`` are called.
+    /// 
+    /// The `StoreEvent` contains both the operation type (.initialized, .loaded, .insert, or .remove) and the items affected by the operation.
+    /// This allows for more granular observation of changes to the Store compared to simply observing the items array.
+    /// 
+    /// ```swift
+    /// func monitorStoreEvents() async {
+    ///     for await event in store.events {
+    ///         switch event.operation {
+    ///         case .initialized:
+    ///             print("Store has initialized")
+    ///         case .loaded:
+    ///             print("Store has loaded with items", event.items)
+    ///         case .insert:
+    ///             print("Store inserted items", event.items)
+    ///         case .remove:
+    ///             print("Store removed items", event.items)
+    ///         }
+    ///     }
+    /// }
+    /// ```
     public var events: AsyncStream<StoreEvent<Item>> {
         self.valueSubject.values
     }

@@ -1,6 +1,57 @@
 import Foundation
 import Observation
 
+/// The @``StoredValue`` property wrapper to automagically persist a single `Item` in `UserDefaults`
+/// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
+///
+/// You should use a @``StoredValue`` if you're only storing a single item, as opposed to a @``Store``
+/// which stores an array of items exposed as the `items: [Item]` property.
+///
+/// This is useful for similar use cases as `UserDefaults`, where it's common to store only a single item
+/// such as the app's `lastOpenedDate`, an object of the user's preferences, configurations, and more.
+///
+/// Values are delivered synchronously and are available on app launch, using `UserDefaults` as the
+/// backing store to accomplish this. If you wish to use your own `StorageEngine` you can use @``AsyncStoredValue``.
+///
+/// You must initialize a @``StoredValue`` with a default value like you would any other Swift property.
+/// ```
+/// @StoredValue(key: "redPanda")
+/// private var redPanda = RedPanda(cuteRating: 100)
+/// ```
+///
+/// A @``StoredValue`` can be nullable, but in that case you will have to specify the type as well.
+/// ```
+/// @StoredValue<RedPanda?>(key: "pandaRojo")
+/// private var spanishRedPanda = nil
+/// ```
+///
+/// Using @``StoredValue`` is also straightforward, there are only two functions.
+/// To change the value of the @``StoredValue``, you can use the ``set(_:)`` and ``reset()`` functions.
+/// ```
+/// $redPanda.set(RedPanda(cuteRating: 99)) // The @StoredValue has a new red panda
+/// $redPanda.reset() // The @AsyncStoredValue is nil
+/// ```
+///
+/// One last bit of advice, when calling ``set(_:)`` and ``reset()`` don't forget to put a `$`
+/// in front of the the `$storedValue`.
+///
+/// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
+///
+/// When using `@StoredValue` in an `@Observable` class, you should add the `@ObservationIgnored` attribute
+/// to prevent duplicate observation tracking:
+///
+/// ```swift
+/// @Observable
+/// final class Preferences {
+///     @ObservationIgnored
+///     @StoredValue(key: "hasHapticsEnabled")
+///     var hasHapticsEnabled = false
+///
+///     @ObservationIgnored
+///     @StoredValue(key: "lastOpenedDate")
+///     var lastOpenedDate: Date? = nil
+/// }
+/// ```
 @MainActor
 @Observable
 @propertyWrapper

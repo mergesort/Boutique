@@ -114,6 +114,68 @@ func getItems() async -> [Item] {
 
 The synchronous initializer is a sensible default, but if your app's needs dictate displaying data only once you've loaded all of the necessary items the asynchronous initializers are there to help.
 
+## Observing Store Changes
+
+#### onChange
+
+With Boutique you can observe changes to a ``Store``'s items using SwiftUI's `.onChange` modifier:
+
+**New:** Previously Boutique 1.x and 2.x we would use `.onReceive` rather than `.onChange`.
+
+```swift
+struct NotesListView: View {
+    @State var notesController: NotesController
+    @State private var notes: [Note] = []
+
+    var body: some View {
+        VStack {
+            ForEach(self.notes) { note in
+                Text(note.text)
+                    .onTapGesture {
+                        Task {
+                            try await notesController.removeNote(note)
+                        }
+                    }
+            }
+        }
+        .onChange(of: notesController.notes, initial: true) { _, newValue in
+            // We can even create complex pipelines, for example filtering all notes smaller than a tweet
+            self.notes = newValue.filter { $0.length < 280 }
+        }
+    }
+}
+```
+
+In the view above, we're observing changes to `notesController.notes` using the `.onChange` modifier. The `initial: true` parameter ensures that our handler is called when the view first appears, similar to how `onReceive` would behave with it's' initial value.
+
+#### Granular Event Tracking
+
+**New:** You can also observe more granular events using the **Granular Events** API:
+
+```swift
+func monitorNotesEvents() async {
+    for await event in notesController.$notes.events {
+        switch event.operation {
+        case .initialized:
+            print("Notes Store has initialized")
+        case .loaded:
+            print("Notes Store has loaded with notes", event.items)
+        case .insert:
+            print("Notes Store inserted notes", event.items)
+        case .remove:
+            print("Notes Store removed notes", event.items)
+        }
+    }
+}
+```
+
+The Store's `events` property is an `AsyncStream<StoreEvent>`, which tells you two crucial pieces of information for granular observation.
+
+1. You will be told what type of event occured, most commonly `insert` or `remove`. This is also a good way to know when the `Store` was `initialized` or `loaded`, helping differentiate between two events where the result may be an empty array. 
+2. You wll be told which items changed. This is different than using `.onChange`, which outputs the new state of a Store's items, based on what items were inserted or removed.
+
+This provides more granular control over how you respond to changes in the ``Store``.
+
 ## Further Exploration, @Stored And More
 
 Building an app using the ``Store`` can be really powerful because it leans into SwiftUI's state-driven architecture, while providing you with offline-first capabilities, realtime updates across your app, with almost no additional code required.

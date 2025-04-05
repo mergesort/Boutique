@@ -36,6 +36,17 @@ import Observation
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``remove()`` docs for a more in depth explanation.
+///
+/// When using `@SecurelyStoredValue` in an `@Observable` class, you should add the `@ObservationIgnored` attribute
+/// to prevent duplicate observation tracking:
+///
+/// ```swift
+/// @Observable
+/// final class AppState {
+///     @ObservationIgnored
+///     @SecurelyStoredValue<String>(key: "userID")
+/// }
+/// ```
 @MainActor
 @Observable
 @propertyWrapper
