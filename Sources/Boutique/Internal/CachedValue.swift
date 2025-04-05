@@ -8,18 +8,19 @@ internal final class CachedValue<Item: Codable> {
 
     init(retrieveValue: @escaping () -> Item) {
         self.retrieveValue = retrieveValue
-        self.cachedValue = self.retrieveValue()
     }
 
     func set(_ value: Item) {
         self.cachedValue = value
     }
 
-    var wrappedValue: Item? {
+    var wrappedValue: Item {
         if let cachedValue {
-            cachedValue
+            return cachedValue
         } else {
-            self.retrieveValue()
+            let retrievedValue = self.retrieveValue()
+            self.cachedValue = retrievedValue
+            return retrievedValue
         }
     }
 }

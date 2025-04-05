@@ -95,12 +95,7 @@ public final class StoredValue<Item: StorableItem> {
 
     /// The currently stored value
     public var wrappedValue: Item {
-        get {
-            self.retrieveItem()
-        }
-        set {
-            self.persistItem(newValue)
-        }
+        self.cachedValue.wrappedValue
     }
 
     /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside an `AsyncStream` of ``values``.
@@ -169,7 +164,7 @@ private extension StoredValue {
     func retrieveItem() -> Item {
         observationRegistrar.access(self, keyPath: \.wrappedValue)
 
-        return self.cachedValue.retrieveValue()
+        return self.cachedValue.wrappedValue
     }
 
     func persistItem(_ item: Item) {
