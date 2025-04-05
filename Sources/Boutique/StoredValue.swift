@@ -1,6 +1,5 @@
-import Combine
 import Foundation
-import SwiftUI
+import Observation
 
 /// The @``StoredValue`` property wrapper to automagically persist a single `Item` in `UserDefaults`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -37,40 +36,82 @@ import SwiftUI
 /// in front of the the `$storedValue`.
 ///
 /// See: ``set(_:)`` and ``reset()`` docs for a more in depth explanation.
+///
+/// When using `@StoredValue` in an `@Observable` class, you should add the `@ObservationIgnored` attribute
+/// to prevent duplicate observation tracking:
+///
+/// ```swift
+/// @Observable
+/// final class Preferences {
+///     @ObservationIgnored
+///     @StoredValue(key: "hasHapticsEnabled")
+///     var hasHapticsEnabled = false
+///
+///     @ObservationIgnored
+///     @StoredValue(key: "lastOpenedDate")
+///     var lastOpenedDate: Date? = nil
+/// }
+/// ```
+@MainActor
+@Observable
 @propertyWrapper
-public struct StoredValue<Item: Codable> {
-    private let cancellableBox = CancellableBox()
+public final class StoredValue<Item: StorableItem> {
+    private let observationRegistrar = ObservationRegistrar()
+    private let valueSubject: AsyncValueSubject<Item>
+    private let cachedValue: CachedValue<Item>
+
     private let defaultValue: Item
     private let key: String
     private let userDefaults: UserDefaults
-    private let itemSubject: CurrentValueSubject<Item, Never>
 
-    private var cachedValue: CachedValue<Item>
-
+    /// Initializes a new @``StoredValue``.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use when storing the value in `UserDefaults`.
+    ///   - storage: The `UserDefaults` to use when storing the value.
     public init(wrappedValue: Item, key: String, storage userDefaults: UserDefaults = UserDefaults.standard) {
         self.key = key
         self.defaultValue = wrappedValue
         self.userDefaults = userDefaults
 
         let initialValue = Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: defaultValue)
-        self.itemSubject = CurrentValueSubject(initialValue)
+        self.valueSubject = AsyncValueSubject(initialValue)
+        self.valueSubject.send(initialValue)
 
         self.cachedValue = CachedValue(retrieveValue: {
             Self.storedValue(forKey: key, userDefaults: userDefaults, defaultValue: initialValue)
         })
     }
 
-    /// The currently stored value
-    public var wrappedValue: Item {
-        self.cachedValue.wrappedValue
+    /// Initializes a new ``StoredValue`` directly, without using a property wrapper.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use when storing the value in `UserDefaults`.
+    ///   - defaultValue: The default value to use when no value is stored.
+    ///   - storage: The `UserDefaults` to use when storing the value.
+    public convenience init(key: String, default defaultValue: Item, storage userDefaults: UserDefaults = UserDefaults.standard) {
+        self.init(wrappedValue: defaultValue, key: key, storage: userDefaults)
     }
 
-    /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside a ``publisher``.
+    /// The currently stored value
+    public var wrappedValue: Item {
+        get {
+            self.retrieveItem()
+        }
+        set {
+            self.persistItem(newValue)
+        }
+    }
+
+    /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside an `AsyncStream` of ``values``.
     public var projectedValue: StoredValue<Item> { self }
 
-    /// A Combine publisher that allows you to observe all changes to the @``StoredValue``.
-    public var publisher: AnyPublisher<Item, Never> {
-        self.itemSubject.eraseToAnyPublisher()
+    /// An `AsyncStream` that emits all value changes of a @``StoredValue``.
+    ///
+    /// This stream will emit the initial value when subscribed to, and will further emit
+    /// any changes to the value when ``set(_:)`` or ``reset()`` are called.
+    public var values: AsyncStream<Item> {
+        self.valueSubject.values
     }
 
     /// Sets a value for the @``StoredValue`` property.
@@ -94,15 +135,9 @@ public struct StoredValue<Item: Codable> {
     /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
     ///
-    /// - Parameter value: The value to set @``StoredValue`` to.
-    @MainActor
-    public func set(_ value: Item) {
-        let boxedValue = BoxedValue(value: value)
-        if let data = try? JSONCoders.encoder.encode(boxedValue) {
-            self.userDefaults.set(data, forKey: self.key)
-            self.cachedValue.set(value)
-            self.itemSubject.send(value)
-        }
+    /// - Parameter item: The value to set @``StoredValue`` to.
+    public func set(_ item: Item) {
+        self.persistItem(item)
     }
 
     /// Resets the @``StoredValue`` to the default value.
@@ -125,53 +160,35 @@ public struct StoredValue<Item: Codable> {
     /// `@Published var items: [Item]` would let you use `items` as a regular `[Item]`,
     /// but $items projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
-    @MainActor
     public func reset() {
-        let boxedValue = BoxedValue(value: self.defaultValue)
-        if let data = try? JSONCoders.encoder.encode(boxedValue) {
-            self.userDefaults.set(data, forKey: self.key)
-            self.cachedValue.set(self.defaultValue)
-            self.itemSubject.send(self.defaultValue)
-        }
-    }
-
-    public static subscript<Instance>(
-        _enclosingInstance instance: Instance,
-        wrapped wrappedKeyPath: KeyPath<Instance, Item>,
-        storage storageKeyPath: KeyPath<Instance, Self>
-    ) -> Item {
-        let wrapper = instance[keyPath: storageKeyPath]
-
-        if wrapper.cancellableBox.cancellable == nil {
-            wrapper.cancellableBox.cancellable = wrapper.itemSubject
-                .receive(on: RunLoop.main)
-                .sink(receiveValue: { [instance] _ in
-                    func publisher<T>(_ value: T) -> ObservableObjectPublisher? {
-                        return (Proxy<T>() as? ObservableObjectProxy)?.extractObjectWillChange(value)
-                    }
-
-                    let objectWillChangePublisher = _openExistential(instance as Any, do: publisher)
-                    objectWillChangePublisher?.send()
-                })
-        }
-
-        return wrapper.wrappedValue
+        self.persistItem(self.defaultValue)
     }
 }
 
 private extension StoredValue {
+    func retrieveItem() -> Item {
+        observationRegistrar.access(self, keyPath: \.wrappedValue)
+
+        return self.cachedValue.retrieveValue()
+    }
+
+    func persistItem(_ item: Item) {
+        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            let boxedValue = BoxedValue(value: item)
+            if let data = try? JSONCoders.encoder.encode(boxedValue) {
+                self.userDefaults.set(data, forKey: self.key)
+                self.cachedValue.set(item)
+                self.valueSubject.send(item)
+            }
+        }
+    }
+
     static func storedValue(forKey key: String, userDefaults: UserDefaults, defaultValue: Item) -> Item {
-        if let storedValue = userDefaults.object(forKey: key) as? Data,
+        if let storedValue = userDefaults.data(forKey: key),
            let boxedValue = try? JSONCoders.decoder.decode(BoxedValue<Item>.self, from: storedValue) {
             return boxedValue.value
         } else {
             return defaultValue
         }
-    }
-}
-
-private extension StoredValue {
-    final class CancellableBox {
-        var cancellable: AnyCancellable?
     }
 }

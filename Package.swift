@@ -31,6 +31,10 @@ let package = Package(
                 "../../Performance Profiler",
             ],
             swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableUpcomingFeature("DisableOutwardActorInference"),
+                .enableUpcomingFeature("GlobalActorIsolatedTypesUsability"),
+                .enableUpcomingFeature("InferSendableFromCaptures"),
                 .define("ENABLE_TESTABILITY", .when(configuration: .debug))
             ]
         ),

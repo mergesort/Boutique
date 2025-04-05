@@ -22,7 +22,7 @@ let store = Store<Item>(
 
 - The `storage` parameter is populated with a `StorageEngine`, you can read more about it in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines). Our SQLite database will be created in the platform's default storage directory, nested in an `Items` subdirectory. On macOS this will be the `Application Support` directory, and on every other platform such as iOS this will be the `Documents` directory. If you need finer control over the location you can specify a `FileManager.Directory` such as `.documents`, `.caches`, `.temporary`, or even provide your own URL, also explored in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
 
-- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be inserted into our ``Store`` and saved to disk our models must conform to `Codable & Equatable`, both of which are reasonable constraints given the data has to be serializable and searchable. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
+- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be inserted into our ``Store`` and saved to disk our models must conform to `Codable & Sendable & Equatable`, both of which are reasonable constraints given the data has to be serializable and searchable. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
 
 If your model (in this case `Item`) already conforms to `Identifiable`, we can simplify our initializer by eschewing the `cacheIdentifier` parameter.
 
@@ -114,64 +114,73 @@ func getItems() async -> [Item] {
 
 The synchronous initializer is a sensible default, but if your app's needs dictate displaying data only once you've loaded all of the necessary items the asynchronous initializers are there to help.
 
-## Observing Store Loading State
+## Observing Store Changes
 
-You can manually observe the loading state of a ``Store`` as we do in `getItems()` above, but Boutique also provides a ``onStoreDidLoad`` function to observe the loading state of a ``Store`` in SwiftUI.
+#### onChange
+
+With Boutique you can observe changes to a ``Store``'s items using SwiftUI's `.onChange` modifier:
+
+**New:** Previously Boutique 1.x and 2.x we would use `.onReceive` rather than `.onChange`.
 
 ```swift
-struct ContentView: View {
-    @Stored var items: [Item]
-    @State var itemsHaveLoaded = false
+struct NotesListView: View {
+    @State var notesController: NotesController
+    @State private var notes: [Note] = []
 
     var body: some View {
         VStack {
-            AlwaysVisibleBanner()
-
-            if self.itemsHaveLoaded {
-                if self.items.isEmpty {
-                    EmptyStateView()
-                } else {
-                    ItemsView(items: self.items)
-                }
-            } else {
-                LoadingStateView()
+            ForEach(self.notes) { note in
+                Text(note.text)
+                    .onTapGesture {
+                        Task {
+                            try await notesController.removeNote(note)
+                        }
+                    }
             }
         }
-        .onStoreDidLoad(
-            self.$items,
-            update: $itemsHaveLoaded,
-            onError: { error in
-                log.error("Failed to load items", error)
-            }
-        )
+        .onChange(of: notesController.notes, initial: true) { _, newValue in
+            // We can even create complex pipelines, for example filtering all notes smaller than a tweet
+            self.notes = newValue.filter { $0.length < 280 }
+        }
     }
 }
 ```
 
-This allows for a clean separation of Views to display across three different states:
-- When the Store has finished loading and has items
-- When the Store has finished loading and has no items
-- When the Store is loading (and implicitly has no items)
+In the view above, we're observing changes to `notesController.notes` using the `.onChange` modifier. The `initial: true` parameter ensures that our handler is called when the view first appears, similar to how `onReceive` would behave with it's' initial value.
 
-You can also choose to use the closure-oriented variant of ``onStoreDidLoad`` to perform any additional logic when the ``Store`` has finished loading. Patterns like MVVM choose to isolate this logic ViewModel, and you can still choose to do that, but exposing this method on a View provides more flexibility to work with your preferred architecture. In the example below we will filter the items in a ``Store`` based on some criteria, to display only the relevant items in our View.
+#### Granular Event Tracking
+
+**New:** You can also observe more granular events using the **Granular Events** API:
 
 ```swift
-.onStoreDidLoad(
-    self.$items,
-    onLoad: {
-        self.items = self.filteredItems(self.items)
-    },
-    onError: { error in
-        log.error("Failed to load items", error)
+func monitorNotesEvents() async {
+    for await event in notesController.$notes.events {
+        switch event.operation {
+        case .initialized:
+            print("Notes Store has initialized")
+        case .loaded:
+            print("Notes Store has loaded with notes", event.items)
+        case .insert:
+            print("Notes Store inserted notes", event.items)
+        case .remove:
+            print("Notes Store removed notes", event.items)
+        }
     }
-)
+}
 ```
+
+The Store's `events` property is an `AsyncStream<StoreEvent>`, which tells you two crucial pieces of information for granular observation.
+
+1. You will be told what type of event occured, most commonly `insert` or `remove`. This is also a good way to know when the `Store` was `initialized` or `loaded`, helping differentiate between two events where the result may be an empty array. 
+2. You wll be told which items changed. This is different than using `.onChange`, which outputs the new state of a Store's items, based on what items were inserted or removed.
+
+This provides more granular control over how you respond to changes in the ``Store``.
 
 ## Further Exploration, @Stored And More
 
 Building an app using the ``Store`` can be really powerful because it leans into SwiftUI's state-driven architecture, while providing you with offline-first capabilities, realtime updates across your app, with almost no additional code required.
 
-We've introduced the ``Store``, but the real power lies when you start to use Boutique's property wrappers, @``Stored``, @``StoredValue``, @``SecurelyStoredValue``, and @``AsyncStoredValue``. These property wrappers help deliver on the promise of working with regular Swift values and arrays yet having data persisted automatically, without ever having to think about the concept of a database.
+We've introduced the ``Store``, but the real power lies when you start to use Boutique's property wrappers, @``Stored``, @``StoredValue``, and @``SecurelyStoredValue``. These property wrappers help deliver on the promise of working with regular Swift values and arrays yet having data persisted automatically, without ever having to think about the concept of a database.
 
 The next step is to explore how they work, with a small example SwiftUI app. 
 
