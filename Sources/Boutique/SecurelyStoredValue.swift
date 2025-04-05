@@ -105,7 +105,7 @@ public final class SecurelyStoredValue<Item: StorableItem> {
     /// with, a value type `Item`. But it is the `projectedValue` that is the `SecurelyStoredValue<Item>`,
     /// that property and has the ``set(_:) function.
     ///
-    /// This follows similar conventions to the `@Published` property wrapper.
+    /// This follows similar conventions to property wrappers like `@Published`.
     /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
     /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
@@ -146,7 +146,7 @@ public final class SecurelyStoredValue<Item: StorableItem> {
     /// with, a value type `Item`. But it is the `projectedValue` that is the `SecurelyStoredValue<Item>`,
     /// that property and has the ``set(_:) function.
     ///
-    /// This follows similar conventions to the `@Published` property wrapper.
+    /// This follows similar conventions to property wrappers like `@Published`.
     /// `@Published var items: [Item]` allows you to use `items` as a regular `[Item]`,
     /// but `$items` projects `AnyPublisher<[Item], Never>` so you can subscribe to changes items produces.
     /// Within Boutique the @Stored property wrapper works very similarly.
