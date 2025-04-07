@@ -2,7 +2,7 @@
 
 ### A simple but surprisingly fancy data store and so much more
 
->*"I ripped out Core Data, this is the way it should work"* 
+>*"I ripped out Core Data, this is the way it should work"*
 
 — [Josh Holtz](https://github.com/joshdholtz)
 
@@ -32,7 +32,7 @@ Table of Contents
 
 Boutique is a simple but powerful persistence library, a small set of property wrappers and types that enable building incredibly simple state-driven apps for SwiftUI, UIKit, and AppKit. With its dual-layered memory + disk caching architecture, Boutique provides a way to build apps that update in real time with full offline storage in only a few lines of code — using an incredibly simple API.
 
-- Boutique is used in hundreds of apps, and I thoroughly test every API in my app [Plinky](https://plinky.app). (Which I highly recommend [downloading](https://plinky.app/download) and maybe even subscribing to. 😉) 
+- Boutique is used in hundreds of apps, and I thoroughly test every API in my app [Plinky](https://plinky.app). (Which I highly recommend [downloading](https://plinky.app/download) and maybe even subscribing to. 😉)
 - Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and you can find a demo app built atop the Model View Controller Store architecture in this [repo](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to make an offline-ready SwiftUI app in only a few lines of code. You can read more about the thinking behind the architecture in this blog post exploring the [MVCS architecture](https://build.ms/2022/06/22/model-view-controller-store).
 
 ---
@@ -90,7 +90,7 @@ try await store
     .insert(dog)
     .insert(cat)
     .run()
-    
+
 print(store.items) // Prints [dog, cat]
 
 // This is a good way to clear stale cached data
@@ -105,26 +105,41 @@ print(store.items) // Prints [redPanda]
 And if you're building a SwiftUI app you don't have to change a thing, Boutique was made for and with SwiftUI in mind. (But works well in UIKit and AppKit of course. 😉)
 
 ```swift
-// Since items is a @Published property 
-// you can subscribe to any changes in realtime.
-store.$items.sink({ items in
-    print("Items was updated", items)
+// Since @Store, @StoredValue, and @SecurelyStoredValue are `@Observable`, you can subscribe
+// to changes in realtime using any of Swift's built-in observability mechanisms.
+.onChange(of: store.items) {
+    self.items = self.items.sorted(by: { $0.createdAt > $1.createdAt})
 })
+```
 
-// Works great with SwiftUI out the box for more complex pipelines.
-.onReceive(store.$items, perform: {
-    self.allItems = $0.filter({ $0.id > 100 })
-})
+```swift
+// You can also use Boutique's Granular Events Tracking API to be notified of individual changes.
+func monitorNotesStoreEvents() async {
+    for await event in self.notesController.$notes.events {
+        switch event.operation {
+
+        case .initialized:
+            print("[Store Event: initial] Our Notes Store has initialized")
+
+        case .loaded:
+            print("[Store Event: loaded] Our Notes Store has loaded with notes", event.notes.map(\.text))
+
+        case .insert:
+            print("[Store Event: insert] Our Notes Store inserted notes", event.notes.map(\.text))
+
+        case .remove:
+            print("[Store Event: remove] Our Notes Store removed notes", event.notes.map(\.text))
+        }
+    }
+}
 ```
 ---
 
-¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the images you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours. You'll also notice, that's a concept from Bodega which you can read about in Bodega's [StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
-  
+¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the notes you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours. You'll also notice, that's a concept from Bodega which you can read about in Bodega's [StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
+
 ² Under the hood the Store is doing the work of saving all changes to disk when you add or remove items.
 
-³ In SwiftUI you can even power your `View`s with `$items` and use `.onReceive()` to update and manipulate data published by the Store's `$items`.
-
-> **Warning** Storing images or other binary data in Boutique is technically supported but not recommended. The reason is that storing images in Boutique's can balloon up the in-memory store, and your app's memory as a result. For similar reasons as it's not recommended to store images or binary blobs in a database, it's not recommended to store images or binary blobs in Boutique.
+> **Warning** Storing binary blobs (such as images or Data) in Boutique is technically supported, but not recommended. The reason not to store images in Boutique is that storing images in Boutique's can balloon up the in-memory store, and your app's memory as a result. For similar reasons as it's not recommended to store images or binary blobs in a database, it's not recommended to store images or binary blobs in Boutique. Bodega provides a good solution for this problem, which you can read about in [this tutorial](https://mergesort.github.io/Bodega/documentation/bodega/building-an-image-cache/).
 
 ---
 
@@ -136,57 +151,60 @@ We'll go through a high level overview of the `@Stored` property wrapper below, 
 That was easy, but I want to show you something that makes Boutique feel downright magical. The `Store` is a simple way to gain the benefits of offline storage and realtime updates, but by using the `@Stored` property wrapper we can cache any property in-memory and on disk with just one line of code.
 
 ```swift
-extension Store where Item == RemoteImage {
-    // Initialize a Store to save our images into
-    static let imagesStore = Store<RemoteImage>(
-        storage: SQLiteStorageEngine.default(appendingPath: "Images")
+extension Store where Item == Note {
+    // Initialize a Store to save our notes into
+    static let notesStore = Store<Note>(
+        storage: SQLiteStorageEngine.default(appendingPath: "Notes")
     )
 
 }
 
-final class ImagesController: ObservableObject {
-    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁴
-    @Stored(in: .imagesStore) var images
+@Observable
+final class NotesController {
+    /// Creates an @Stored property to handle an in-memory and on-disk cache of notes. ³
+    @Stored(in: .notesStore) var notes
 
-    /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
-    func fetchImage() async throws -> RemoteImage {
+    /// Fetches `Notes` from the API, providing the user with a red panda note if the request succeeds.
+    func fetchNotes() async throws -> Note {
         // Hit the API that provides you a random image's metadata
-        let imageURL = URL(string: "https://image.redpanda.club/random/json")!
-        let randomImageRequest = URLRequest(url: imageURL)
-        let (imageResponse, _) = try await URLSession.shared.data(for: randomImageRequest)
+        let noteURL = URL(string: "https://notes.redpanda.club/random/json")!
+        let randomNoteRequest = URLRequest(url: noteURL)
+        let (noteResponse, _) = try await URLSession.shared.data(for: randomNoteRequest)
 
-        return RemoteImage(createdAt: .now, url: imageResponse.url, width: imageResponse.width, height: imageResponse.height, imageData: imageResponse.imageData)
+        return Note(createdAt: .now, url: noteResponse.url, text: noteResponse.text)
     }
-  
-    /// Saves an image to the `Store` in memory and on disk.
-    func saveImage(image: RemoteImage) async throws {
-        try await self.$images.insert(image)
+
+    /// Saves an note to the `Store` in memory and on disk.
+    func saveNote(note: Note) async throws {
+        try await self.$notes.insert(note)
     }
-  
-    /// Removes one image from the `Store` in memory and on disk.
-    func removeImage(image: RemoteImage) async throws {
-        try await self.$images.remove(image)
+
+    /// Removes one note from the `Store` in memory and on disk.
+    func removeNote(note: Note) async throws {
+        try await self.$notes.remove(note)
     }
-  
-    /// Removes all of the images from the `Store` in memory and on disk.
-    func clearAllImages() async throws {
-        try await self.$images.removeAll()
+
+    /// Removes all of the notes from the `Store` in memory and on disk.
+    func clearAllNotes() async throws {
+        try await self.$notes.removeAll()
     }
 }
 ```
 
-That's it, that's really it. This technique scales very well, and sharing this data across many views is exactly how Boutique scales from simple to complex apps without adding API complexity. It's hard to believe that now your app can update its state in real time with full offline storage thanks to only one line of code. `@Stored(in: .imagesStore) var images`
+That's it, that's really it. This technique scales very well, and sharing this data across many views is exactly how Boutique scales from simple to complex apps without adding API complexity. It's hard to believe that now your app can update its state in real time with full offline storage thanks to only one line of code. `@Stored(in: .notesStore) var notes`
 
 ---
 
-⁴ (If you'd prefer to decouple the store from your view model, controller, or manager object, you can inject stores into the object like this.)
+³ (If you'd prefer to decouple the store from your view model, controller, or manager object, you can inject stores into the object like this.)
 
 ```swift
-final class ImagesController: ObservableObject {
-    @Stored var images: [RemoteImage]
+@Observable
+final class NotesController {
+    @ObservationIgnored
+    @Stored var notes: [Note]
 
-    init(store: Store<RemoteImage>) {
-        self._images = Stored(in: store)
+    init(store: Store<Note>) {
+        self._notes = Stored(in: store)
     }
 }
 ```
@@ -252,7 +270,7 @@ As I was building v1 I noticed that people who got Boutique loved it, and people
 
 ### Further Exploration
 
-Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's even more powerful when you use the Model View Controller Store architecture I've developed, demonstrated in the `ImagesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
+Boutique is very useful on its own for building realtime offline-ready apps with just a few lines of code, but it's even more powerful when you use the Model View Controller Store architecture I've developed, demonstrated in the `NotesController` above. MVCS brings together the familiarity and simplicity of the [MVC architecture](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html) you know and love with the power of a `Store`, to give your app a simple but well-defined state management and data architecture.
 
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/2022/06/22/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
@@ -304,7 +322,7 @@ If you prefer not to use SPM, you can integrate Boutique into your project manua
 
 ### About me
 
-Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Mastodon](https://macaw.social/@mergesort).
+Hi, I'm [Joe](http://fabisevi.ch) everywhere on the web, but especially on [Bluesky](https://bsky.app/profile/mergesort.me).
 
 ### License
 
