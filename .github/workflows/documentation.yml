@@ -9,14 +9,14 @@ on:
 jobs:
   update_documentation:
     name: Update documentation
-    runs-on: macos-12
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Swift version
-        uses: swift-actions/setup-swift@v1
+        uses: swift-actions/setup-swift@v2
         with:
-          swift-version: "5.7"
+          swift-version: "5.10.1"
       - name: Generate documentation
         uses: fwcd/swift-docc-action@v1
         with:
