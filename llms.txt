@@ -1,0 +1,646 @@
+TITLE: Creating and Using a Boutique Store for Swift Data Persistence
+DESCRIPTION: This snippet demonstrates how to create a Store, insert and remove items, read directly from the store, and chain commands. The Store handles uniqueness automatically and provides real-time updates through @Published properties.
+
+LANGUAGE: swift
+CODE:
+// Create a Store ¹
+let store = Store<Animal>(
+    storage: SQLiteStorageEngine.default(appendingPath: "Animals"),
+    cacheIdentifier: \.id
+)
+
+// Insert an item into the Store ²
+let redPanda = Animal(id: "red_panda")
+try await store.insert(redPanda)
+
+// Remove an animal from the Store
+try await store.remove(redPanda)
+
+// Insert two more animals to the Store
+let dog = Animal(id: "dog")
+let cat = Animal(id: "cat")
+try await store.insert([dog, cat])
+
+// You can read items directly
+print(store.items) // Prints [dog, cat]
+
+// You also don't have to worry about maintaining uniqueness, the Store handles uniqueness for you
+let secondDog = Animal(id: "dog")
+try await store.insert(secondDog)
+print(store.items) // Prints [dog, cat]
+
+// Clear your store by removing all the items at once.
+store.removeAll()
+
+print(store.items) // Prints []
+
+// You can even chain commands together
+try await store
+    .insert(dog)
+    .insert(cat)
+    .run()
+
+print(store.items) // Prints [dog, cat]
+
+// This is a good way to clear stale cached data
+try await store
+    .removeAll()
+    .insert(redPanda)
+    .run()
+
+print(store.items) // Prints [redPanda]
+
+----------------------------------------
+
+TITLE: Initializing Store in Swift for Boutique Library
+DESCRIPTION: Demonstrates the usage of Store in Boutique for persisting data automatically and exposing it as a Swift array. This snippet shows how to use the Store concept, which is central to Boutique's functionality.
+
+LANGUAGE: swift
+CODE:
+Store
+
+----------------------------------------
+
+TITLE: Integrating Boutique Store with SwiftUI for Reactive Updates
+DESCRIPTION: This snippet shows how to use Boutique's @Published property with SwiftUI for reactive updates. It demonstrates using sink for subscribing to changes and onReceive for updating UI when the store changes.
+
+LANGUAGE: swift
+CODE:
+// Since items is a @Published property
+// you can subscribe to any changes in realtime.
+store.$items.sink({ items in
+    print("Items was updated", items)
+})
+
+// Works great with SwiftUI out the box for more complex pipelines.
+.onReceive(store.$items, perform: {
+    self.allItems = $0.filter({ $0.id > 100 })
+})
+
+----------------------------------------
+
+TITLE: Implementing @Stored Property Wrapper for Cache Management
+DESCRIPTION: This snippet shows how to use the @Stored property wrapper to create an in-memory and on-disk cache with minimal code. It includes creating a static store extension and implementing methods to fetch, save, and remove images.
+
+LANGUAGE: swift
+CODE:
+extension Store where Item == RemoteImage {
+    // Initialize a Store to save our images into
+    static let imagesStore = Store<RemoteImage>(
+        storage: SQLiteStorageEngine.default(appendingPath: "Images")
+    )
+
+}
+
+final class ImagesController: ObservableObject {
+    /// Creates a @Stored property to handle an in-memory and on-disk cache of images. ⁴
+    @Stored(in: .imagesStore) var images
+
+    /// Fetches `RemoteImage` from the API, providing the user with a red panda if the request succeeds.
+    func fetchImage() async throws -> RemoteImage {
+        // Hit the API that provides you a random image's metadata
+        let imageURL = URL(string: "https://image.redpanda.club/random/json")!
+        let randomImageRequest = URLRequest(url: imageURL)
+        let (imageResponse, _) = try await URLSession.shared.data(for: randomImageRequest)
+
+        return RemoteImage(createdAt: .now, url: imageResponse.url, width: imageResponse.width, height: imageResponse.height, imageData: imageResponse.imageData)
+    }
+
+    /// Saves an image to the `Store` in memory and on disk.
+    func saveImage(image: RemoteImage) async throws {
+        try await self.$images.insert(image)
+    }
+
+    /// Removes one image from the `Store` in memory and on disk.
+    func removeImage(image: RemoteImage) async throws {
+        try await self.$images.remove(image)
+    }
+
+    /// Removes all of the images from the `Store` in memory and on disk.
+    func clearAllImages() async throws {
+        try await self.$images.removeAll()
+    }
+}
+
+----------------------------------------
+
+TITLE: Using StoredValue and SecurelyStoredValue Property Wrappers in Swift
+DESCRIPTION: Demonstrates how to use @StoredValue to persist various types of data in UserDefaults with a publisher for change notifications. Shows storing booleans, optional values, enums, and complex objects, along with methods to modify the stored values.
+
+LANGUAGE: swift
+CODE:
+// Setup a `@StoredValue has the same API.
+@StoredValue(key: "hasHapticsEnabled")
+var hasHapticsEnabled = false
+
+// You can also store nil values
+@StoredValue(key: "lastOpenedDate")
+var lastOpenedDate: Date? = nil
+
+// Enums work as well, as long as it conforms to `Codable` and `Equatable`.
+@StoredValue(key: "currentTheme")
+var currentlySelectedTheme = .light
+
+// Complex objects work as well
+struct UserPreferences: Codable, Equatable {
+    var hasHapticsEnabled: Bool
+    var prefersDarkMode: Bool
+    var prefersWideScreen: Bool
+    var spatialAudioEnabled: Bool
+}
+
+@StoredValue(key: "userPreferences")
+var preferences = UserPreferences()
+
+// Set the lastOpenedDate to now
+$lastOpenedDate.set(.now)
+
+// currentlySelected is now .dark
+$currentlySelectedTheme.set(.dark)
+
+// StoredValues that are backed by a boolean also have a toggle() function
+$hasHapticsEnabled.toggle()
+
+----------------------------------------
+
+TITLE: Implementing Notes Controller with @Stored Property Wrapper
+DESCRIPTION: Example implementation of a NotesController class using @Stored property wrapper to manage a collection of notes with persistence and API synchronization.
+
+LANGUAGE: swift
+CODE:
+@Observable
+final class NotesController {
+    @ObservationIgnored
+    @Stored var notes: [Note]
+
+    init(store: Store<Note>) {
+        self._notes = Stored(in: store)
+    }
+
+    func fetchNotesFromAPI() async throws -> [Note] {
+        // This would be an API call we make to our server
+        try await self.fetchAllNotesFromServer()
+
+        // Insert all of the notes we fetched into the local Store once the request succeeds, to keep the state in sync
+        try await self.$notes.insert(notes)
+    }
+
+    func addNote(note: Note) async throws {
+        // This would be an API call we make to our server
+        try await self.insertNoteOnServer(note)
+
+        // Insert our note into the local Store once the request succeeds, to keep the state in sync
+        try await self.$notes.insert(note)
+    }
+
+    func removeNote(note: Note) async throws {
+        // This would be an API call we make to our server
+        try await self.removeRemoteNoteFromServer(note)
+
+        // Remove our note from the local Store once the request succeeds, to keep the state in sync
+        try await self.$notes.remove(note)
+    }
+
+    func clearAllNotes() async throws {
+        // This would be an API call we make to our server
+        try await self.removeAllNotesOnServer()
+
+        // Remove all notes from the local Store once the request succeeds, to keep the state in sync
+        try await self.$notes.removeAll()
+    }
+}
+
+----------------------------------------
+
+TITLE: Initializing Store with SQLiteStorageEngine in Swift
+DESCRIPTION: Demonstrates how to initialize a Store using SQLiteStorageEngine with a custom storage directory and cache identifier.
+
+LANGUAGE: swift
+CODE:
+let store = Store<Item>(
+    storage: SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: "Items")),
+    cacheIdentifier: \.id
+)
+
+----------------------------------------
+
+TITLE: Monitoring Granular Events in Boutique Store for Swift
+DESCRIPTION: This code snippet demonstrates how to use the Granular Events API in Boutique to monitor detailed events in a Notes Store. It showcases handling different operations like initialization, loading, insertion, and removal of notes.
+
+LANGUAGE: swift
+CODE:
+func monitorNotesEvents() async {
+    for await event in notesController.$notes.events {
+        switch event.operation {
+        case .initialized:
+            print("Notes Store has initialized")
+        case .loaded:
+            print("Notes Store has loaded with notes", event.items)
+        case .insert:
+            print("Notes Store inserted notes", event.items)
+        case .remove:
+            print("Notes Store removed notes", event.items)
+        }
+    }
+}
+
+----------------------------------------
+
+TITLE: Injecting Boutique Store into Controller for Dependency Injection
+DESCRIPTION: This snippet demonstrates how to decouple a store from the controller by injecting it via initialization. This approach enables better testability and dependency management.
+
+LANGUAGE: swift
+CODE:
+final class ImagesController: ObservableObject {
+    @Stored var images: [RemoteImage]
+
+    init(store: Store<RemoteImage>) {
+        self._images = Stored(in: store)
+    }
+}
+
+----------------------------------------
+
+TITLE: Initializing Preferences with @StoredValue in Swift
+DESCRIPTION: This snippet demonstrates how to set up a Preferences class using @StoredValue property wrapper in an @Observable class. It shows how to store boolean, date, and enum values with default values.
+
+LANGUAGE: swift
+CODE:
+@Observable
+final class Preferences {
+    @ObservationIgnored
+    @StoredValue(key: "hasHapticsEnabled")
+    var hasHapticsEnabled = false
+
+    @ObservationIgnored
+    @StoredValue(key: "lastOpenedDate")
+    var lastOpenedDate: Date? = nil
+
+    @ObservationIgnored
+    @StoredValue(key: "currentTheme")
+    var currentlySelectedTheme = .light
+}
+
+----------------------------------------
+
+TITLE: Implementing Complex UserPreferences with StoredValue in Swift
+DESCRIPTION: This snippet demonstrates a more complex example of using StoredValue to store a custom UserPreferences struct for a hypothetical video player app.
+
+LANGUAGE: swift
+CODE:
+struct UserPreferences: Codable, Sendable, Equatable {
+    var hasHapticsEnabled: Bool
+    var prefersDarkMode: Bool
+    var prefersWideScreen: Bool
+    var spatialAudioEnabled: Bool
+}
+
+@Observable
+final class PreferencesManager {
+    @ObservationIgnored
+    @StoredValue(key: "userPreferences")
+    var preferences = UserPreferences()
+}
+
+----------------------------------------
+
+TITLE: Observing Store Changes in SwiftUI
+DESCRIPTION: Shows how to observe changes to a Store's items using SwiftUI's .onChange modifier, including filtering the results.
+
+LANGUAGE: swift
+CODE:
+struct NotesListView: View {
+    @State var notesController: NotesController
+    @State private var notes: [Note] = []
+
+    var body: some View {
+        VStack {
+            ForEach(self.notes) { note in
+                Text(note.text)
+                    .onTapGesture {
+                        Task {
+                            try await notesController.removeNote(note)
+                        }
+                    }
+            }
+        }
+        .onChange(of: notesController.notes, initial: true) { _, newValue in
+            // We can even create complex pipelines, for example filtering all notes smaller than a tweet
+            self.notes = newValue.filter { $0.length < 280 }
+        }
+    }
+}
+
+----------------------------------------
+
+TITLE: Demonstrating @Stored Property Wrapper Usage
+DESCRIPTION: Example showing the difference between wrappedValue and projectedValue when using the @Stored property wrapper.
+
+LANGUAGE: swift
+CODE:
+@Stored var notes: [Note]
+self.notes // The type of the `wrappedValue` is [Note]
+self.$notes // The type of the `projectedValue` is Store<Note>
+
+----------------------------------------
+
+TITLE: Structuring Complex Preferences with Multiple StoredValues in Swift
+DESCRIPTION: This example shows how to break down large objects with many @StoredValues into smaller, more focused Observable classes while maintaining reactivity.
+
+LANGUAGE: swift
+CODE:
+@Observable
+final class Preferences {
+    var userExperiencePreferences = UserExperiencePreferences()
+    var redPandaPreferences = RedPandaPreferences()
+}
+
+@MainActor
+@Observable
+final class UserExperiencePreferences {
+    @ObservationIgnored
+    @StoredValue(key: "hasSoundEffectsEnabled")
+    public var hasSoundEffectsEnabled = false
+
+    @ObservationIgnored
+    @StoredValue(key: "hasHapticsEnabled")
+    public var hasHapticsEnabled = true
+}
+
+@MainActor
+@Observable
+final class RedPandaPreferences {
+    @ObservationIgnored
+    @StoredValue(key: "isRedPandaFan")
+    public var isRedPandaFan = true
+}
+
+----------------------------------------
+
+TITLE: Asynchronous Store Initialization in Swift
+DESCRIPTION: Shows how to initialize a Store asynchronously to ensure items are loaded before access.
+
+LANGUAGE: swift
+CODE:
+let store: Store<Item>
+
+init() async throws {
+    store = try await Store(...)
+    // Now the store will have `items` already loaded.
+    let items = await store.items
+}
+
+----------------------------------------
+
+TITLE: Waiting for Store Items to Load in Swift
+DESCRIPTION: Demonstrates how to wait for items to load after synchronous Store initialization.
+
+LANGUAGE: swift
+CODE:
+let store: Store<Item> = Store(...)
+
+func getItems() async -> [Item] {
+    try await store.itemsHaveLoaded()
+    return await store.items
+}
+
+----------------------------------------
+
+TITLE: Chaining Store Operations in Swift
+DESCRIPTION: Demonstrates how to chain multiple Store operations using the run() function.
+
+LANGUAGE: swift
+CODE:
+try await store
+    .removeAll()
+    .insert(coat)
+    .run()
+
+----------------------------------------
+
+TITLE: Implementing SwiftUI View with Store Observation
+DESCRIPTION: Example of a SwiftUI view that observes changes to a Store using onChange modifier and handles user interactions.
+
+LANGUAGE: swift
+CODE:
+struct NotesListView: View {
+    @State var notesController: NotesController
+    @State private var notes: [Note] = []
+
+    var body: some View {
+        VStack {
+            ForEach(self.notes) { note in
+                Text(note.text)
+                    .onTapGesture {
+                        Task {
+                            try await notesController.removeNote(note)
+                        }
+                    }
+            }
+        }
+        .onChange(of: notesController.notes, initial: true) { _, newValue in
+            // We can even create complex pipelines, for example filtering all notes smaller than a tweet
+            self.notes = newValue.filter { $0.length < 280 }
+        }
+    }
+}
+
+----------------------------------------
+
+TITLE: Implementing Granular Event Tracking for Store
+DESCRIPTION: Example showing how to monitor granular events from a Store using AsyncStream<StoreEvent>.
+
+LANGUAGE: swift
+CODE:
+func monitorNotesEvents() async {
+    for await event in notesController.$notes.events {
+        switch event.operation {
+        case .initialized:
+            print("Notes Store has initialized")
+        case .loaded:
+            print("Notes Store has loaded with notes", event.items)
+        case .insert:
+            print("Notes Store inserted notes", event.items)
+        case .remove:
+            print("Notes Store removed notes", event.items)
+        }
+    }
+}
+
+----------------------------------------
+
+TITLE: Simplified Store Initialization for Identifiable Items in Swift
+DESCRIPTION: Shows a simplified Store initialization when the model conforms to Identifiable, omitting the cacheIdentifier parameter.
+
+LANGUAGE: swift
+CODE:
+let store = Store<Item>(
+    storage: SQLiteStorageEngine(directory: .defaultStorageDirectory(appendingPath: "Items"))
+)
+
+----------------------------------------
+
+TITLE: Concise Store Initialization with Default SQLiteStorageEngine in Swift
+DESCRIPTION: Demonstrates the most concise way to initialize a Store using the default SQLiteStorageEngine provided by Bodega.
+
+LANGUAGE: swift
+CODE:
+static let store = Store<Item>(
+    storage: SQLiteStorageEngine.default(appendingPath: "Items")
+)
+
+----------------------------------------
+
+TITLE: Observing StoredValue Changes Asynchronously in Swift
+DESCRIPTION: This example shows how to observe changes to a StoredValue using the values property in an asynchronous context.
+
+LANGUAGE: swift
+CODE:
+func monitorThemeChanges() async {
+    for await theme in preferences.$currentlySelectedTheme.values {
+        print("Theme changed to", theme)
+    }
+}
+
+----------------------------------------
+
+TITLE: Observing SecurelyStoredValue Changes Asynchronously in Swift
+DESCRIPTION: This snippet demonstrates how to observe changes to a SecurelyStoredValue using the values property in an asynchronous context.
+
+LANGUAGE: swift
+CODE:
+func monitorPasswordChanges() async {
+    for await password in securityManager.$storedPassword.values {
+        if let password {
+            print("Password was set")
+        } else {
+            print("Password was removed")
+        }
+    }
+}
+
+----------------------------------------
+
+TITLE: Inserting an Item into a Store in Swift
+DESCRIPTION: Shows how to insert an item into a Store using the insert method.
+
+LANGUAGE: swift
+CODE:
+let coat = Item(name: "coat")
+try await store.insert(coat)
+
+----------------------------------------
+
+TITLE: Removing an Item from a Store in Swift
+DESCRIPTION: Demonstrates how to remove a specific item from a Store.
+
+LANGUAGE: swift
+CODE:
+try await store.remove(coat)
+
+----------------------------------------
+
+TITLE: Removing All Items from a Store in Swift
+DESCRIPTION: Shows how to remove all items from a Store at once.
+
+LANGUAGE: swift
+CODE:
+try await store.removeAll()
+
+----------------------------------------
+
+TITLE: Setting and Resetting StoredValue in Swift
+DESCRIPTION: These snippets show how to set new values and reset StoredValue properties using the projectedValue ($ prefix).
+
+LANGUAGE: swift
+CODE:
+$lastOpenedDate.set(.now) // Set the lastOpenedDate to now
+$currentlySelectedTheme.set(.dark) // currentlySelected is now .dark
+
+LANGUAGE: swift
+CODE:
+$lastOpenedDate.reset() // lastOpenedDate has been reset to it's initial value of nil again
+$currentlySelectedTheme.reset() // currentlySelected has been reset to it's initial value of .light
+
+----------------------------------------
+
+TITLE: Toggling Boolean StoredValue in Swift
+DESCRIPTION: This snippet demonstrates how to toggle a boolean StoredValue using the .toggle() function.
+
+LANGUAGE: swift
+CODE:
+$hasHapticsEnabled.toggle()
+
+// Equivalent to but cleaner than
+$hasHapticsEnabled.set(!hasHapticsEnabled)
+
+----------------------------------------
+
+TITLE: Initializing SecurelyStoredValue in Swift
+DESCRIPTION: This snippet demonstrates how to create a SecurelyStoredValue property in an @Observable class for storing sensitive data in the system Keychain.
+
+LANGUAGE: swift
+CODE:
+@Observable
+final class SecurityManager {
+    @ObservationIgnored
+    @SecurelyStoredValue<RedPanda>(key: "redPanda")
+    private var redPanda
+}
+
+----------------------------------------
+
+TITLE: Setting and Removing SecurelyStoredValue in Swift
+DESCRIPTION: These examples show how to set and remove values from a SecurelyStoredValue property.
+
+LANGUAGE: swift
+CODE:
+try self.$storedPassword.set("p@ssw0rd") // self.storedPassword is now set to "p@assw0rd"
+try self.$storedPassword.remove() // self.storedPassword is now nil
+
+----------------------------------------
+
+TITLE: Using StoredValue Property Wrapper in Swift with Boutique
+DESCRIPTION: Illustrates the use of the @StoredValue property wrapper in Boutique for persisting individual Swift values. This code snippet shows how to save a single value using Boutique's storage mechanism.
+
+LANGUAGE: swift
+CODE:
+@StoredValue
+
+----------------------------------------
+
+TITLE: Using SecurelyStoredValue Property Wrapper in Swift with Boutique
+DESCRIPTION: Shows the usage of the @SecurelyStoredValue property wrapper in Boutique for securely persisting individual Swift values. This snippet demonstrates how to save a single value with added security measures.
+
+LANGUAGE: swift
+CODE:
+@SecurelyStoredValue
+
+----------------------------------------
+
+TITLE: Setting StoredValue in Swift using Boutique
+DESCRIPTION: Demonstrates how to set a value using the StoredValue property wrapper in Boutique. This code snippet shows the syntax for saving a single Swift value using the set method.
+
+LANGUAGE: swift
+CODE:
+$storedValue.set(value)
+
+----------------------------------------
+
+TITLE: Creating StoredValue without Property Wrapper in Swift
+DESCRIPTION: This example shows how to create a StoredValue directly without using a property wrapper, which is useful in non-@Observable contexts.
+
+LANGUAGE: swift
+CODE:
+let hasHapticsEnabled = StoredValue(key: "hasHapticsEnabled", default: false)
+
+----------------------------------------
+
+TITLE: Adding Boutique as a Dependency with Swift Package Manager
+DESCRIPTION: Shows how to integrate the Boutique library into a Swift project using Swift Package Manager by adding it to the dependencies in Package.swift.
+
+LANGUAGE: swift
+CODE:
+dependencies: [
+    .package(url: "https://github.com/mergesort/Boutique.git", .upToNextMajor(from: "1.0.0"))
+]
