@@ -114,6 +114,14 @@ func getItems() async -> [Item] {
 
 The synchronous initializer is a sensible default, but if your app's needs dictate displaying data only once you've loaded all of the necessary items the asynchronous initializers are there to help.
 
+## Your Favorite Actor 👩🏻‍🎤
+
+You may have noticed that the `Store`, `StoredValue`, and `SecurelyStoredValue` are bound to the `@MainActor`. This may seem like it could cause performance issues, but I'm confident that is not the case Boutique or apps using Boutique.
+
+It's important to remember that the `@MainActor` annotation dictates how *synchronous* work should be done within a scope (types, functions, etc), **not whether asynchronous work will run on the main thread**. If you have heavy synchronous work within a type that's annotated `@MainActor`, then you are liable to seeing performance issues. But if you have heavy asynchronous work, then you will not incur any performance issues unless that asynchronous work is happening on the main thread because the callee said to perform it on the main thread. The `@MainActor` annotation can and will not force asynchronous work such as network requests or heavy data processing to happen on the main thread, that will only happen if the code you're calling into runs on the main thread.
+
+This is where the architecture of Boutique and the underlying framework Bodega matter. All of of the code in Bodega is async and never calls to the main thread, as is almost every single line of Boutique. Even the synchronous work in Boutique is not heavy, it is all working on data in memory, and calls out to async work that will happen on a background thread. This means that all of the heavy work Boutique does is ultimately on a background thread, even with the Store having a `@MainActor` annotation.
+
 ## Observing Store Changes
 
 #### onChange
