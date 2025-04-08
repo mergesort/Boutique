@@ -255,6 +255,10 @@ $hasHapticsEnabled.toggle()
 
 The `@SecurelyStoredValue` property wrapper can do everything a `@StoredValue` does, but instead of storing values in `UserDefaults` a `@SecurelyStoredValue` will persist items in the system's Keychain. This is perfect for storing sensitive values such as passwords or auth tokens, which you would not want to store in `UserDefaults`.
 
+### A Note on `@MainActor`
+
+You may have noticed that the `Store`, `StoredValue`, and `SecurelyStoredValue` are bound to the `@MainActor`. This may seem like it could cause performance issues, but I'm confident that is not the case Boutique or apps using Boutique. For additional details check out the documentation [here](https://mergesort.github.io/Boutique/documentation/boutique/using-stores/#Your-Favorite-Actor-%F0%9F%91%A9%F0%9F%8F%BB%E2%80%8D%F0%9F%8E%A4), but I wanted to make sure you feel confident that I have deeply considered this choice, talked through the choice with Swift Concurrency experts, and have tested to make sure there are no performance implications.
+
 ### Documentation
 
 If you have any questions I would ask that you please look at the documentation first, both Boutique and Bodega are very heavily documented. On top of that Boutique comes with not one but two demo apps, each serving a different purpose but demonstrating how you can build a Boutique-backed app.
@@ -296,9 +300,9 @@ This project provides multiple ways to deliver feedback to maintainers.
 
 ### Requirements
 
-- iOS 13.0+
-- macOS 11.0+
-- Xcode 13.2+
+- iOS 17.0+
+- macOS 14.0+
+- Xcode 15+
 
 ### Installation
 
