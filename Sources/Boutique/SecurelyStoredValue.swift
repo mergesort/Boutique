@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 /// The @``SecurelyStoredValue`` property wrapper automagically persists a single `Item` in the system `Keychain`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -50,7 +51,7 @@ import Observation
 @MainActor
 @Observable
 @propertyWrapper
-public final class SecurelyStoredValue<Item: StorableItem> {
+public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
     private let observationRegistrar = ObservationRegistrar()
     private let valueSubject = AsyncValueSubject<Item?>(nil)
 
