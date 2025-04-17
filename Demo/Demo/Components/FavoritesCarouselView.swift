@@ -126,7 +126,7 @@ private extension FavoritesCarouselView {
             })
 
             Button(action: {
-                self.appState.funkyRedPandaModeEnabled.toggle()
+                self.appState.$funkyRedPandaModeEnabled.toggle()
             }, label: {
                 Image(systemName: "sun.max.circle.fill")
                     .opacity(self.images.isEmpty ? 0.0 : 1.0)
