@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 /// The @``StoredValue`` property wrapper to automagically persist a single `Item` in `UserDefaults`
 /// rather than an array of items that would be persisted in a ``Store`` or using @``Stored``.
@@ -55,7 +56,7 @@ import Observation
 @MainActor
 @Observable
 @propertyWrapper
-public final class StoredValue<Item: StorableItem> {
+public final class StoredValue<Item: StorableItem>: DynamicProperty {
     private let observationRegistrar = ObservationRegistrar()
     private let valueSubject: AsyncValueSubject<Item>
     private let cachedValue: CachedValue<Item>
@@ -95,7 +96,7 @@ public final class StoredValue<Item: StorableItem> {
 
     /// The currently stored value
     public var wrappedValue: Item {
-        self.cachedValue.wrappedValue
+		self.retrieveItem()
     }
 
     /// A ``StoredValue`` which exposes ``set(_:)`` and ``reset()`` functions alongside an `AsyncStream` of ``values``.
