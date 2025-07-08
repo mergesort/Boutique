@@ -16,9 +16,6 @@ internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
         self.bufferingPolicy = bufferingPolicy
     }
 
-    // new mutex lock, but iOS 18
-    // nslock or dispatchqueue
-
     func send(_ newValue: Value) {
         // Acquire lock before updating state.
         self.lock.lock()
