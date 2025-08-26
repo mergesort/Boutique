@@ -182,6 +182,7 @@ public final class Store<Item: StorableItem> {
     /// - Parameters:
     ///   - items: The items to insert into the store.
     public func insert(_ items: [Item]) async throws {
+        guard !items.isEmpty else { return }
         try await self.performInsert(items)
     }
 
@@ -219,6 +220,7 @@ public final class Store<Item: StorableItem> {
     /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
     /// - Parameter items: The items you are removing from the ``Store``.
     public func remove(_ items: [Item]) async throws {
+        guard !items.isEmpty else { return }
         try await self.performRemove(items)
     }
 

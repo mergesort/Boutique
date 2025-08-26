@@ -55,6 +55,7 @@ public extension Store {
         /// - Parameters:
         ///   - items: The items to insert into the store.
         public func insert(_ items: [Item]) async throws -> Operation {
+            guard !items.isEmpty else { return self }
             if case .removeItems(let removedItems) = self.operations.last?.action {
                 self.operations.removeLast()
 
@@ -92,6 +93,7 @@ public extension Store {
         /// multiple times to avoid making multiple separate dispatches to the `@MainActor`.
         /// - Parameter items: The items you are removing from the `Store`.
         public func remove(_ items: [Item]) async throws -> Operation {
+            guard !items.isEmpty else { return self }
             self.operations.append(ExecutableAction(action: .removeItems(items), executable: {
                 try await $0.performRemove(items)
             }))

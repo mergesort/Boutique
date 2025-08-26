@@ -286,6 +286,28 @@ struct StoreTests {
         _ = operation
     }
 
+    @Test("Test that inserting and removing empty arrays are no-ops")
+    func testEmptyArrayOperations() async throws {
+        try await store.insert(.uniqueItems)
+        #expect(store.items.count == 4)
+
+        try await store.insert([])
+        try await store.remove([])
+
+        #expect(store.items.count == 4)
+
+        try await store.removeAll()
+
+        try await store
+            .insert([])
+            .remove([])
+            .insert([.coat])
+            .run()
+
+        #expect(store.items.count == 1)
+        #expect(store.items.contains(.coat))
+    }
+
     @Test("Test the ability to observe an AsyncStream of Store.events by inserting one value at a time", .timeLimit(.minutes(1)))
     func testAsyncStreamByInsertingSingleItems() async throws {
         let populateStoreTask = Task {
