@@ -1,6 +1,6 @@
 import Foundation
 
-internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
+internal final class AsyncValueSubject<Value: Sendable & SendableMetatype>: @unchecked Sendable {
     typealias BufferingPolicy = AsyncStream<Value>.Continuation.BufferingPolicy
 
     private let lock = NSLock()
@@ -62,7 +62,9 @@ private extension AsyncValueSubject {
         continuation.onTermination = { [weak self] _ in
             guard let self = self else { return }
 
-            Task { self.remove(continuation: id) }
+			Task { @MainActor in
+				self.remove(continuation: id)
+			}
         }
         self.lock.unlock()
     }
