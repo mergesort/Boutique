@@ -54,7 +54,7 @@ public final class Store<Item: StorableItem> {
     private let valueSubject: AsyncValueSubject<StoreEvent<Item>>
 
     private let storageEngine: StorageEngine
-    private let cacheIdentifier: KeyPath<Item, String>
+    internal let cacheIdentifier: KeyPath<Item, String>
 
     /// The items held onto by the ``Store``.
     ///
