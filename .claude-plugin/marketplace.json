@@ -1,0 +1,13 @@
+{
+  "name": "boutique",
+  "owner": {
+    "name": "Joe Fabisevich"
+  },
+  "description": "Boutique skills for Swift persistence workflows.",
+  "plugins": [
+    {
+      "name": "boutique",
+      "source": "./plugins/boutique"
+    }
+  ]
+}

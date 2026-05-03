@@ -1,0 +1,21 @@
+{
+  "name": "boutique",
+  "version": "1.0.0",
+  "description": "Skills for building with Boutique, a Swift persistence library for Store, @StoredValue, @SecurelyStoredValue, and SwiftUI integration.",
+  "author": {
+    "name": "Joe Fabisevich",
+    "url": "https://github.com/mergesort"
+  },
+  "homepage": "https://github.com/mergesort/Boutique",
+  "repository": "https://github.com/mergesort/Boutique",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "persistence",
+    "swiftui",
+    "store",
+    "ios",
+    "macos"
+  ],
+  "skills": "./skills/"
+}
