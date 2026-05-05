@@ -24,6 +24,7 @@ Table of Contents
 - [@StoredValue & @SecurelyStoredValue](#storedvalue--securelystoredvalue)
 - [Documentation](#documentation)
 - [Further Exploration](#further-exploration)
+- [Coding Agent Plugins](#coding-agent-plugins)
 - [Feedback & Contribution](#feedback)
 
 ---
@@ -321,6 +322,34 @@ dependencies: [
 #### Manually
 
 If you prefer not to use SPM, you can integrate Boutique into your project manually by copying the files in.
+
+---
+
+### Coding Agent Plugins
+
+Boutique ships with plugins for [Claude Code](https://claude.ai/code) and [Codex](https://developers.openai.com/codex). These plugins provide skills that will help your coding agent integrate and work with Boutique's APIs correctly. Now you'll be able to spend more time building apps and less time wondering if your agent is hallucinating APIs.
+
+#### Claude Code
+
+Adding the Boutique plugin to Claude Code takes three steps. Open Claude Code and run these commands:
+
+```bash
+/plugin marketplace add mergesort/Boutique
+/plugin install boutique@boutique
+/reload-plugins
+```
+
+After installing, run `/reload-plugins` and the plugin  good to go.
+
+#### Codex
+
+Adding the Boutique plugin to Codex is even easier. Open Codex and run these commands:
+
+```bash
+codex plugin marketplace add mergesort/Boutique
+```
+
+When you run Codex and type `/plugins`, Boutique will now show up in the list. And if you've cloned the Boutique repo locally, Codex will automatically detect the plugin from the repo's marketplace file.
 
 ---
 
