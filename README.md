@@ -23,6 +23,7 @@ Table of Contents
 - [The Magic Of @Stored](#the-magic-of-stored)
 - [@StoredValue & @SecurelyStoredValue](#storedvalue--securelystoredvalue)
 - [Documentation](#documentation)
+- [Coding Agent Plugins](#coding-agent-plugins)
 - [Further Exploration](#further-exploration)
 - [Coding Agent Plugins](#coding-agent-plugins)
 - [Feedback & Contribution](#feedback)
@@ -280,6 +281,35 @@ Boutique is very useful on its own for building realtime offline-ready apps with
 If you'd like to learn more about how it works you can read about the philosophy in a [blog post](https://build.ms/2022/06/22/model-view-controller-store) where I explore MVCS for SwiftUI, and you can find a reference implementation of an offline-ready realtime MVCS app powered by Boutique in this [repo](https://github.com/mergesort/MVCS).
 
 We've only scratched the surface of what Boutique can do here. By leveraging Bodega's `StorageEngine`, you can build complex data pipelines that do everything from caching data to interfacing with your API server. Boutique and Bodega are more than libraries, they're a set of primitives for any data-driven application, so I suggest giving them a shot, playing with the [demo app](https://github.com/mergesort/Boutique/tree/main/Demo), and even building an app of your own!
+
+---
+
+
+### Coding Agent Plugins
+
+Boutique ships with plugins for [Claude Code](https://claude.ai/code) and [Codex](https://developers.openai.com/codex). These plugins provide skills that will help your coding agent integrate and work with Boutique's APIs correctly. Now you'll be able to spend more time building apps and less time wondering if your agent is hallucinating APIs.
+
+#### Claude Code
+
+Adding the Boutique plugin to Claude Code takes three steps. Open Claude Code and run these commands:
+
+```bash
+/plugin marketplace add mergesort/Boutique
+/plugin install boutique@boutique
+/reload-plugins
+```
+
+After installing, run `/reload-plugins` and the plugin  good to go.
+
+#### Codex
+
+Adding the Boutique plugin to Codex is even easier. Open Codex and run these commands:
+
+```bash
+codex plugin marketplace add mergesort/Boutique
+```
+
+When you run Codex and type `/plugins`, Boutique will now show up in the list. And if you've cloned the Boutique repo locally, Codex will automatically detect the plugin from the repo's marketplace file.
 
 ---
 
