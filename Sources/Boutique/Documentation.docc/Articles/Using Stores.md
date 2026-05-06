@@ -22,7 +22,7 @@ let store = Store<Item>(
 
 - The `storage` parameter is populated with a `StorageEngine`, you can read more about it in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines). Our SQLite database will be created in the platform's default storage directory, nested in an `Items` subdirectory. On macOS this will be the `Application Support` directory, and on every other platform such as iOS this will be the `Documents` directory. If you need finer control over the location you can specify a `FileManager.Directory` such as `.documents`, `.caches`, `.temporary`, or even provide your own URL, also explored in [Bodega's StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
 
-- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be inserted into our ``Store`` and saved to disk our models must conform to `Codable & Sendable & Equatable`, both of which are reasonable constraints given the data has to be serializable and searchable. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
+- The `cacheIdentifier` is a `KeyPath<Model, String>` that your model must provide. That may seem unconventional at first, so let's break it down. Much like how protocols enforce a contract, the KeyPath is doing the same for our model. To be inserted into our ``Store`` and saved to disk our models must conform to `Codable & Sendable`, both of which are reasonable constraints given the data has to be serializable and concurrency-safe. But what we're trying to avoid is making our models have to conform to a specialized caching protocol, we want to be able to save any ol' object you already have in your app. Instead of creating a protocol like `Storable`, we instead ask the model to tell us how we can derive a unique string which will be used as a key when storing the item.
 
 If your model (in this case `Item`) already conforms to `Identifiable`, we can simplify our initializer by eschewing the `cacheIdentifier` parameter.
 
@@ -84,6 +84,50 @@ try await store
     .run()
 ```
 
+## Store Relationships
+
+Each ``Store`` acts as its own denormalized data source. If one Store embeds values from another Store, you can add a relationship so removals from the parent Store keep the child Store consistent.
+
+Use `updating:` when inserting a parent value should replace matching embedded values in a child Store.
+
+```swift
+tagsStore.addRelationship(updating: \.tags, in: richLinksStore)
+tagsStore.addRelationship(updating: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.insert(updatedTag)
+```
+
+When `updatedTag` replaces an existing value in `tagsStore` with the same cache identifier, Boutique replaces matching old values in `RichLink.tags` and `RichLink.primaryTag`.
+
+Use `clearing:` when a child model stores parent values in an array.
+
+```swift
+tagsStore.addRelationship(clearing: \.tags, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+When `tag` is removed from `tagsStore`, Boutique removes matching values from each `RichLink.tags` array and inserts the changed `RichLink` values back into `richLinksStore` in one batch.
+
+Use `nullifying:` when a child model stores one optional parent value.
+
+```swift
+tagsStore.addRelationship(nullifying: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+The optional overloads require a `WritableKeyPath<Child, Parent?>`, so `updating:` and `nullifying:` only compile for optional child properties. The array overloads require a `WritableKeyPath<Child, [Parent]>`, so `updating:` and `clearing:` only compile for child arrays.
+
+Use `addRelationship(to:on:perform:)` when a relationship needs custom behavior or instrumentation.
+
+```swift
+tagsStore.addRelationship(to: richLinksStore, on: .update) { changes, richLinksStore in
+    print("Updated \(changes.count) tag(s) across \(richLinksStore.items.count) link(s).")
+}
+```
+
+If relationship propagation fails, the Store operation throws a ``StoreRelationshipError`` with the triggering event, action, parent item type, child item type, affected parent item count, and underlying error.
 
 ## Sync or Async?
 
@@ -197,6 +241,7 @@ The next step is to explore how they work, with a small example SwiftUI app.
 As a reminder you can always play around with the code yourself.
 
 - [A Boutique Demo App](https://github.com/mergesort/Boutique/tree/main/Demo)
+- [A Relationships Demo App](https://github.com/mergesort/Boutique/tree/main/Relationships%20Demo)
 
 Or read through an in-depth technical walkthrough of Boutique, and how it powers the Model View Controller Store architecture.
 

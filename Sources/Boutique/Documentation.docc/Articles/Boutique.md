@@ -9,6 +9,7 @@ Boutique is a simple but powerful persistence library, and so much more. With Bo
 Boutique is built atop [Bodega](https://github.com/mergesort/Bodega), and below is a demo project that demonstrates the ideal Boutique app, along with many useful techniques you can apply to other SwiftUI apps. 
 
 - [Boutique Demo](https://github.com/mergesort/Boutique/tree/main/Demo)
+- [Relationships Demo](https://github.com/mergesort/Boutique/tree/main/Relationships%20Demo)
 
 You'll notice that it looks almost identical to any other SwiftUI app, an explicit goal of Boutique. Boutique stays as far away as it can from your app's logic as it can, allowing you to write the app you want to write, with full offline support and realtime state updates that propagate to all of your views in only a few lines of code. You can read more about the thinking behind Boutique and my preference towards a Model View Controller Store architecture in this [blog post](https://build.ms/2022/06/22/model-view-controller-store), but Boutique should work with any architecture.
 

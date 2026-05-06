@@ -151,6 +151,69 @@ try await store
 
 You **must** call `.run()` at the end of a chain. Without it, the operations are created but never executed.
 
+## Store Relationships
+
+Use Store relationships when one Store embeds values from another Store and removals from the parent Store should keep the child Store consistent.
+
+### Update embedded values
+
+Use `updating:` when inserting a parent value should replace matching embedded values in a child Store.
+
+```swift
+tagsStore.addRelationship(updating: \.tags, in: richLinksStore)
+tagsStore.addRelationship(updating: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.insert(updatedTag)
+```
+
+When `updatedTag` replaces an existing tag with the same cache identifier, Boutique replaces matching old values in the child Store and inserts changed children back in one batch.
+
+### Clear embedded array values
+
+Use `clearing:` when the child model stores parent values in an array.
+
+```swift
+struct RichLink: Codable, Sendable, Identifiable {
+    let id: String
+    var tags: [Tag]
+}
+
+tagsStore.addRelationship(clearing: \.tags, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+When `tag` is removed from `tagsStore`, Boutique removes matching values from each child array and inserts changed children back into `richLinksStore` in one batch.
+
+### Nullify optional values
+
+Use `nullifying:` when the child model stores one optional parent value.
+
+```swift
+struct RichLink: Codable, Sendable, Identifiable {
+    let id: String
+    var primaryTag: Tag?
+}
+
+tagsStore.addRelationship(nullifying: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+The array overloads only compile with `WritableKeyPath<Child, [Parent]>`. The optional overloads only compile with `WritableKeyPath<Child, Parent?>`.
+
+### Custom relationships
+
+Use `addRelationship(to:on:perform:)` when a relationship needs custom behavior or instrumentation.
+
+```swift
+tagsStore.addRelationship(to: richLinksStore, on: .update) { changes, richLinksStore in
+    print("Updated \(changes.count) tag(s) across \(richLinksStore.items.count) link(s).")
+}
+```
+
+If propagation fails, the Store operation throws `StoreRelationshipError`, which exposes the triggering event, action, parent type, child type, affected parent item count, and underlying error.
+
 ## Building @Observable Controllers with @Stored
 
 The `@Stored` property wrapper connects a `Store` to an `@Observable` class, exposing items as a plain `[Item]` array and projecting the underlying `Store` via `$`.

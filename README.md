@@ -135,6 +135,42 @@ func monitorNotesStoreEvents() async {
     }
 }
 ```
+
+Stores can also establish relationships with other Stores to keep denormalized data consistent. For example, if `RichLink` embeds `[Tag]`, removing a tag can clear matching tag values from every saved link.
+
+```swift
+tagsStore.addRelationship(updating: \.tags, in: richLinksStore)
+tagsStore.addRelationship(updating: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.insert(updatedTag)
+```
+
+When `updatedTag` replaces an existing tag with the same cache identifier, matching values in each saved link update as well.
+
+```swift
+tagsStore.addRelationship(clearing: \.tags, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+If the child stores one optional parent value, use `nullifying:` instead.
+
+```swift
+tagsStore.addRelationship(nullifying: \.primaryTag, in: richLinksStore)
+
+try await tagsStore.remove(tag)
+```
+
+The array overload only accepts array key paths, and the optional overload only accepts optional key paths, so invalid relationship actions fail at compile time.
+
+For custom propagation or instrumentation, use the lower-level closure API.
+
+```swift
+tagsStore.addRelationship(to: richLinksStore, on: .update) { changes, richLinksStore in
+    print("Updated \(changes.count) tag(s) across \(richLinksStore.items.count) link(s).")
+}
+```
+
 ---
 
 ¹ You can have as many or as few Stores as you'd like. It may be a good strategy to have one Store for all of the notes you download in your app, but you may also want to have one Store per model-type you'd like to cache. You can even create separate stores for tests, Boutique isn't prescriptive and the choice for how you'd like to model your data is yours. You'll also notice, that's a concept from Bodega which you can read about in Bodega's [StorageEngine documentation](https://mergesort.github.io/Bodega/documentation/bodega/using-storageengines).
@@ -263,7 +299,7 @@ You may have noticed that the `Store`, `StoredValue`, and `SecurelyStoredValue` 
 
 ### Documentation
 
-If you have any questions I would ask that you please look at the documentation first, both Boutique and Bodega are very heavily documented. On top of that Boutique comes with not one but two demo apps, each serving a different purpose but demonstrating how you can build a Boutique-backed app.
+If you have any questions I would ask that you please look at the documentation first, both Boutique and Bodega are very heavily documented. On top of that Boutique comes with multiple demo apps, each serving a different purpose but demonstrating how you can build a Boutique-backed app.
 
 As I was building v1 I noticed that people who got Boutique loved it, and people who thought it might be good but had questions grew to love it once they understood how to use it. Because of that I sought out to write a lot of documentation explaining the concepts and common use cases you'll encounter when building an iOS or macOS app. If you still have questions or suggestions I'm very open to feedback, how to contribute is discussed in the aptly named [Feedback](#feedback) section of this readme.
 
@@ -271,6 +307,7 @@ As I was building v1 I noticed that people who got Boutique loved it, and people
 - [Bodega Documentation](https://build.ms/bodega/docs)
 - [Boutique Demo App](https://github.com/mergesort/Boutique/tree/main/Demo)
 - [Performance Profiler App](https://github.com/mergesort/Boutique/tree/main/Performance%20Profiler)
+- [Relationships Demo App](https://github.com/mergesort/Boutique/tree/main/Relationships%20Demo)
 
 ---
 
@@ -322,6 +359,7 @@ This project provides multiple ways to deliver feedback to maintainers.
 - This project is heavily documented but also includes multiple sample projects.
     - The first app is a [Demo app](https://github.com/mergesort/Boutique/tree/main/Demo) which shows you how to build a canonical Boutique app using the Model View Controller Store pattern. The app is heavily documented with inline explanations to help you build an intuition for how a Boutique app works and save you time by teaching you best practices along the way.
     - The second app is a [Performance Profiler](https://github.com/mergesort/Boutique/tree/main/Performance%20Profiler) also using Boutique's preferred architecture. If you're working on a custom `StorageEngine` this project will serve you well as a way to test the performance of the operations you need to build.
+    - The third app is a [Relationships Demo](https://github.com/mergesort/Boutique/tree/main/Relationships%20Demo) for testing relationship propagation between `Store`s, including update, clear, and nullify behavior.
 
 - If you still have questions, suggestions for enhancements, or ways to improve Boutique, this project leverages GitHub's [Discussions](https://github.com/mergesort/Boutique/discussions) feature.
 

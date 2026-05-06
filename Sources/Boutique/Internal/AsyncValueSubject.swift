@@ -59,7 +59,9 @@ private extension AsyncValueSubject {
         continuation.onTermination = { [weak self] _ in
             guard let self = self else { return }
 
-            Task { self.remove(continuation: id) }
+            Task { @MainActor in
+                self.remove(continuation: id)
+            }
         }
         self.lock.unlock()
     }

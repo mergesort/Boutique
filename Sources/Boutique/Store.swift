@@ -54,7 +54,8 @@ public final class Store<Item: StorableItem> {
     private let valueSubject: AsyncValueSubject<StoreEvent<Item>>
 
     private let storageEngine: StorageEngine
-    private let cacheIdentifier: KeyPath<Item, String>
+    internal private(set) var cacheIdentifier: KeyPath<Item, String>
+    @ObservationIgnored internal var relationships = [AnyStoreRelationship<Item>]()
 
     /// The items held onto by the ``Store``.
     ///
@@ -352,11 +353,14 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = self.items
+        let originalItems = self.items
+        var currentItems = originalItems
+        var removedItems = [Item]()
 
         if let strategy = existingItemsStrategy {
-            var removedItems = currentItems
-            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            removedItems = self.removedItems(from: currentItems, withStrategy: strategy, identifier: self.cacheIdentifier)
+            var itemsToRemoveFromStorage = currentItems
+            try await self.removeItemsFromStorageEngine(&itemsToRemoveFromStorage, withStrategy: strategy)
             // If we remove this one it will error
             self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
         }
@@ -365,6 +369,9 @@ internal extension Store {
         let identifier = item[keyPath: self.cacheIdentifier]
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
+        let originalItemsKeys = originalItems.map({ $0[keyPath: self.cacheIdentifier] })
+        let originalValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: originalItemsKeys, values: originalItems)
+        let replacedItem = originalValuesDictionary[identifier]
         currentValuesDictionary[identifier] = item
 
         // We persist only the newly added items, rather than rewriting all of the items
@@ -372,16 +379,26 @@ internal extension Store {
 
         self.items = Array(currentValuesDictionary.values)
 
+        if let replacedItem {
+            try await self.propagateRelationships(on: .update, with: [StoreRelationshipChange(oldValue: replacedItem, newValue: item)])
+        }
+
+        let removedItemsWithoutReplacement = removedItems.filter({ $0[keyPath: self.cacheIdentifier] != identifier })
+        try await self.propagateRelationships(on: .remove, with: removedItemsWithoutReplacement.map({ StoreRelationshipChange(oldValue: $0, newValue: $0) }))
+
         self.valueSubject.send(.insert([item]))
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = self.items
+        let originalItems = self.items
+        var currentItems = originalItems
+        var removedItems = [Item]()
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
-            var removedItems = currentItems
-            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
+            removedItems = self.removedItems(from: currentItems, withStrategy: strategy, identifier: self.cacheIdentifier)
+            var itemsToRemoveFromStorage = currentItems
+            try await self.removeItemsFromStorageEngine(&itemsToRemoveFromStorage, withStrategy: strategy)
             // This one is fine to remove... but why?
             // Is it the way we construct the items in the ordered dictionary?
             // If so should the two just use the same approach — perhaps sharing all the same code except for the last call to `persistItem` vs. `persistItems`?
@@ -400,10 +417,19 @@ internal extension Store {
         // Take the current items array and turn it into an OrderedDictionary.
         let currentItemsKeys = currentItems.map({ $0[keyPath: self.cacheIdentifier] })
         var currentValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: currentItemsKeys, values: currentItems)
+        let originalItemsKeys = originalItems.map({ $0[keyPath: self.cacheIdentifier] })
+        let originalValuesDictionary = OrderedDictionary<String, Item>(uniqueKeys: originalItemsKeys, values: originalItems)
 
         // Add the new items into the dictionary representation of our items.
+        var updateChanges = [StoreRelationshipChange<Item>]()
+
         for item in insertedItemsDictionary {
             let identifier = item.value[keyPath: self.cacheIdentifier]
+
+            if let replacedItem = originalValuesDictionary[identifier] {
+                updateChanges.append(StoreRelationshipChange(oldValue: replacedItem, newValue: item.value))
+            }
+
             currentValuesDictionary[identifier] = item.value
         }
 
@@ -413,30 +439,41 @@ internal extension Store {
 
         self.items = Array(currentValuesDictionary.values)
 
+        try await self.propagateRelationships(on: .update, with: updateChanges)
+        let insertedItemKeys = Set(insertedItems.map({ $0[keyPath: self.cacheIdentifier] }))
+        let removedItemsWithoutReplacement = removedItems.filter({ !insertedItemKeys.contains($0[keyPath: self.cacheIdentifier]) })
+        try await self.propagateRelationships(on: .remove, with: removedItemsWithoutReplacement.map({ StoreRelationshipChange(oldValue: $0, newValue: $0) }))
+
         self.valueSubject.send(.insert(insertedItems))
     }
 
     func performRemove(_ item: Item) async throws {
-        try await self.removePersistedItem(item)
-
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
         let itemKeys = Set([cacheKeyString])
+        let removedItems = self.items.filter({ itemKeys.contains($0[keyPath: self.cacheIdentifier]) })
+
+        try await self.removePersistedItem(item)
 
         self.items.removeAll(where: { item in
             itemKeys.contains(item[keyPath: self.cacheIdentifier])
         })
+
+        try await self.propagateRelationships(on: .remove, with: removedItems.map({ StoreRelationshipChange(oldValue: $0, newValue: $0) }))
 
         self.valueSubject.send(.remove([item]))
     }
 
     func performRemove(_ items: [Item]) async throws {
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
+        let removedItems = self.items.filter({ itemKeys.contains($0[keyPath: self.cacheIdentifier]) })
 
         try await self.removePersistedItems(items: items)
 
         self.items.removeAll(where: { item in
             itemKeys.contains(item[keyPath: self.cacheIdentifier])
         })
+
+        try await self.propagateRelationships(on: .remove, with: removedItems.map({ StoreRelationshipChange(oldValue: $0, newValue: $0) }))
 
         self.valueSubject.send(.remove(items))
     }
@@ -448,11 +485,39 @@ internal extension Store {
 
         self.items = []
 
+        try await self.propagateRelationships(on: .remove, with: currentItems.map({ StoreRelationshipChange(oldValue: $0, newValue: $0) }))
+
         self.valueSubject.send(.remove(currentItems))
+    }
+
+    func propagateRelationships(on event: StoreRelationshipEvent, with changes: [StoreRelationshipChange<Item>]) async throws {
+        guard !changes.isEmpty else { return }
+
+        for relationship in self.relationships where relationship.event == event {
+            do {
+                try await relationship.propagate(changes)
+            } catch {
+                throw StoreRelationshipError(
+                    event: event,
+                    action: relationship.action,
+                    parentItemType: String(describing: Item.self),
+                    childItemType: relationship.childItemType,
+                    affectedParentChangeCount: changes.count,
+                    underlyingError: error
+                )
+            }
+        }
     }
 }
 
 private extension Store {
+    func removedItems(from items: [Item], withStrategy strategy: ItemRemovalStrategy<Item>, identifier: KeyPath<Item, String>) -> [Item] {
+        let requestedItems = strategy.removedItems(items)
+        let requestedKeys = Set(requestedItems.map({ $0[keyPath: identifier] }))
+
+        return items.filter({ requestedKeys.contains($0[keyPath: identifier]) })
+    }
+
     func persistItem(_ item: Item) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
 
