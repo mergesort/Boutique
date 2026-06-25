@@ -345,7 +345,7 @@ Once you have your Swift package set up, adding Boutique as a dependency is as e
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/mergesort/Boutique.git", .upToNextMajor(from: "1.0.0"))
+    .package(url: "https://github.com/mergesort/Boutique", from: Version(3, 0, 0)),
 ]
 ```
 
