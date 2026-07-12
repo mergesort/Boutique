@@ -5,28 +5,28 @@ import Testing
 @MainActor
 @Suite("@SecurelyStoredValue Tests")
 struct SecurelyStoredValueTests {
-    @SecurelyStoredValue<String>(key: "securePassword")
+    @SecurelyStoredValue<String>(key: "securePassword", service: .test)
     private var storedPassword
 
-    @SecurelyStoredValue<Bool>(key: "secureBool")
+    @SecurelyStoredValue<Bool>(key: "secureBool", service: .test)
     private var storedBool
 
-    @SecurelyStoredValue<BoutiqueItem>(key: "secureValueWithDefault")
+    @SecurelyStoredValue<BoutiqueItem>(key: "secureValueWithDefault", service: .test)
     private var storedItem
 
-    @SecurelyStoredValue<[BoutiqueItem]>(key: "secureArray")
+    @SecurelyStoredValue<[BoutiqueItem]>(key: "secureArray", service: .test)
     private var storedArray
 
-    @SecurelyStoredValue<[String : BoutiqueItem]>(key: "secureDictionary")
+    @SecurelyStoredValue<[String : BoutiqueItem]>(key: "secureDictionary", service: .test)
     private var storedDictionary
 
-    @SecurelyStoredValue<BoutiqueItem>(key: "secureBinding")
+    @SecurelyStoredValue<BoutiqueItem>(key: "secureBinding", service: .test)
     private var storedBinding
 
-    @SecurelyStoredValue<String>(key: "Boutique.SecurelyStoredValue.Test")
+    @SecurelyStoredValue<String>(key: "Boutique.SecurelyStoredValue.Test", service: .test)
     private var storedExistingValue
 
-    @SecurelyStoredValue<String>(key: "secureGroupString", group: "com.boutique.tests")
+    @SecurelyStoredValue<String>(key: "secureGroupString", service: .test, group: "com.boutique.tests")
     private var storedGroupValue
 
     init() async throws {
