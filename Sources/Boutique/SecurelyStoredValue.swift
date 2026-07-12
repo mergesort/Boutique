@@ -117,13 +117,7 @@ public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
             if self.wrappedValue == nil {
                 try self.insert(value)
             } else {
-                // This call to `remove` is a temporary workaround for broken functionality when trying to update a value.
-                // Since updating a value does not seem to work, I've rewritten `set` to first set a `nil` value
-                // then the desired value, which will effectively call `set` with a new value, which does work.
-                // This will be fixed in the future, and we will restore the call-site to say `self.update(value)`.
-                // try self.remove()
-                self.removeItem(shouldPublishChanges: false)
-                try self.insert(value)
+                try self.update(value)
             }
         } else {
             // try self.remove()
@@ -209,13 +203,17 @@ private extension SecurelyStoredValue {
             let keychainQuery = [
                 kSecClass: kSecClassGenericPassword,
                 kSecAttrService: self.keychainService,
-                kSecAttrAccount: self.key,
-                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+                kSecAttrAccount: self.key
             ]
             .withGroup(self.group)
             .mapToStringDictionary()
 
-            let status = SecItemUpdate(keychainQuery as CFDictionary, keychainQuery as CFDictionary)
+            let attributesToUpdate = [
+                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+            ]
+            .mapToStringDictionary()
+
+            let status = SecItemUpdate(keychainQuery as CFDictionary, attributesToUpdate as CFDictionary)
 
             if status == errSecSuccess {
                 self.valueSubject.send(value)
