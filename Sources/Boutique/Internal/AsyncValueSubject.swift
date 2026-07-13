@@ -5,21 +5,21 @@ internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
 
     private let lock = NSLock()
 
-    var value: Value
+    private var storedValue: Value
     var bufferingPolicy: BufferingPolicy
 
     private var continuations: [UInt: AsyncStream<Value>.Continuation] = [:]
     private var count: UInt = 0
 
     public init(_ initialValue: Value, bufferingPolicy: BufferingPolicy = .unbounded) {
-        self.value = initialValue
+        self.storedValue = initialValue
         self.bufferingPolicy = bufferingPolicy
     }
 
     func send(_ newValue: Value) {
         // Acquire lock before updating state.
         self.lock.lock()
-        self.value = newValue
+        self.storedValue = newValue
         // Copy continuations to avoid iterating while holding the lock.
         let currentContinuations = self.continuations
         self.lock.unlock()
@@ -29,11 +29,25 @@ internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
         }
     }
 
+    var value: Value {
+        get {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+
+            return self.storedValue
+        }
+        set {
+            self.lock.lock()
+            self.storedValue = newValue
+            self.lock.unlock()
+        }
+    }
+
     func `inout`(_ apply: @Sendable (inout Value) -> Void) {
         self.lock.lock()
-        apply(&value)
+        apply(&storedValue)
         // Capture current state and continuations.
-        let currentValue = value
+        let currentValue = storedValue
         let currentContinuations = continuations
         self.lock.unlock()
 
@@ -52,7 +66,7 @@ internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
 private extension AsyncValueSubject {
     func insert(_ continuation: AsyncStream<Value>.Continuation) {
         self.lock.lock()
-        continuation.yield(value)
+        continuation.yield(storedValue)
         let id = count + 1
         count = id
         continuations[id] = continuation

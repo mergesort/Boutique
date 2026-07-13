@@ -70,7 +70,7 @@ public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
         self.service = service?.value
         self.group = group?.value
 
-        let initialValue = Self.storedValue(group: group?.value, service: self.keychainService, account: key)
+        let initialValue = try? Self.storedValue(group: group?.value, service: self.keychainService, account: key)
         self.valueSubject.send(initialValue)
     }
 
@@ -157,8 +157,20 @@ public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
     }
 }
 
+extension SecurelyStoredValue {
+    func refreshValue(from readValue: () throws -> Item?) -> Item? {
+        do {
+            let retrievedValue = try readValue()
+            self.valueSubject.value = retrievedValue
+            return retrievedValue
+        } catch {
+            return self.valueSubject.value
+        }
+    }
+}
+
 private extension SecurelyStoredValue {
-    static func storedValue(group: String?, service: String, account: String) -> Item? {
+    static func storedValue(group: String?, service: String, account: String) throws -> Item? {
         let keychainQuery = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -172,9 +184,10 @@ private extension SecurelyStoredValue {
         let status = SecItemCopyMatching(keychainQuery as CFDictionary, &extractedData)
 
         guard status != errSecItemNotFound else { return nil }
-        guard let extractedData = extractedData as? Data else { return nil }
+        guard status == errSecSuccess else { throw KeychainError(status: status) }
+        guard let extractedData = extractedData as? Data else { throw KeychainError.couldNotAccessKeychain }
 
-        return try? JSONCoders.decoder.decodeBoxedData(data: extractedData)
+        return try JSONCoders.decoder.decodeBoxedData(data: extractedData)
     }
 
     func insert(_ value: Item) throws {
@@ -300,7 +313,9 @@ private extension SecurelyStoredValue {
     func retrieveItem() -> Item? {
         observationRegistrar.access(self, keyPath: \.wrappedValue)
 
-        return Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
+        return self.refreshValue(from: {
+            try Self.storedValue(group: self.group, service: self.keychainService, account: self.key)
+        })
     }
 
     var keychainService: String {

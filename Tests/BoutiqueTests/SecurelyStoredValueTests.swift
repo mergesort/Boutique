@@ -1,4 +1,5 @@
-import Boutique
+@testable import Boutique
+import Foundation
 import SwiftUI
 import Testing
 
@@ -172,4 +173,62 @@ struct SecurelyStoredValueTests {
         try #require(populateStoredValueTaskCompleted)
     }
 
+    @Test("Test that wrappers using the same key read the latest value")
+    func testStoredValuesUsingSameKeyRemainSynchronized() throws {
+        let key = "secureSynchronization.\(UUID().uuidString)"
+        let writer = SecurelyStoredValue<String>(key: key, service: .test)
+        let reader = SecurelyStoredValue<String>(key: key, service: .test)
+
+        defer {
+            try? writer.remove()
+        }
+
+        try writer.set("Persisted Value")
+        #expect(reader.wrappedValue == "Persisted Value")
+
+        try writer.remove()
+        #expect(reader.wrappedValue == nil)
+    }
+
+    @Test("Test that read failures return the last successful value")
+    func testStoredValueReadFailureReturnsLastSuccessfulValue() throws {
+        let storedValue = SecurelyStoredValue<String>(key: "secureReadFailure.\(UUID().uuidString)", service: .test)
+
+        defer {
+            try? storedValue.remove()
+        }
+
+        try storedValue.set("Cached Value")
+
+        let retrievedValue = storedValue.refreshValue(from: {
+            throw ReadError()
+        })
+
+        #expect(retrievedValue == "Cached Value")
+    }
+
+    @Test("Test that a missing Keychain item clears the current value")
+    func testMissingStoredValueClearsCurrentValue() throws {
+        let storedValue = SecurelyStoredValue<String>(key: "secureMissingValue.\(UUID().uuidString)", service: .test)
+
+        defer {
+            try? storedValue.remove()
+        }
+
+        try storedValue.set("Cached Value")
+
+        let retrievedValue = storedValue.refreshValue(from: {
+            nil
+        })
+
+        #expect(retrievedValue == nil)
+
+        let currentValue = storedValue.refreshValue(from: {
+            throw ReadError()
+        })
+        #expect(currentValue == nil)
+    }
+
 }
+
+private struct ReadError: Error {}
