@@ -120,8 +120,7 @@ public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
                 try self.update(value)
             }
         } else {
-            // try self.remove()
-            self.removeItem(shouldPublishChanges: false)
+            try self.remove()
         }
     }
 
@@ -147,13 +146,26 @@ public final class SecurelyStoredValue<Item: StorableItem>: DynamicProperty {
     /// Within Boutique the @Stored property wrapper works very similarly.
     @MainActor
     public func remove() throws {
-        if self.wrappedValue != nil {
-            // try self.removeItem()
-            self.removeItem(shouldPublishChanges: true)
-        } else if self.wrappedValue == nil && Self.keychainValueExists(group: self.group, service: self.keychainService, account: self.key) {
-            // try self.removeItem()
-            self.removeItem(shouldPublishChanges: true)
-        }
+        let currentValue = self.valueSubject.value
+        var keychainQuery = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: self.keychainService,
+            kSecAttrAccount: self.key
+        ]
+        .withGroup(self.group)
+        .mapToStringDictionary()
+
+		#if os(macOS)
+        // This line must exist on OS X, but must not exist on iOS.
+        // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
+        keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+		#endif
+
+        let status = SecItemDelete(keychainQuery as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw KeychainError(status: status) }
+        guard currentValue != nil else { return }
+
+        self.publishValueChange(nil)
     }
 }
 
@@ -245,80 +257,6 @@ private extension SecurelyStoredValue {
         }
 
         self.publishValueChange(value)
-    }
-
-    func removeItem(shouldPublishChanges: Bool) {
-        let removeItem = {
-            var keychainQuery = [
-                kSecClass: kSecClassGenericPassword,
-                kSecAttrService: self.keychainService,
-                kSecAttrAccount: self.key
-            ]
-            .withGroup(self.group)
-            .mapToStringDictionary()
-
-#if os(macOS)
-            // This line must exist on OS X, but must not exist on iOS.
-            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
-            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
-#endif
-            let status = SecItemDelete(keychainQuery as CFDictionary)
-
-            if status == errSecSuccess || status == errSecItemNotFound {
-                if shouldPublishChanges {
-                    self.valueSubject.send(nil)
-                }
-            }
-        }
-
-        if shouldPublishChanges {
-            observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
-                removeItem()
-            }
-        } else {
-            removeItem()
-        }
-    }
-
-// Restore this once we've fixed up the update bugs
-
-//    func removeItem() {
-//        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
-//            var keychainQuery = [
-//                kSecClass: kSecClassGenericPassword,
-//                kSecAttrService: self.keychainService,
-//                kSecAttrAccount: key
-//            ]
-//                .withGroup(self.group)
-//                .mapToStringDictionary()
-//
-//#if os(macOS)
-//            // This line must exist on OS X, but must not exist on iOS.
-//            // Source: https://github.com/square/Valet/blob/c095ce0ac15716bee167aefc273e17c2c3cd4919/Sources/Valet/Internal/SecItem.swift#L123
-//            keychainQuery[kSecMatchLimit as String] = kSecMatchLimitAll
-//#endif
-//            let status = SecItemDelete(keychainQuery as CFDictionary)
-//
-//            if status == errSecSuccess || status == errSecItemNotFound {
-//                self.valueSubject.send(nil)
-//            }
-//        }
-//    }
-
-    static func keychainValueExists(group: String?, service: String, account: String) -> Bool {
-        let keychainQuery = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecReturnData: true
-        ]
-        .withGroup(group)
-        .mapToStringDictionary()
-
-        var extractedData: AnyObject?
-        let status = SecItemCopyMatching(keychainQuery as CFDictionary, &extractedData)
-
-        return status != errSecItemNotFound
     }
 
     func retrieveItem() -> Item? {

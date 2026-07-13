@@ -230,6 +230,31 @@ struct SecurelyStoredValueTests {
         #expect(currentValue == nil)
     }
 
+    @Test("Test that setting nil publishes the removal", .timeLimit(.minutes(1)))
+    func testSettingNilPublishesRemoval() async throws {
+        let storedValue = SecurelyStoredValue<String>(key: "secureNilRemoval.\(UUID().uuidString)", service: .test)
+        try storedValue.set("Persisted Value")
+
+        var values = storedValue.values.makeAsyncIterator()
+        let initialValue = await values.next()
+
+        try storedValue.set(nil)
+
+        let removedValue = await values.next()
+        #expect(initialValue == "Persisted Value")
+        #expect(removedValue == .some(nil))
+    }
+
+    @Test("Test that removing a missing value succeeds")
+    func testRemovingMissingStoredValueSucceeds() throws {
+        let storedValue = SecurelyStoredValue<String>(key: "secureMissingRemoval.\(UUID().uuidString)", service: .test)
+
+        try storedValue.remove()
+        try storedValue.remove()
+
+        #expect(storedValue.wrappedValue == nil)
+    }
+
     @Test("Test that writes publish Observation changes exactly once")
     func testWriteObservationNotifications() throws {
         let storedValue = SecurelyStoredValue<String>(key: "secureObservation.\(UUID().uuidString)", service: .test)
@@ -290,6 +315,8 @@ struct SecurelyStoredValueTests {
     }
 
 }
+
+// MARK: ReadError
 
 private struct ReadError: Error {}
 
