@@ -169,6 +169,8 @@ extension SecurelyStoredValue {
     }
 }
 
+// MARK: Private
+
 private extension SecurelyStoredValue {
     static func storedValue(group: String?, service: String, account: String) throws -> Item? {
         let keychainQuery = [
@@ -191,49 +193,58 @@ private extension SecurelyStoredValue {
     }
 
     func insert(_ value: Item) throws {
-        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
-            let keychainQuery = [
-                kSecClass: kSecClassGenericPassword,
-                kSecAttrService: self.keychainService,
-                kSecAttrAccount: self.key,
-                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-            ]
-            .withGroup(self.group)
-            .mapToStringDictionary()
+        try self.write(value, operation: .insert)
+    }
 
-            let status = SecItemAdd(keychainQuery as CFDictionary, nil)
+    func addItem(_ value: Item) throws -> OSStatus {
+        let keychainQuery = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: self.keychainService,
+            kSecAttrAccount: self.key,
+            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+        ]
+        .withGroup(self.group)
+        .mapToStringDictionary()
 
-            if status == errSecSuccess || status == errSecDuplicateItem {
-                self.valueSubject.send(value)
-            } else {
-                throw KeychainError(status: status)
-            }
-        }
+        return SecItemAdd(keychainQuery as CFDictionary, nil)
     }
 
     func update(_ value: Item) throws {
-        try observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
-            let keychainQuery = [
-                kSecClass: kSecClassGenericPassword,
-                kSecAttrService: self.keychainService,
-                kSecAttrAccount: self.key
-            ]
-            .withGroup(self.group)
-            .mapToStringDictionary()
+        try self.write(value, operation: .update)
+    }
 
-            let attributesToUpdate = [
-                kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
-            ]
-            .mapToStringDictionary()
+    func updateItem(_ value: Item) throws -> OSStatus {
+        let keychainQuery = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: self.keychainService,
+            kSecAttrAccount: self.key
+        ]
+        .withGroup(self.group)
+        .mapToStringDictionary()
 
-            let status = SecItemUpdate(keychainQuery as CFDictionary, attributesToUpdate as CFDictionary)
+        let attributesToUpdate = [
+            kSecValueData: try JSONCoders.encoder.encodeBoxedData(item: value)
+        ]
+        .mapToStringDictionary()
 
-            if status == errSecSuccess {
-                self.valueSubject.send(value)
-            } else {
-                throw KeychainError(status: status)
-            }
+        return SecItemUpdate(keychainQuery as CFDictionary, attributesToUpdate as CFDictionary)
+    }
+
+    /// Writes a value by moving between insert and update as the Keychain reports its current state.
+    ///
+    /// The cached value determines the first operation, but another process may change
+    /// the Keychain before that operation executes. An insert that finds an existing item
+    /// transitions to update, while an update that finds no item transitions to insert.
+    ///
+    /// A third attempt handles the item changing again between those first two operations.
+    /// The value is published only after an operation succeeds, and any other Keychain status
+    /// fails the operation immediately.
+    func write(_ value: Item, operation: KeychainWriteOperation) throws {
+        try KeychainWriteOperation.perform(operation) { operation in
+            try operation == .insert ? self.addItem(value) : self.updateItem(value)
         }
+
+        self.publishValueChange(value)
     }
 
     func removeItem(shouldPublishChanges: Bool) {
@@ -318,6 +329,12 @@ private extension SecurelyStoredValue {
         })
     }
 
+    func publishValueChange(_ value: Item?) {
+        observationRegistrar.withMutation(of: self, keyPath: \.wrappedValue) {
+            self.valueSubject.send(value)
+        }
+    }
+
     var keychainService: String {
         self.service ?? Self.defaultService
     }
@@ -328,6 +345,41 @@ private extension SecurelyStoredValue {
         Bundle.main.bundleIdentifier!
     }
 }
+
+// MARK: KeychainWriteOperation
+
+enum KeychainWriteOperation {
+    case insert
+    case update
+
+    static func perform(_ initialOperation: Self, using performOperation: (Self) throws -> OSStatus) throws {
+        let maximumAttempts = 3
+        var operation = initialOperation
+        var status = errSecSuccess
+
+        for _ in 0..<maximumAttempts {
+            status = try performOperation(operation)
+
+            switch (operation, status) {
+            case (_, errSecSuccess):
+                return
+
+            case (.insert, errSecDuplicateItem):
+                operation = .update
+
+            case (.update, errSecItemNotFound):
+                operation = .insert
+
+            default:
+                throw KeychainError(status: status)
+            }
+        }
+
+        throw KeychainError(status: status)
+    }
+}
+
+// MARK: Dictionary
 
 private extension Dictionary where Key == CFString, Value == Any {
     func mapToStringDictionary() -> [String : Any] {

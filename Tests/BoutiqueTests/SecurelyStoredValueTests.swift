@@ -1,5 +1,6 @@
 @testable import Boutique
 import Foundation
+import Observation
 import SwiftUI
 import Testing
 
@@ -229,6 +230,92 @@ struct SecurelyStoredValueTests {
         #expect(currentValue == nil)
     }
 
+    @Test("Test that writes publish Observation changes exactly once")
+    func testWriteObservationNotifications() throws {
+        let storedValue = SecurelyStoredValue<String>(key: "secureObservation.\(UUID().uuidString)", service: .test)
+        let counter = ObservationCounter()
+
+        defer {
+            try? storedValue.remove()
+        }
+
+        withObservationTracking {
+            _ = storedValue.wrappedValue
+        } onChange: {
+            counter.increment()
+        }
+        try storedValue.set("Inserted Value")
+        #expect(counter.count == 1)
+
+        withObservationTracking {
+            _ = storedValue.wrappedValue
+        } onChange: {
+            counter.increment()
+        }
+        try storedValue.set("Updated Value")
+        #expect(counter.count == 2)
+    }
+
+    @Test("Test that Keychain writes recover when the item changes between operations", arguments: [
+        KeychainWriteRaceScenario(initialOperation: .insert, statuses: [errSecDuplicateItem, errSecItemNotFound, errSecSuccess], expectedOperations: [.insert, .update, .insert]),
+        KeychainWriteRaceScenario(initialOperation: .update, statuses: [errSecItemNotFound, errSecDuplicateItem, errSecSuccess], expectedOperations: [.update, .insert, .update])
+    ])
+    func testKeychainWriteRaceRecovery(scenario: KeychainWriteRaceScenario) throws {
+        var attemptedOperations: [KeychainWriteOperation] = []
+        var statusIndex = 0
+
+        try KeychainWriteOperation.perform(scenario.initialOperation) { operation in
+            guard statusIndex < scenario.statuses.count else { throw ReadError() }
+
+            attemptedOperations.append(operation)
+            defer { statusIndex += 1 }
+            return scenario.statuses[statusIndex]
+        }
+
+        #expect(attemptedOperations == scenario.expectedOperations)
+    }
+
+    @Test("Test that Keychain writes fail after three recoverable races")
+    func testKeychainWriteRaceExhaustion() {
+        var attemptedOperations: [KeychainWriteOperation] = []
+
+        #expect(throws: KeychainError.self) {
+            try KeychainWriteOperation.perform(.insert) { operation in
+                attemptedOperations.append(operation)
+                return operation == .insert ? errSecDuplicateItem : errSecItemNotFound
+            }
+        }
+
+        #expect(attemptedOperations == [.insert, .update, .insert])
+    }
+
 }
 
 private struct ReadError: Error {}
+
+// MARK: KeychainWriteRaceScenario
+
+struct KeychainWriteRaceScenario: Sendable {
+    let initialOperation: KeychainWriteOperation
+    let statuses: [OSStatus]
+    let expectedOperations: [KeychainWriteOperation]
+}
+
+// MARK: ObservationCounter
+
+private final class ObservationCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    var count: Int {
+        self.lock.withLock {
+            self.value
+        }
+    }
+
+    func increment() {
+        self.lock.withLock {
+            self.value += 1
+        }
+    }
+}
