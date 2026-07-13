@@ -8,7 +8,7 @@ struct AsyncStoreTests {
 
     init() async throws {
         asyncStore = try await Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+            storage: SQLiteStorageEngine.default(appendingPath: Self.storagePath),
             cacheIdentifier: \.merchantID)
         try await asyncStore.removeAll()
     }
@@ -56,7 +56,7 @@ struct AsyncStoreTests {
 
         // The new store has to fetch items from disk.
         let newStore = try await Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+            storage: SQLiteStorageEngine.default(appendingPath: Self.storagePath),
             cacheIdentifier: \.merchantID)
 
         #expect(newStore.items[0] == .coat)
@@ -341,4 +341,8 @@ struct AsyncStoreTests {
         try #require(populateStoreTaskCompleted)
     }
 
+}
+
+private extension AsyncStoreTests {
+	static let storagePath = "AsyncStoreTests"
 }

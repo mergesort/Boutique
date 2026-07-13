@@ -12,7 +12,7 @@ struct StoreTests {
         // There's a separate `AsyncStoreTests` file with matching tests using the async init.
         func makeNonAsyncStore() -> Store<BoutiqueItem> {
             Store<BoutiqueItem>(
-                storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+                storage: SQLiteStorageEngine.default(appendingPath: Self.storagePath),
                 cacheIdentifier: \.merchantID)
         }
 
@@ -63,7 +63,7 @@ struct StoreTests {
 
         // The new store has to fetch items from disk.
         let newStore = try await Store<BoutiqueItem>(
-            storage: SQLiteStorageEngine.default(appendingPath: "Tests"),
+            storage: SQLiteStorageEngine.default(appendingPath: Self.storagePath),
             cacheIdentifier: \.merchantID)
 
         #expect(newStore.items[0] == .coat)
@@ -347,4 +347,8 @@ struct StoreTests {
         let populateStoreTaskCompleted = try await populateStoreTask.value
         try #require(populateStoreTaskCompleted)
     }
+}
+
+private extension StoreTests {
+	static let storagePath = "StoreTests"
 }
