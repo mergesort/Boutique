@@ -1,1 +1,1 @@
-public typealias StorableItem = Codable & Sendable
+public typealias StorableItem = Codable & Sendable & SendableMetatype
