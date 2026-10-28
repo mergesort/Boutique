@@ -484,7 +484,7 @@ private extension Store {
         // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
         guard itemsToRemove.count != 0 else { return }
 
-        let itemKeys = itemsToRemove.map({ CacheKey(verbatim: $0[keyPath: self.cacheIdentifier]) })
+        let itemKeys = itemsToRemove.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
 
         if itemKeys.count == 1 {
             try await self.storageEngine.remove(key: itemKeys[0])
