@@ -249,10 +249,10 @@ public final class Store<Item: StorableItem> {
     ///
     /// This stream will emit an `initial` value when subscribed to, and will further emit
     /// any changes to the value with their associated operation when ``insert(_:)-3j9hw`` or ``remove(_:)-51ya6``, or ``removeAll()-1xc24`` are called.
-    /// 
+    ///
     /// The `StoreEvent` contains both the operation type (.initialized, .loaded, .insert, or .remove) and the items affected by the operation.
     /// This allows for more granular observation of changes to the Store compared to simply observing the items array.
-    /// 
+    ///
     /// ```swift
     /// func monitorStoreEvents() async {
     ///     for await event in store.events {
@@ -355,10 +355,8 @@ internal extension Store {
         var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
-            var removedItems = currentItems
-            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
-            // If we remove this one it will error
-            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
+            try await self.removeItemsFromStorageEngine(withStrategy: strategy)
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy)
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
@@ -380,12 +378,8 @@ internal extension Store {
 
         if let strategy = existingItemsStrategy {
             // Remove items from disk and memory based on the cache invalidation strategy
-            var removedItems = currentItems
-            try await self.removeItemsFromStorageEngine(&removedItems, withStrategy: strategy)
-            // This one is fine to remove... but why?
-            // Is it the way we construct the items in the ordered dictionary?
-            // If so should the two just use the same approach — perhaps sharing all the same code except for the last call to `persistItem` vs. `persistItems`?
-            self.removeItemsFromMemory(&currentItems, withStrategy: strategy, identifier: cacheIdentifier)
+            try await self.removeItemsFromStorageEngine(withStrategy: strategy)
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy)
         }
 
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
@@ -478,28 +472,28 @@ private extension Store {
         try await self.storageEngine.remove(keys: itemKeys)
     }
 
-    func removeItemsFromStorageEngine(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
-        let itemsToRemove = strategy.removedItems(items)
+    func removeItemsFromStorageEngine(withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
+        switch strategy.removalScope {
+        case .allStoredItems:
+            try await self.storageEngine.removeAllData()
 
-        // If we're using the `.removeNone` strategy then there are no items to invalidate and we can return early
-        guard itemsToRemove.count != 0 else { return }
+        case .selectedItems:
+            let items = strategy.removedItems(self.items)
 
-        let itemKeys = itemsToRemove.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
+            guard !items.isEmpty else { return }
 
-        if itemKeys.count == 1 {
-            try await self.storageEngine.remove(key: itemKeys[0])
-        } else {
-            try await self.storageEngine.remove(keys: itemKeys)
+            try await self.removePersistedItems(items: items)
         }
     }
 
-    func removeItemsFromMemory(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>, identifier: KeyPath<Item, String>) {
-        let itemsToRemove = strategy.removedItems(items)
-
-        items = items.filter { item in
-            !itemsToRemove.contains(where: {
-                $0[keyPath: identifier] == item[keyPath: identifier]
-            }
-        )}
+    func removeItemsFromMemory(_ items: inout [Item], withStrategy strategy: ItemRemovalStrategy<Item>) {
+        switch strategy.removalScope {
+        case .allStoredItems:
+            items.removeAll()
+        case .selectedItems:
+            let removedItems = strategy.removedItems(items)
+            let identifiers = Set(removedItems.map({ $0[keyPath: self.cacheIdentifier] }))
+            items.removeAll(where: { identifiers.contains($0[keyPath: self.cacheIdentifier]) })
+        }
     }
 }
