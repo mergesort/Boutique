@@ -352,6 +352,8 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        // Validate the replacement before a chained operation deletes existing data.
+        let data = try JSONCoders.encoder.encode(item)
         var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
@@ -366,7 +368,7 @@ internal extension Store {
         currentValuesDictionary[identifier] = item
 
         // We persist only the newly added items, rather than rewriting all of the items
-        try await self.persistItem(item)
+        try await self.persistItem(item, data: data)
 
         self.items = Array(currentValuesDictionary.values)
 
@@ -374,14 +376,6 @@ internal extension Store {
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
-        var currentItems = self.items
-
-        if let strategy = existingItemsStrategy {
-            // Remove items from disk and memory based on the cache invalidation strategy
-            try await self.removeItemsFromStorageEngine(withStrategy: strategy)
-            self.removeItemsFromMemory(&currentItems, withStrategy: strategy)
-        }
-
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `insert(items:)` by taking advantage
@@ -389,6 +383,16 @@ internal extension Store {
         for item in items {
             let identifier = item[keyPath: self.cacheIdentifier]
             insertedItemsDictionary[identifier] = item
+        }
+
+        let insertedItems = Array(insertedItemsDictionary.values)
+        let data = try insertedItems.map({ try JSONCoders.encoder.encode($0) })
+        var currentItems = self.items
+
+        if let strategy = existingItemsStrategy {
+            // Remove items from disk and memory based on the cache invalidation strategy
+            try await self.removeItemsFromStorageEngine(withStrategy: strategy)
+            self.removeItemsFromMemory(&currentItems, withStrategy: strategy)
         }
 
         // Take the current items array and turn it into an OrderedDictionary.
@@ -402,8 +406,7 @@ internal extension Store {
         }
 
         // We persist only the newly added items, rather than rewriting all of the items
-        let insertedItems = Array(insertedItemsDictionary.values)
-        try await self.persistItems(insertedItems)
+        try await self.persistItems(insertedItems, data: data)
 
         self.items = Array(currentValuesDictionary.values)
 
@@ -447,17 +450,16 @@ internal extension Store {
 }
 
 private extension Store {
-    func persistItem(_ item: Item) async throws {
+    func persistItem(_ item: Item, data: Data) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
 
-        try await self.storageEngine.write(try JSONCoders.encoder.encode(item), key: cacheKey)
+        try await self.storageEngine.write(data, key: cacheKey)
     }
 
-    func persistItems(_ items: [Item]) async throws {
+    func persistItems(_ items: [Item], data: [Data]) async throws {
         let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
 
-        let dataAndKeys = try zip(itemKeys, items)
-            .map({ (key: $0, data: try JSONCoders.encoder.encode($1)) })
+        let dataAndKeys = zip(itemKeys, data).map({ (key: $0, data: $1) })
 
         try await self.storageEngine.write(dataAndKeys)
     }

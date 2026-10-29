@@ -114,6 +114,92 @@ private extension StoreChainedRemovalTests {
 }
 
 @MainActor
+@Suite("Chained replacement encoding failures", .timeLimit(.minutes(1)))
+struct StoreChainedEncodingFailureTests {
+    enum Backend: String, CaseIterable, Sendable {
+        case disk, sqlite
+
+        func makeStorage(directory: FileManager.Directory) throws -> any StorageEngine {
+            switch self {
+            case .disk:
+                return DiskStorageEngine(directory: directory)
+            case .sqlite:
+                return try #require(SQLiteStorageEngine(directory: directory))
+            }
+        }
+    }
+
+    enum Removal: String, CaseIterable, Sendable {
+        case all, selected
+    }
+
+    @Test("Encoding failure preserves the previous persisted values", arguments: Backend.allCases, Removal.allCases)
+    func encodingFailurePreservesExistingItems(backend: Backend, removal: Removal) async throws {
+        for batch in [false, true] {
+            let directory = FileManager.Directory.temporary(appendingPath: "Boutique-ChainedEncodingFailure-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: directory.url) }
+            let storage = try backend.makeStorage(directory: directory)
+            let store = try await Store<Item>(storage: storage, cacheIdentifier: \.id)
+            let original = Item(id: "original", payload: 1)
+            let keeper = Item(id: "keeper", payload: 2)
+            let valid = Item(id: "valid", payload: 3)
+            let invalid = Item(id: "invalid", payload: -1)
+            let initial = [original, keeper]
+            try await store.insert(initial)
+            var events = store.events.makeAsyncIterator()
+            #expect(await events.next()?.items == initial)
+
+            let operation: Store<Item>.Operation
+            switch removal {
+            case .all:
+                operation = try await store.removeAll()
+            case .selected:
+                operation = try await store.remove([original])
+            }
+
+            await #expect(throws: Item.Failure.self) {
+                if batch {
+                    try await operation.insert([valid, invalid]).run()
+                } else {
+                    try await operation.insert(invalid).run()
+                }
+            }
+            #expect(store.items == initial)
+            let persisted = try await storage.readAllData().map({ try JSONDecoder().decode(Item.self, from: $0) })
+            #expect(persisted.sorted(by: { $0.id < $1.id }) == [keeper, original])
+
+            let reopenedStorage = try backend.makeStorage(directory: directory)
+            let reopened = try await Store<Item>(storage: reopenedStorage, cacheIdentifier: \.id)
+            #expect(reopened.items.sorted(by: { $0.id < $1.id }) == [keeper, original])
+
+            try await store.insert(valid)
+            let event = await events.next()
+            #expect(event?.operation == .insert)
+            #expect(event?.items == [valid])
+            #expect(store.items == initial + [valid])
+        }
+    }
+}
+
+private extension StoreChainedEncodingFailureTests {
+    struct Item: Codable, Sendable, Equatable {
+        enum Failure: Error {
+            case invalidPayload
+        }
+
+        let id: String
+        let payload: Int
+
+        func encode(to encoder: any Encoder) throws {
+            guard self.payload >= 0 else { throw Failure.invalidPayload }
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.id, forKey: .id)
+            try container.encode(self.payload, forKey: .payload)
+        }
+    }
+}
+
+@MainActor
 @Suite("Store clearing shared storage", .timeLimit(.minutes(1)))
 struct StoreSharedClearReproductionTests {
     enum Backend: String, CaseIterable, Sendable {
