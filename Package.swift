@@ -24,6 +24,7 @@ let package = Package(
             name: "Boutique",
             dependencies: [
                 .byName(name: "Bodega"),
+                .product(name: "DequeModule", package: "swift-collections"),
                 .product(name: "OrderedCollections", package: "swift-collections")
             ],
             exclude: [

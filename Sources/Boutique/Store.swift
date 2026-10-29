@@ -1,4 +1,5 @@
 @_exported import Bodega
+import DequeModule
 import OrderedCollections
 import Foundation
 import Observation
@@ -48,6 +49,8 @@ import Observation
 /// a stable and unique `cacheIdentifier` is to conform to `Identifiable` and point to `\.id`.
 /// That is *not* required though, and you are free to use any `String` property on your `Item`
 /// or even a type which can be converted into a `String` such as `\.url.path`.
+///
+/// Mutations are serialized per Store, to keep persistence and published items in sync.
 @MainActor
 @Observable
 public final class Store<Item: StorableItem> {
@@ -55,6 +58,12 @@ public final class Store<Item: StorableItem> {
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
+
+    @ObservationIgnored
+    private var mutationInProgress = false
+
+    @ObservationIgnored
+    private var waitingMutations: Deque<CheckedContinuation<Void, Never>> = []
 
     /// The items held onto by the ``Store``.
     ///
@@ -352,8 +361,13 @@ public extension Store {
 // Internal versions of the `insert`, `remove`, and `removeAll` function code paths so we can avoid duplicating code.
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        await self.beginMutation()
+        defer { self.endMutation() }
+        try Task.checkCancellation()
+
         // Validate the replacement before a chained operation deletes existing data.
         let data = try JSONCoders.encoder.encode(item)
+        try Task.checkCancellation()
         var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
@@ -376,6 +390,10 @@ internal extension Store {
     }
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        await self.beginMutation()
+        defer { self.endMutation() }
+        try Task.checkCancellation()
+
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
 
         // Deduplicate items passed into `insert(items:)` by taking advantage
@@ -387,6 +405,7 @@ internal extension Store {
 
         let insertedItems = Array(insertedItemsDictionary.values)
         let data = try insertedItems.map({ try JSONCoders.encoder.encode($0) })
+        try Task.checkCancellation()
         var currentItems = self.items
 
         if let strategy = existingItemsStrategy {
@@ -414,6 +433,10 @@ internal extension Store {
     }
 
     func performRemove(_ item: Item) async throws {
+        await self.beginMutation()
+        defer { self.endMutation() }
+        try Task.checkCancellation()
+
         try await self.removePersistedItem(item)
 
         let cacheKeyString = item[keyPath: self.cacheIdentifier]
@@ -427,6 +450,10 @@ internal extension Store {
     }
 
     func performRemove(_ items: [Item]) async throws {
+        await self.beginMutation()
+        defer { self.endMutation() }
+        try Task.checkCancellation()
+
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
         try await self.removePersistedItems(items: items)
@@ -439,6 +466,10 @@ internal extension Store {
     }
 
     func performRemoveAll() async throws {
+        await self.beginMutation()
+        defer { self.endMutation() }
+        try Task.checkCancellation()
+
         let currentItems = self.items
 
         try await self.storageEngine.removeAllData()
@@ -450,6 +481,29 @@ internal extension Store {
 }
 
 private extension Store {
+    // Keep each mutation exclusive through loading, persistence, and publication.
+    func beginMutation() async {
+        // Preserve the ability to clear or replace data after a failed load.
+        _ = await self.loadStoreTask.result
+
+        if !self.mutationInProgress {
+            self.mutationInProgress = true
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            self.waitingMutations.append(continuation)
+        }
+    }
+
+    func endMutation() {
+        if let continuation = self.waitingMutations.popFirst() {
+            continuation.resume()
+        } else {
+            self.mutationInProgress = false
+        }
+    }
+
     func persistItem(_ item: Item, data: Data) async throws {
         let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
 
