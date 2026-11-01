@@ -293,6 +293,9 @@ public final class Store<Item: StorableItem> {
     /// A `Task` that will kick off loading items into the ``Store``.
     @ObservationIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
+        // Preview stores are already loaded and never read from a storage engine.
+        guard self.storageKeys == nil else { return }
+
         do {
             let records = await self.storageEngine.readAllDataAndKeys()
             let items = try await self.coders.decode(records.map(\.data))
@@ -314,6 +317,16 @@ public final class Store<Item: StorableItem> {
 
         self.valueSubject.send(.loaded(self.items))
     }
+
+    #if DEBUG
+    private init(previewItems: [Item], cacheIdentifier: KeyPath<Item, String>) {
+        self.storageEngine = PreviewStorage()
+        self.cacheIdentifier = cacheIdentifier
+        self.storageKeys = [:]
+        self.items = previewItems
+        self.valueSubject = AsyncValueSubject(.loaded(previewItems))
+    }
+    #endif
 }
 
 public extension Store {
@@ -340,14 +353,7 @@ public extension Store {
     /// - Returns: A ``Store`` that populates items in memory so you can pass a ``Store`` to @``Stored`` in SwiftUI Previews.
     @MainActor
     static func previewStore(items: [Item], cacheIdentifier: KeyPath<Item, String>) -> Store<Item> {
-        let store = Store(
-            storage: SQLiteStorageEngine(directory: .temporary(appendingPath: "Previews"))!, // No files are written to disk
-            cacheIdentifier: cacheIdentifier
-        )
-
-        store.items = items
-
-        return store
+        Store(previewItems: items, cacheIdentifier: cacheIdentifier)
     }
 
     /// A ``Store`` to be used for SwiftUI Previews and only SwiftUI Previews!
@@ -632,3 +638,22 @@ private extension Store {
         }
     }
 }
+
+#if DEBUG
+private extension Store {
+    // Store owns preview state; this actor keeps mutations on the ordinary path
+    // without sharing or persisting any data between previews.
+    actor PreviewStorage: StorageEngine {
+        func write(_ data: Data, key: CacheKey) {}
+        func write(_ dataAndKeys: [(key: CacheKey, data: Data)]) {}
+        func read(key: CacheKey) -> Data? { nil }
+        func readDataAndKeys(keys: [CacheKey]) -> [(key: CacheKey, data: Data)] { [] }
+        func remove(key: CacheKey) {}
+        func removeAllData() {}
+        func keyExists(_ key: CacheKey) -> Bool { false }
+        func allKeys() -> [CacheKey] { [] }
+        func createdAt(key: CacheKey) -> Date? { nil }
+        func updatedAt(key: CacheKey) -> Date? { nil }
+    }
+}
+#endif
