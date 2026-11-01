@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -32,11 +32,9 @@ let package = Package(
                 "../../Performance Profiler",
             ],
             swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .enableUpcomingFeature("DisableOutwardActorInference"),
-                .enableUpcomingFeature("GlobalActorIsolatedTypesUsability"),
-                .enableUpcomingFeature("InferSendableFromCaptures"),
-                .define("ENABLE_TESTABILITY", .when(configuration: .debug))
+				.defaultIsolation(MainActor.self),
+				.enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+				.enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
         .testTarget(

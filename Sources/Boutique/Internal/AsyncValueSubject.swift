@@ -1,6 +1,6 @@
 import Foundation
 
-internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
+nonisolated internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
     typealias BufferingPolicy = AsyncStream<Value>.Continuation.BufferingPolicy
 
     private let lock = NSLock()
@@ -64,7 +64,7 @@ internal final class AsyncValueSubject<Value: Sendable>: @unchecked Sendable {
 }
 
 private extension AsyncValueSubject {
-    func insert(_ continuation: AsyncStream<Value>.Continuation) {
+    nonisolated func insert(_ continuation: AsyncStream<Value>.Continuation) {
         self.lock.lock()
         continuation.yield(storedValue)
         let id = count + 1
@@ -78,7 +78,7 @@ private extension AsyncValueSubject {
         self.lock.unlock()
     }
 
-    func remove(continuation id: UInt) {
+    nonisolated func remove(continuation id: UInt) {
         self.lock.lock()
         continuations.removeValue(forKey: id)
         self.lock.unlock()
