@@ -58,6 +58,7 @@ public final class Store<Item: StorableItem> {
 
     private let storageEngine: StorageEngine
     private let cacheIdentifier: KeyPath<Item, String>
+    private let coders = Coders()
 
     @ObservationIgnored
     private var mutationInProgress = false
@@ -286,8 +287,7 @@ public final class Store<Item: StorableItem> {
     @ObservationIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
-            self.items = try await self.storageEngine.readAllData()
-                .map({ try JSONCoders.decoder.decode(Item.self, from: $0) })
+            self.items = try await self.coders.decode(await self.storageEngine.readAllData())
         } catch {
             self.items = []
             throw error
@@ -366,7 +366,7 @@ internal extension Store {
         try Task.checkCancellation()
 
         // Validate the replacement before a chained operation deletes existing data.
-        let data = try JSONCoders.encoder.encode(item)
+        let data = try await self.coders.encode(item)
         try Task.checkCancellation()
         var currentItems = self.items
 
@@ -404,7 +404,7 @@ internal extension Store {
         }
 
         let insertedItems = Array(insertedItemsDictionary.values)
-        let data = try insertedItems.map({ try JSONCoders.encoder.encode($0) })
+        let data = try await self.coders.encode(insertedItems)
         try Task.checkCancellation()
         var currentItems = self.items
 
