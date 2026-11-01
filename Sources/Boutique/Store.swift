@@ -61,6 +61,9 @@ public final class Store<Item: StorableItem> {
     private let coders = Coders()
 
     @ObservationIgnored
+    private var storageKeys: [String: CacheKey]?
+
+    @ObservationIgnored
     private var mutationInProgress = false
 
     @ObservationIgnored
@@ -137,6 +140,10 @@ public final class Store<Item: StorableItem> {
     ///
     /// When initializing a ``Store`` in a non-async context, the items are loaded in a background task.
     /// This functions provides a way to `await` its completion before accessing the ``items``.
+    ///
+    /// This will always report the initial load's result. After a failed load,
+    /// an explicit successful ``removeAll()-9zfmy`` allows new mutations,
+    /// but this method continues to throw the original loading error.
     public func itemsHaveLoaded() async throws {
         try await loadStoreTask.value
     }
@@ -287,13 +294,34 @@ public final class Store<Item: StorableItem> {
     @ObservationIgnored
     private lazy var loadStoreTask: Task<Void, Error> = Task { @MainActor in
         do {
-            self.items = try await self.coders.decode(await self.storageEngine.readAllData())
+            let records = await self.storageEngine.readAllDataAndKeys()
+            let items = try await self.coders.decode(records.map(\.data))
+            var storageKeys = Dictionary<String, CacheKey>(minimumCapacity: records.count)
+
+            for (item, record) in zip(items, records) {
+                let identifier = item[keyPath: self.cacheIdentifier]
+                guard storageKeys.updateValue(record.key, forKey: identifier) == nil else {
+                    throw LoadingError.duplicateIdentifier(identifier)
+                }
+            }
+
+            self.storageKeys = storageKeys
+            self.items = items
         } catch {
             self.items = []
             throw error
         }
 
         self.valueSubject.send(.loaded(self.items))
+    }
+}
+
+public extension Store {
+    /// A failure to load records that have a unique logical identity.
+    enum LoadingError: Error {
+        /// When multiple persisted records use equal identifiers.
+        /// The records will be preserved until explicitly cleared.
+        case duplicateIdentifier(String)
     }
 }
 
@@ -362,8 +390,13 @@ public extension Store {
 internal extension Store {
     func performInsert(_ item: Item, firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         await self.beginMutation()
-        defer { self.endMutation() }
+
+        defer {
+            self.endMutation()
+        }
+
         try Task.checkCancellation()
+        try await self.requireLoadedKeys(unlessRemovingAll: existingItemsStrategy)
 
         // Validate the replacement before a chained operation deletes existing data.
         let data = try await self.coders.encode(item)
@@ -391,8 +424,13 @@ internal extension Store {
 
     func performInsert(_ items: [Item], firstRemovingExistingItems existingItemsStrategy: ItemRemovalStrategy<Item>? = nil) async throws {
         await self.beginMutation()
-        defer { self.endMutation() }
+
+        defer {
+            self.endMutation()
+        }
+
         try Task.checkCancellation()
+        try await self.requireLoadedKeys(unlessRemovingAll: existingItemsStrategy)
 
         var insertedItemsDictionary = OrderedDictionary<String, Item>()
 
@@ -434,8 +472,13 @@ internal extension Store {
 
     func performRemove(_ item: Item) async throws {
         await self.beginMutation()
-        defer { self.endMutation() }
+
+        defer {
+            self.endMutation()
+        }
+
         try Task.checkCancellation()
+        try await self.requireLoadedKeys()
 
         try await self.removePersistedItem(item)
 
@@ -451,8 +494,13 @@ internal extension Store {
 
     func performRemove(_ items: [Item]) async throws {
         await self.beginMutation()
-        defer { self.endMutation() }
+
+        defer {
+            self.endMutation()
+        }
+
         try Task.checkCancellation()
+        try await self.requireLoadedKeys()
 
         let itemKeys = Set(items.map({ $0[keyPath: self.cacheIdentifier] }))
 
@@ -467,13 +515,18 @@ internal extension Store {
 
     func performRemoveAll() async throws {
         await self.beginMutation()
-        defer { self.endMutation() }
+
+        defer {
+            self.endMutation()
+        }
+
         try Task.checkCancellation()
 
         let currentItems = self.items
 
         try await self.storageEngine.removeAllData()
 
+        self.storageKeys = [:]
         self.items = []
 
         self.valueSubject.send(.remove(currentItems))
@@ -481,7 +534,16 @@ internal extension Store {
 }
 
 private extension Store {
-    // Keep each mutation exclusive through loading, persistence, and publication.
+    func requireLoadedKeys(unlessRemovingAll strategy: ItemRemovalStrategy<Item>? = nil) async throws {
+        if case .allStoredItems? = strategy?.removalScope { return }
+
+        if self.storageKeys == nil {
+            try await self.loadStoreTask.value
+        }
+    }
+
+    // Loading and encoding work suspend, so a mutation must own this gate through
+    // persistence and publication rather than holding a stale snapshot of items.
     func beginMutation() async {
         // Preserve the ability to clear or replace data after a failed load.
         _ = await self.loadStoreTask.result
@@ -505,33 +567,50 @@ private extension Store {
     }
 
     func persistItem(_ item: Item, data: Data) async throws {
-        let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
+        let identifier = item[keyPath: self.cacheIdentifier]
+        let cacheKey = self.storageKeys?[identifier] ?? CacheKey(identifier)
+
+        // Reserve before writing: a throwing engine may already have committed.
+        self.storageKeys?[identifier] = cacheKey
 
         try await self.storageEngine.write(data, key: cacheKey)
     }
 
     func persistItems(_ items: [Item], data: [Data]) async throws {
-        let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
-
-        let dataAndKeys = zip(itemKeys, data).map({ (key: $0, data: $1) })
+        let dataAndKeys = zip(items, data).map { item, data in
+            let identifier = item[keyPath: self.cacheIdentifier]
+            let key = self.storageKeys?[identifier] ?? CacheKey(identifier)
+            self.storageKeys?[identifier] = key
+            return (key: key, data: data)
+        }
 
         try await self.storageEngine.write(dataAndKeys)
     }
 
     func removePersistedItem(_ item: Item) async throws {
-        let cacheKey = CacheKey(item[keyPath: self.cacheIdentifier])
+        let identifier = item[keyPath: self.cacheIdentifier]
+        let cacheKey = self.storageKeys?[identifier] ?? CacheKey(identifier)
+
         try await self.storageEngine.remove(key: cacheKey)
+        self.storageKeys?.removeValue(forKey: identifier)
     }
 
     func removePersistedItems(items: [Item]) async throws {
-        let itemKeys = items.map({ CacheKey($0[keyPath: self.cacheIdentifier]) })
+        let identifiers = items.map({ $0[keyPath: self.cacheIdentifier] })
+        let itemKeys = identifiers.map({ self.storageKeys?[$0] ?? CacheKey($0) })
+
         try await self.storageEngine.remove(keys: itemKeys)
+
+        for identifier in identifiers {
+            self.storageKeys?.removeValue(forKey: identifier)
+        }
     }
 
     func removeItemsFromStorageEngine(withStrategy strategy: ItemRemovalStrategy<Item>) async throws {
         switch strategy.removalScope {
         case .allStoredItems:
             try await self.storageEngine.removeAllData()
+            self.storageKeys = [:]
 
         case .selectedItems:
             let items = strategy.removedItems(self.items)

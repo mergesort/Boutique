@@ -146,8 +146,12 @@ private actor CodersTestStorage: StorageEngine {
     }
 
     func readAllData() async -> [Data] {
+        await self.readAllDataAndKeys().map(\.data)
+    }
+
+    func readAllDataAndKeys() async -> [(key: CacheKey, data: Data)] {
         self.readCount += 1
-        let data = self.entries.map(\.data)
+        let data = self.entries
         self.readHasStarted = true
         self.readStartedWaiters.forEach({ $0.resume() })
         self.readStartedWaiters.removeAll()
