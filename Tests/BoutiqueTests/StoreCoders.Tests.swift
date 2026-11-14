@@ -69,7 +69,7 @@ struct StoreCodersTests {
         #expect(await events.next()?.operation == .initialized)
 
         try await store.removeAll()
-        #expect(await storage.keyCount() == 0)
+        #expect(try await storage.keyCount() == 0)
         let reloaded = try await Store<CodersTestItem>(storage: storage, cacheIdentifier: \.id)
         #expect(reloaded.items.isEmpty)
     }
