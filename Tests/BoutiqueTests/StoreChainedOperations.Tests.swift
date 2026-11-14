@@ -41,7 +41,7 @@ struct StoreChainedRemovalTests {
             let initial = [first, second, keeper]
             try await store.insert(initial)
             try #require(store.items == initial, "\(context)")
-            try #require(await storage.keyCount() == initial.count, "\(context)")
+            try #require(try await storage.keyCount() == initial.count, "\(context)")
 
             var operation: Store<Item>.Operation
             let survivors: [Item]
@@ -77,7 +77,7 @@ struct StoreChainedRemovalTests {
 
             let expected = survivors + inserted
             #expect(store.items == expected, "\(context)")
-            #expect(await storage.keyCount() == expected.count, "\(context)")
+            #expect(try await storage.keyCount() == expected.count, "\(context)")
 
             let reopenedStorage = try backend.makeStorage(directory: directory)
             let reopened = try await Store<Item>(storage: reopenedStorage, cacheIdentifier: \.id)

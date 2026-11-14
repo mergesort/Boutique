@@ -132,15 +132,15 @@ struct StoreIdentityRegressionTests {
         let second = Item(id: "e\u{301}", payload: 1)
         try await storage.write(try JSONEncoder().encode(first), key: CacheKey(first.id))
         try await storage.write(try JSONEncoder().encode(second), key: CacheKey(second.id))
-        try #require(await storage.keyCount() == 2)
-        let originalRecords = await self.readRecords(from: storage)
+        try #require(try await storage.keyCount() == 2)
+        let originalRecords = try await self.readRecords(from: storage)
         let store = self.makeStore(storage: storage)
 
         await #expect(throws: Store<Item>.LoadingError.self) { try await store.itemsHaveLoaded() }
         #expect(store.items.isEmpty)
         await #expect(throws: Store<Item>.LoadingError.self) { try await store.insert(Item(id: "blocked", payload: 2)) }
         await #expect(throws: Store<Item>.LoadingError.self) { try await store.remove(first) }
-        #expect(await self.readRecords(from: storage) == originalRecords)
+        #expect(try await self.readRecords(from: storage) == originalRecords)
 
         let replacement = Item(id: "recovered", payload: 2)
         if chained {
@@ -166,7 +166,7 @@ struct StoreIdentityRegressionTests {
         let item = Item(id: "é", payload: 0)
         try await storage.write(try JSONEncoder().encode(item), key: CacheKey(item.id))
         try await storage.write(Data("invalid".utf8), key: CacheKey("corrupt"))
-        let originalRecords = await self.readRecords(from: storage)
+        let originalRecords = try await self.readRecords(from: storage)
         let store = self.makeStore(storage: storage)
 
         await #expect(throws: DecodingError.self) { try await store.itemsHaveLoaded() }
@@ -177,7 +177,7 @@ struct StoreIdentityRegressionTests {
         await #expect(throws: DecodingError.self) { try await store.remove([item]).insert([]).run() }
 
         #expect(store.items.isEmpty)
-        #expect(await self.readRecords(from: storage) == originalRecords)
+        #expect(try await self.readRecords(from: storage) == originalRecords)
     }
 }
 
@@ -205,8 +205,8 @@ private extension StoreIdentityRegressionTests {
             .sorted(by: { $0.payload < $1.payload })
     }
 
-    func readRecords(from storage: any StorageEngine) async -> [StoredRecord] {
-        await storage.readAllDataAndKeys()
+    func readRecords(from storage: any StorageEngine) async throws -> [StoredRecord] {
+        try await storage.readAllDataAndKeys()
             .map({ StoredRecord(key: Array($0.key.value.utf8), data: $0.data) })
             .sorted(by: { $0.key.lexicographicallyPrecedes($1.key) })
     }
@@ -246,12 +246,12 @@ private extension StoreIdentityRegressionTests {
             try await self.storage.write(dataAndKeys)
         }
 
-        func read(key: CacheKey) async -> Data? {
-            await self.storage.read(key: key)
+        func read(key: CacheKey) async throws -> Data? {
+            try await self.storage.read(key: key)
         }
 
-        func readDataAndKeys(keys: [CacheKey]) async -> [(key: CacheKey, data: Data)] {
-            await self.storage.readDataAndKeys(keys: keys)
+        func readDataAndKeys(keys: [CacheKey]) async throws -> [(key: CacheKey, data: Data)] {
+            try await self.storage.readDataAndKeys(keys: keys)
         }
 
         func remove(key: CacheKey) async throws {
@@ -262,20 +262,20 @@ private extension StoreIdentityRegressionTests {
             try await self.storage.removeAllData()
         }
 
-        func keyExists(_ key: CacheKey) async -> Bool {
-            await self.storage.keyExists(key)
+        func keyExists(_ key: CacheKey) async throws -> Bool {
+            try await self.storage.keyExists(key)
         }
 
-        func allKeys() async -> [CacheKey] {
-            await self.storage.allKeys()
+        func allKeys() async throws -> [CacheKey] {
+            try await self.storage.allKeys()
         }
 
-        func createdAt(key: CacheKey) async -> Date? {
-            await self.storage.createdAt(key: key)
+        func createdAt(key: CacheKey) async throws -> Date? {
+            try await self.storage.createdAt(key: key)
         }
 
-        func updatedAt(key: CacheKey) async -> Date? {
-            await self.storage.updatedAt(key: key)
+        func updatedAt(key: CacheKey) async throws -> Date? {
+            try await self.storage.updatedAt(key: key)
         }
     }
 }
@@ -306,7 +306,7 @@ struct StoreIdentityFailureTests {
         let secondData = try JSONEncoder().encode(second)
         try await storage.write(try JSONEncoder().encode(first), key: CacheKey(first.id))
         try await storage.write(secondData, key: CacheKey(second.id))
-        let originalRecords = await self.readRecords(from: storage)
+        let originalRecords = try await self.readRecords(from: storage)
         try #require(originalRecords.count == 2)
 
         let failingStorage = FailingStorage(storage: storage, fault: .partialDeletion)
@@ -318,17 +318,17 @@ struct StoreIdentityFailureTests {
         await #expect(throws: Failure.partialDeletion) {
             try await store.remove(removed)
         }
-        let survivingRecords = await self.readRecords(from: storage)
+        let survivingRecords = try await self.readRecords(from: storage)
         try #require(survivingRecords == originalRecords.filter({ $0.data == secondData }))
-        try #require(await storage.keyCount() == 1)
+        try #require(try await storage.keyCount() == 1)
 
         try await store.remove(removed)
         let removal = await events.next()
         #expect(removal?.operation == .remove)
         #expect(removal?.items == removed)
         #expect(store.items.isEmpty)
-        #expect(await storage.keyCount() == 0)
-        #expect(await self.readRecords(from: storage) == [])
+        #expect(try await storage.keyCount() == 0)
+        #expect(try await self.readRecords(from: storage) == [])
         let reopenedStorage = try backend.makeStorage(directory: directory)
         let reopened = try await Store<Item>(storage: reopenedStorage, cacheIdentifier: \.id)
         #expect(reopened.items.isEmpty)
@@ -355,10 +355,10 @@ struct StoreIdentityFailureTests {
                 try await operation.insert(committed).run()
             }
         }
-        let committedRecords = await self.readRecords(from: storage)
+        let committedRecords = try await self.readRecords(from: storage)
         try #require(committedRecords.count == 1)
         try #require(try JSONDecoder().decode(Item.self, from: committedRecords[0].data) == committed)
-        try #require(await storage.keyCount() == 1)
+        try #require(try await storage.keyCount() == 1)
 
         let replacement = Item(id: "é", payload: 2)
         try await store.insert(replacement)
@@ -366,18 +366,18 @@ struct StoreIdentityFailureTests {
         #expect(insertion?.operation == .insert)
         #expect(insertion?.items == [replacement])
         #expect(store.items == [replacement])
-        let retriedRecords = await self.readRecords(from: storage)
+        let retriedRecords = try await self.readRecords(from: storage)
         #expect(retriedRecords.map(\.key) == committedRecords.map(\.key))
         #expect(try retriedRecords.map({ try JSONDecoder().decode(Item.self, from: $0.data) }) == [replacement])
-        #expect(await storage.keyCount() == 1)
+        #expect(try await storage.keyCount() == 1)
 
         let reopenedStorage = try backend.makeStorage(directory: directory)
         let reopened = try await Store<Item>(storage: reopenedStorage, cacheIdentifier: \.id)
         #expect(reopened.items == [replacement])
         try await reopened.remove(committed)
         #expect(reopened.items.isEmpty)
-        #expect(await storage.keyCount() == 0)
-        #expect(await self.readRecords(from: storage) == [])
+        #expect(try await storage.keyCount() == 0)
+        #expect(try await self.readRecords(from: storage) == [])
     }
 }
 
@@ -401,8 +401,8 @@ private extension StoreIdentityFailureTests {
         Store(storage: storage, cacheIdentifier: \.id)
     }
 
-    func readRecords(from storage: any StorageEngine) async -> [StoredRecord] {
-        await storage.readAllDataAndKeys()
+    func readRecords(from storage: any StorageEngine) async throws -> [StoredRecord] {
+        try await storage.readAllDataAndKeys()
             .map({ StoredRecord(key: Array($0.key.value.utf8), data: $0.data) })
             .sorted(by: { $0.key.lexicographicallyPrecedes($1.key) })
     }
@@ -452,28 +452,28 @@ private extension StoreIdentityFailureTests {
             self.didClear = true
         }
 
-        func read(key: CacheKey) async -> Data? {
-            await self.storage.read(key: key)
+        func read(key: CacheKey) async throws -> Data? {
+            try await self.storage.read(key: key)
         }
 
-        func readDataAndKeys(keys: [CacheKey]) async -> [(key: CacheKey, data: Data)] {
-            await self.storage.readDataAndKeys(keys: keys)
+        func readDataAndKeys(keys: [CacheKey]) async throws -> [(key: CacheKey, data: Data)] {
+            try await self.storage.readDataAndKeys(keys: keys)
         }
 
-        func allKeys() async -> [CacheKey] {
-            await self.storage.allKeys()
+        func allKeys() async throws -> [CacheKey] {
+            try await self.storage.allKeys()
         }
 
-        func keyExists(_ key: CacheKey) async -> Bool {
-            await self.storage.keyExists(key)
+        func keyExists(_ key: CacheKey) async throws -> Bool {
+            try await self.storage.keyExists(key)
         }
 
-        func createdAt(key: CacheKey) async -> Date? {
-            await self.storage.createdAt(key: key)
+        func createdAt(key: CacheKey) async throws -> Date? {
+            try await self.storage.createdAt(key: key)
         }
 
-        func updatedAt(key: CacheKey) async -> Date? {
-            await self.storage.updatedAt(key: key)
+        func updatedAt(key: CacheKey) async throws -> Date? {
+            try await self.storage.updatedAt(key: key)
         }
     }
 }

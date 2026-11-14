@@ -297,7 +297,7 @@ public final class Store<Item: StorableItem> {
         guard self.storageKeys == nil else { return }
 
         do {
-            let records = await self.storageEngine.readAllDataAndKeys()
+            let records = try await self.storageEngine.readAllDataAndKeys()
             let items = try await self.coders.decode(records.map(\.data))
             var storageKeys = Dictionary<String, CacheKey>(minimumCapacity: records.count)
 
